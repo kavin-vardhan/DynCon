@@ -33,9 +33,9 @@
   "B1",
   "B2"
  ],
- "triangles": 9178,
+ "triangles": 9354,
  "triangles_by_object": {
-  "SM_content4_v2_Shell": 8954,
+  "SM_content4_v2_Shell": 9130,
   "SM_content4_v2_Door": 132,
   "SM_content4_v2_Switch": 88,
   "SM_content4_v2_Screen": 2,
@@ -45,7 +45,7 @@
   {
    "name": "SM_content4_v2_Shell",
    "role": "Shell",
-   "triangles": 8954,
+   "triangles": 9130,
    "location": [
     0.0,
     0.0,
@@ -114,7 +114,7 @@
    "triangles": 2,
    "location": [
     0.0,
-    2.215,
+    2.145,
     1.8995
    ],
    "rotation_euler_deg": [
@@ -163,11 +163,11 @@
   },
   {
    "slot": "M_WallInterior",
-   "base_color_hex": "#F7EDE5",
+   "base_color_hex": "#CF9876",
    "base_color_linear": [
-    0.93011,
-    0.84687,
-    0.78354
+    0.62396,
+    0.31399,
+    0.18116
    ],
    "roughness": 0.72,
    "metallic": 0.0,
@@ -426,7 +426,7 @@
    "name": "SOCKET_Screen",
    "location": [
     0.0,
-    2.215,
+    2.145,
     1.8995
    ],
    "rotation_euler_deg": [
@@ -444,7 +444,7 @@
    "name": "SOCKET_LightB_3",
    "location": [
     -1.75,
-    2.215,
+    2.145,
     2.25
    ],
    "rotation_euler_deg": [
@@ -462,7 +462,7 @@
    "name": "SOCKET_LightB_4",
    "location": [
     1.75,
-    2.215,
+    2.145,
     2.25
    ],
    "rotation_euler_deg": [
@@ -699,7 +699,7 @@
  "notes": [
   "Same footprint, interior box and socket set as v1. Shed roof, a porch on brand-coloured columns, round windows and a warmer palette."
  ],
- "build_seconds": 23.48,
+ "build_seconds": 22.86,
  "exports": {
   "fbx": "export/content4_v2/content4_v2.fbx",
   "glb": "export/content4_v2/content4_v2.glb"
@@ -712,13 +712,15 @@
  "render": {
   "engine": "BLENDER_EEVEE",
   "view_transform": "Standard",
-  "samples": 64
+  "samples": 64,
+  "preview_brand": "#1F8FC6",
+  "preview_emblem": "hexagon"
  },
  "generator": {
-  "dc_kit_sha256": "477581272143a7e110b23191da6a8d906032ebd6f7f99d319adf640bd748e7d9",
+  "dc_kit_sha256": "70f3b1f7eaf366125c8d92b350998270931276dbd5c54763f61ccb2f09410b96",
   "piece_script": "blender/pieces/content4.py",
-  "piece_sha256": "1f33bf04bf748c137cacf830fbb01ae74ff30dc1e9fd043453641c3889e2c7c2",
+  "piece_sha256": "c9c1a7393bf5587e9065db2214fd218c53ba321b782f30f9a0b7c7f91cf50d67",
   "blender": "5.2.2 LTS",
-  "built_utc": "2026-10-25T19:33:42Z"
+  "built_utc": "2026-10-25T22:31:19Z"
  }
 }

@@ -35,3 +35,14 @@ decisions. Each line: date · decision · why. Kavin can overturn any of these; 
 - 2026-10-26 · Next after the art: a UE **pack round-trip spike** before the server — package a base game, cook one content piece
   into its own pak, mount it at runtime and spawn it. · It is the riskiest unknown in the whole demo; a morning answer to "does
   runtime mount work with our art on 5.7" is worth more than server code that is certain to work.
+- 2026-10-26 · **Runtime pack mount is proven on 5.7 with our art** (brief 004): `FCoreDelegates::MountPak` mounts `.pak` +
+  `.utoc` + `.ucas` in one call; mount ~12–35 ms, load ~3 ms (650 ms cold), spawn < 1 ms. **A pack = all three files.**
+- 2026-10-26 · Work in **Shipping** until MSVC 14.44 is installed (Development can't link on this PC's toolchain). The plugin
+  gets its own small file log so nothing depends on `UE_LOG`; the booth UI (status strip, X-ray) never needed it. · Keeps the
+  build moving tonight; Development comes back with one installer errand for Kavin.
+- 2026-10-26 · Template variants Combat / SideScrolling and the StateTree / GameplayCameras plugins stay out — the demo needs
+  none of them. · Plain third-person walking is all plan v6 asks for.
+- 2026-10-26 · Content FBX switches to centimetres in a later UE brief that owns both sides (export setting + re-import +
+  `ContentUnitScale` back to 1) in one go. · A half-done unit change between two briefs is how scale bugs ship.
+- 2026-10-26 · Content yaw offset Blender → UE = −90° (Blender −Y lands on UE +Y); the FBX importer strips `SOCKET_`. ·
+  Measured in brief 004.

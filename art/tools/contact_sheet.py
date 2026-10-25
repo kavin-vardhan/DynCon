@@ -60,13 +60,29 @@ def _shot(art, m, key, w, h):
     return im
 
 
-def _label(d, x, y, m, f_label, f_small, extra=""):
+def _fit(d, text, max_w, sizes=(15, 14, 13, 12, 11)):
+    """Largest of `sizes` that fits `text` into max_w, else the smallest with an ellipsis.
+
+    The info line used to run off the edge of its cell on the longer pieces.
+    """
+    for s in sizes:
+        f = _font(s)
+        if d.textlength(text, font=f) <= max_w:
+            return f, text
+    f = _font(sizes[-1])
+    while text and d.textlength(text + "…", font=f) > max_w:
+        text = text[:-1]
+    return f, text + "…"
+
+
+def _label(d, x, y, m, f_label, f_small, cell_w, extra=""):
     s = m["bounds"]["size"]
     d.text((x + 9, y + 5), "%s  %s" % (m["id"], m["version"]), font=f_label, fill=FG)
     info = "class %s · %s · %.1f x %.1f x %.1f m · %s tris%s" % (
         m["size_class"], m.get("palette", "-"), s[0], s[1], s[2],
         "{:,}".format(m["triangles"]), extra)
-    d.text((x + 9, y + 28), info, font=f_small, fill=SUB)
+    f, info = _fit(d, info, cell_w - 18)
+    d.text((x + 9, y + 28), info, font=f, fill=SUB)
 
 
 # ---------------------------------------------------------------------------- sheets
@@ -93,7 +109,7 @@ def build_contact(art, out_path, cols=3, cell_w=520):
         x = PAD + c * (cell_w + PAD)
         y = PAD + head_h + r * (cell_h + PAD)
         d.rectangle((x, y, x + cell_w, y + cell_h), fill=CELL_BG)
-        _label(d, x, y, m, f_l, f_s, "  ·  fits %s" % ",".join(m["fits_slots"]))
+        _label(d, x, y, m, f_l, f_s, cell_w, "  ·  fits %s" % ",".join(m["fits_slots"]))
         for k, key in enumerate(("ext", "int")):
             sheet.paste(_shot(art, m, key, cell_w, shot_h), (x, y + label_h + k * shot_h))
 
@@ -125,7 +141,7 @@ def build_ext(art, out_path, cols=3, cell_w=520):
         x = PAD + c * (cell_w + PAD)
         y = PAD + head_h + r * (cell_h + PAD)
         d.rectangle((x, y, x + cell_w, y + cell_h), fill=CELL_BG)
-        _label(d, x, y, m, f_l, f_s, "  ·  fits %s" % ",".join(m["fits_slots"]))
+        _label(d, x, y, m, f_l, f_s, cell_w, "  ·  fits %s" % ",".join(m["fits_slots"]))
         sheet.paste(_shot(art, m, "ext", cell_w, shot_h), (x, y + label_h))
 
     sheet.save(out_path, "PNG", optimize=True)
@@ -163,7 +179,7 @@ def build_swap(art, out_path, cell_w=480):
         for c, ver in enumerate(("v1", "v2")):
             m = vs[ver]
             x = PAD + c * (cell_w + PAD)
-            _label(d, x, y, m, f_l, f_s)
+            _label(d, x, y, m, f_l, f_s, cell_w)
             for k, key in enumerate(("ext", "int")):
                 sheet.paste(_shot(art, m, key, cell_w, shot_h), (x, y + label_h + k * shot_h))
 

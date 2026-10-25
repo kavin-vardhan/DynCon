@@ -123,8 +123,10 @@ def run(pid, version, samples):
     importlib.reload(mod)
     piece = mod.build(version)
     meta = piece.finish()
+    brand, emblem = K.preview_identity(pid)
     K.preview_world()
-    K.preview_dress(piece, screen_image=os.path.join(ART, "samples", "sample_screen.png"),
+    K.preview_dress(piece, brand=brand, emblem=emblem,
+                    screen_image=os.path.join(ART, "samples", "sample_screen.png"),
                     lights_b_on=True)
     try:
         sc.eevee.taa_render_samples = samples

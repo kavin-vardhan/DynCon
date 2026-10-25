@@ -1,0 +1,850 @@
+{
+ "schema_version": 1,
+ "id": "rival3",
+ "version": "v1",
+ "size_class": "L",
+ "class_limits": {
+  "x": 14.0,
+  "y": 14.0,
+  "z": 9.0
+ },
+ "front_axis": "-Y",
+ "bounds": {
+  "min": [
+   -6.24,
+   -5.9,
+   0.0
+  ],
+  "max": [
+   6.24,
+   5.42,
+   7.12
+  ],
+  "size": [
+   12.48,
+   11.32,
+   7.12
+  ]
+ },
+ "fits_slots": [
+  "A1",
+  "A2",
+  "B1"
+ ],
+ "triangles": 13528,
+ "triangles_by_object": {
+  "SM_rival3_v1_Shell": 13304,
+  "SM_rival3_v1_Door": 132,
+  "SM_rival3_v1_Switch": 88,
+  "SM_rival3_v1_Screen": 2,
+  "SM_rival3_v1_Sign": 2
+ },
+ "objects": [
+  {
+   "name": "SM_rival3_v1_Shell",
+   "role": "Shell",
+   "triangles": 13304,
+   "location": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "materials": [
+    "M_Trim",
+    "M_Floor",
+    "M_Wall",
+    "M_WallInterior",
+    "M_Glass",
+    "M_Roof",
+    "M_BrandAccent",
+    "M_Metal",
+    "M_LightEmissive",
+    "M_Door"
+   ]
+  },
+  {
+   "name": "SM_rival3_v1_Door",
+   "role": "Door",
+   "triangles": 132,
+   "location": [
+    -0.9,
+    -4.85,
+    0.14
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "materials": [
+    "M_Door",
+    "M_Wall",
+    "M_Metal"
+   ]
+  },
+  {
+   "name": "SM_rival3_v1_Switch",
+   "role": "Switch",
+   "triangles": 88,
+   "location": [
+    1.05,
+    -4.7,
+    1.2
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    180.0
+   ],
+   "materials": [
+    "M_Switch",
+    "M_Trim"
+   ]
+  },
+  {
+   "name": "SM_rival3_v1_Screen",
+   "role": "Screen",
+   "triangles": 2,
+   "location": [
+    0.0,
+    4.565,
+    1.94
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "materials": [
+    "M_Screen"
+   ]
+  },
+  {
+   "name": "SM_rival3_v1_Sign",
+   "role": "Sign",
+   "triangles": 2,
+   "location": [
+    0.0,
+    -5.125,
+    5.0
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "materials": [
+    "M_Sign"
+   ]
+  }
+ ],
+ "palette": "pale olive + bark",
+ "materials": [
+  {
+   "slot": "M_Wall",
+   "base_color_hex": "#CBCAB2",
+   "base_color_linear": [
+    0.5972,
+    0.59062,
+    0.4452
+   ],
+   "roughness": 0.55,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 0.0,
+   "runtime_input": false
+  },
+  {
+   "slot": "M_WallInterior",
+   "base_color_hex": "#A9AC8A",
+   "base_color_linear": [
+    0.39676,
+    0.41254,
+    0.25415
+   ],
+   "roughness": 0.72,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 0.0,
+   "runtime_input": false
+  },
+  {
+   "slot": "M_Floor",
+   "base_color_hex": "#87876F",
+   "base_color_linear": [
+    0.24228,
+    0.24228,
+    0.15896
+   ],
+   "roughness": 0.45,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 0.0,
+   "runtime_input": false
+  },
+  {
+   "slot": "M_Roof",
+   "base_color_hex": "#4E4C41",
+   "base_color_linear": [
+    0.07619,
+    0.07227,
+    0.05286
+   ],
+   "roughness": 0.62,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 0.0,
+   "runtime_input": false
+  },
+  {
+   "slot": "M_Trim",
+   "base_color_hex": "#33322B",
+   "base_color_linear": [
+    0.0331,
+    0.0319,
+    0.02416
+   ],
+   "roughness": 0.42,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 0.0,
+   "runtime_input": false
+  },
+  {
+   "slot": "M_Glass",
+   "base_color_hex": "#CBDDE5",
+   "base_color_linear": [
+    0.5972,
+    0.72306,
+    0.78354
+   ],
+   "roughness": 0.07,
+   "metallic": 0.0,
+   "alpha": 0.2,
+   "emissive_strength": 0.0,
+   "runtime_input": false
+  },
+  {
+   "slot": "M_Metal",
+   "base_color_hex": "#B6BABE",
+   "base_color_linear": [
+    0.46778,
+    0.49102,
+    0.51492
+   ],
+   "roughness": 0.28,
+   "metallic": 0.9,
+   "alpha": 1.0,
+   "emissive_strength": 0.0,
+   "runtime_input": false
+  },
+  {
+   "slot": "M_Door",
+   "base_color_hex": "#6C6855",
+   "base_color_linear": [
+    0.14996,
+    0.13843,
+    0.09084
+   ],
+   "roughness": 0.45,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 0.0,
+   "runtime_input": false
+  },
+  {
+   "slot": "M_Switch",
+   "base_color_hex": "#F3F1EE",
+   "base_color_linear": [
+    0.89627,
+    0.87962,
+    0.85499
+   ],
+   "roughness": 0.34,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 0.0,
+   "runtime_input": false
+  },
+  {
+   "slot": "M_LightEmissive",
+   "base_color_hex": "#FFF4DE",
+   "base_color_linear": [
+    1.0,
+    0.90466,
+    0.73046
+   ],
+   "roughness": 0.5,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 4.0,
+   "runtime_input": false
+  },
+  {
+   "slot": "M_BrandAccent",
+   "base_color_hex": "#AFAFAF",
+   "base_color_linear": [
+    0.42869,
+    0.42869,
+    0.42869
+   ],
+   "roughness": 0.4,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 0.0,
+   "runtime_input": true
+  },
+  {
+   "slot": "M_Sign",
+   "base_color_hex": "#C7C7C7",
+   "base_color_linear": [
+    0.57112,
+    0.57112,
+    0.57112
+   ],
+   "roughness": 0.46,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 0.0,
+   "runtime_input": true
+  },
+  {
+   "slot": "M_Screen",
+   "base_color_hex": "#191B1E",
+   "base_color_linear": [
+    0.00972,
+    0.01096,
+    0.01298
+   ],
+   "roughness": 0.18,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 0.0,
+   "runtime_input": true
+  }
+ ],
+ "material_slot_count": 13,
+ "sockets": [
+  {
+   "name": "SOCKET_Door",
+   "location": [
+    -0.9,
+    -4.85,
+    0.14
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_LightB_1",
+   "location": [
+    -1.36,
+    -5.225,
+    2.3
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_LightB_2",
+   "location": [
+    1.36,
+    -5.225,
+    2.3
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_Sign",
+   "location": [
+    0.0,
+    -5.125,
+    5.0
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_LightA_1",
+   "location": [
+    -2.8237,
+    -2.35,
+    4.49
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_LightA_2",
+   "location": [
+    -2.8237,
+    0.0,
+    4.49
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_LightA_3",
+   "location": [
+    -2.8237,
+    2.35,
+    4.49
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_LightA_4",
+   "location": [
+    0.0,
+    -2.35,
+    4.49
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_LightA_5",
+   "location": [
+    0.0,
+    0.0,
+    4.49
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_LightA_6",
+   "location": [
+    0.0,
+    2.35,
+    4.49
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_LightA_7",
+   "location": [
+    2.8237,
+    -2.35,
+    4.49
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_LightA_8",
+   "location": [
+    2.8237,
+    0.0,
+    4.49
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_LightA_9",
+   "location": [
+    2.8237,
+    2.35,
+    4.49
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_Screen",
+   "location": [
+    0.0,
+    4.565,
+    1.94
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_LightB_3",
+   "location": [
+    -2.55,
+    4.565,
+    2.55
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_LightB_4",
+   "location": [
+    2.55,
+    4.565,
+    2.55
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_LightB_5",
+   "location": [
+    -5.4224,
+    0.0,
+    2.55
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    90.0
+   ],
+   "forward": [
+    1.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_LightB_6",
+   "location": [
+    5.4224,
+    0.0,
+    2.55
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    -90.0
+   ],
+   "forward": [
+    -1.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_SwitchA",
+   "location": [
+    1.05,
+    -4.7,
+    1.2
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    180.0
+   ],
+   "forward": [
+    -0.0,
+    1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_SwitchB",
+   "location": [
+    1.43,
+    -4.7,
+    1.2
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    180.0
+   ],
+   "forward": [
+    -0.0,
+    1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "VOLUME_Interior",
+   "location": [
+    0.0,
+    0.0,
+    2.57
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_Inside",
+   "location": [
+    0.0,
+    -2.8,
+    0.14
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    180.0
+   ],
+   "forward": [
+    -0.0,
+    1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_Waypoint",
+   "location": [
+    0.0,
+    -2.25,
+    7.9
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_ThumbCam",
+   "location": [
+    0.0,
+    -15.0,
+    1.7
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  }
+ ],
+ "interior_volume": {
+  "min": [
+   -4.4,
+   -4.7,
+   0.14
+  ],
+  "max": [
+   4.4,
+   4.7,
+   5.0
+  ],
+  "center": [
+   0.0,
+   0.0,
+   2.57
+  ],
+  "size": [
+   8.8,
+   9.4,
+   4.86
+  ]
+ },
+ "door": {
+  "hinge_socket": "SOCKET_Door",
+  "open_axis": "Z",
+  "open_degrees": 90,
+  "open_sign": 1,
+  "clear_width": 1.8,
+  "clear_height": 2.81,
+  "leaf_size": [
+   1.76,
+   0.08,
+   2.79
+  ],
+  "swings": "inward"
+ },
+ "clearances": {
+  "door_clear_height": 2.81,
+  "door_clear_width": 1.8,
+  "floor_top_z": 0.14,
+  "interior_clear_height": 4.86
+ },
+ "interactables": {
+  "door": true,
+  "screen": true,
+  "sign": true,
+  "switches": 2,
+  "lights_a": 9,
+  "lights_b": 6,
+  "state_schema_version": 1
+ },
+ "state_schema": [
+  "light_a_on",
+  "light_b_on",
+  "door_open",
+  "screen_image_index"
+ ],
+ "notes": [
+  "The vault underside is the ceiling: there is no flat soffit, so the group-A fixtures hang on stems and VOLUME_Interior is the biggest box that fits under the arch, not the whole floor area."
+ ],
+ "build_seconds": 33.05,
+ "exports": {
+  "fbx": "export/rival3_v1/rival3_v1.fbx",
+  "glb": "export/rival3_v1/rival3_v1.glb"
+ },
+ "previews": {
+  "ext": "previews/rival3_v1_ext.png",
+  "int": "previews/rival3_v1_int.png",
+  "top": "previews/rival3_v1_top.png"
+ },
+ "render": {
+  "engine": "BLENDER_EEVEE",
+  "view_transform": "Standard",
+  "samples": 64,
+  "preview_brand": "#7B5CD6",
+  "preview_emblem": "diamond"
+ },
+ "generator": {
+  "dc_kit_sha256": "88c5a3a84b66af88de7000fa8436c3694e71c8d9b3c04385d4c47461904811ad",
+  "piece_script": "blender/pieces/rival3.py",
+  "piece_sha256": "9642cc82119762f72d20bead8e462cf8e38f2162ac72bc33c3fcb92be926d589",
+  "blender": "5.2.2 LTS",
+  "built_utc": "2026-10-25T22:56:24Z"
+ }
+}

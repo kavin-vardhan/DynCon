@@ -65,11 +65,11 @@
  "materials": [
   {
    "slot": "M_WallInterior",
-   "base_color_hex": "#D4D2CD",
+   "base_color_hex": "#9E9C94",
    "base_color_linear": [
-    0.65837,
-    0.64448,
-    0.6105
+    0.34191,
+    0.33245,
+    0.29614
    ],
    "roughness": 0.72,
    "metallic": 0.0,
@@ -232,7 +232,7 @@
   "Placeholder: no door, switches, screen, sign or brand accent by design.",
   "Roof underside is 3.80 m (not ~3.6) so the canopy still clears 3.5 m above the deck."
  ],
- "build_seconds": 19.34,
+ "build_seconds": 18.88,
  "exports": {
   "fbx": "export/default_v1/default_v1.fbx",
   "glb": "export/default_v1/default_v1.glb"
@@ -245,13 +245,15 @@
  "render": {
   "engine": "BLENDER_EEVEE",
   "view_transform": "Standard",
-  "samples": 64
+  "samples": 64,
+  "preview_brand": "#1F8FC6",
+  "preview_emblem": "hexagon"
  },
  "generator": {
-  "dc_kit_sha256": "477581272143a7e110b23191da6a8d906032ebd6f7f99d319adf640bd748e7d9",
+  "dc_kit_sha256": "88c5a3a84b66af88de7000fa8436c3694e71c8d9b3c04385d4c47461904811ad",
   "piece_script": "blender/pieces/default.py",
-  "piece_sha256": "4286c694b5d30cd0bf88d4eaa0b136927b59d880e40597ec906fde8aefabcabc",
+  "piece_sha256": "d40c92b9c4796fcb6daed888fad56459265584cabb703220c08e3c0fd6dc330f",
   "blender": "5.2.2 LTS",
-  "built_utc": "2026-10-25T19:30:01Z"
+  "built_utc": "2026-10-25T23:01:13Z"
  }
 }

@@ -1,0 +1,53 @@
+{
+ "id": "rival1",
+ "version": "v1",
+ "fbx": "export/rival1_v1/rival1_v1.fbx",
+ "meshes": [
+  "SM_rival1_v1_Door",
+  "SM_rival1_v1_Screen",
+  "SM_rival1_v1_Shell",
+  "SM_rival1_v1_Sign",
+  "SM_rival1_v1_Switch"
+ ],
+ "sockets": [
+  "SOCKET_Door",
+  "SOCKET_Inside",
+  "SOCKET_LightA_1",
+  "SOCKET_LightA_2",
+  "SOCKET_LightA_3",
+  "SOCKET_LightA_4",
+  "SOCKET_LightA_5",
+  "SOCKET_LightA_6",
+  "SOCKET_LightA_7",
+  "SOCKET_LightA_8",
+  "SOCKET_LightB_1",
+  "SOCKET_LightB_2",
+  "SOCKET_LightB_3",
+  "SOCKET_LightB_4",
+  "SOCKET_LightB_5",
+  "SOCKET_LightB_6",
+  "SOCKET_LightB_7",
+  "SOCKET_Screen",
+  "SOCKET_Sign",
+  "SOCKET_SwitchA",
+  "SOCKET_SwitchB",
+  "SOCKET_ThumbCam",
+  "SOCKET_Waypoint",
+  "VOLUME_Interior"
+ ],
+ "imported_bounds": {
+  "min": [
+   -6.52,
+   -6.82,
+   -0.0
+  ],
+  "max": [
+   6.52,
+   6.52,
+   6.61
+  ]
+ },
+ "imported_triangles": 14854,
+ "failures": [],
+ "ok": true
+}

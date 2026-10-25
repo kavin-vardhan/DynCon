@@ -43,11 +43,10 @@ def _shell(P, *, round_windows, layout):
                    z0=0.46, z1=WALL_TOP - 0.10, pitch=1.15)
 
     # the two long side walls, inset by half a wall so they bury into the gable ends
+    side_ops = ([P.round_window_opening(WIN_Z)] if round_windows
+                else [dict(center=0.0, width=1.60, sill=1.10, head=2.70)])
     for sx in (-1, 1):
-        if round_windows:
-            ops = [P.round_window_opening(WIN_Z)]
-        else:
-            ops = [dict(center=0.0, width=1.60, sill=1.10, head=2.70)]
+        ops = side_ops
         P.wall_run(along="y", outer=sx * HX, out_sign=sx, t=T,
                    a=-HY + T / 2, b=HY - T / 2, z0=0.0, z1=WALL_TOP, openings=ops)
         if round_windows:
@@ -71,7 +70,9 @@ def _shell(P, *, round_windows, layout):
 
     P.standard_interior(lo=(ix0, iy0, floor_top), hi=(ix1, iy1, CEIL_UNDER),
                         door_center_x=0.0, lights_a=(2, 1), light_b_z=2.25, layout=layout,
-                        side_light_f=0.84)
+                        side_light_f=0.84,
+                        tall_avoid=[(o["center"] - o["width"] / 2 - 0.25,
+                                     o["center"] + o["width"] / 2 + 0.25) for o in side_ops])
     return floor_top
 
 

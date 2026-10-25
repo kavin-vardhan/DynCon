@@ -13,6 +13,11 @@ DOOR_W = 1.80
 VERSIONS = ("v1", "v2")
 
 
+def avoid(windows, pad=0.30):
+    """Window y ranges (plus a margin) that full-height furniture has to miss."""
+    return [(c - w / 2 - pad, c + w / 2 + pad) for (c, w, _s, _h) in windows]
+
+
 def build(version):
     if version == "v1":
         return _v1()
@@ -57,7 +62,10 @@ def _v1():
     P.panel_joints(along="x", outer=HY, out_sign=1, a=-HX + 0.4, b=HX - 0.4, z0=0.55,
                    z1=WALL_TOP - 0.15, pitch=1.35,
                    skip=[(c - w / 2 - 0.3, c + w / 2 + 0.3) for (c, w, s, h) in back])
-    _side_walls(P, wall_top=WALL_TOP, windows=[(c, 1.50, 1.10, 3.30) for c in (-3.0, 0.0, 3.0)])
+    # three side windows, spaced so there is a solid stretch between them wide enough for the
+    # shelving unit — in 003 it stood across the middle window
+    side = [(c, 1.50, 1.10, 3.30) for c in (-3.3, 0.0, 3.3)]
+    _side_walls(P, wall_top=WALL_TOP, windows=side)
 
     # glazed front, door in the middle, then the solid fascia above it
     P.glazed_run(along="x", outer=-HY, out_sign=-1, t=T, a=-HX, b=HX,
@@ -103,7 +111,8 @@ def _v1():
 
     P.standard_interior(lo=(ix0, iy0, floor_top), hi=(ix1, iy1, CEIL_UNDER),
                         door_center_x=0.0, lights_a=(3, 2), light_b_z=2.60, layout="a",
-                        switch_surface=(1.17, pier_y1), side_light_f=0.68)
+                        switch_surface=(1.17, pier_y1), side_light_f=0.68,
+                        tall_avoid=avoid(side))
     P.standard_markers(roof_top=roof_top, front_y=-HY)
     return P
 
@@ -126,7 +135,8 @@ def _v2():
                openings=[dict(center=c, width=w, sill=s, head=h) for (c, w, s, h) in back])
     for (c, w, s, h) in back:
         P.window(along="x", outer=HY, out_sign=1, t=T, center=c, width=w, sill=s, head=h, mullions=2)
-    _side_walls(P, wall_top=WALL_TOP, windows=[(c, 2.10, 1.20, 3.90) for c in (-2.3, 2.3)])
+    side = [(c, 2.10, 1.20, 3.90) for c in (-2.3, 2.3)]
+    _side_walls(P, wall_top=WALL_TOP, windows=side)
 
     # solid front with the door and two windows
     front = [dict(center=0.0, width=DOOR_W, sill=0.0, head=DOOR_HEAD)] + \
@@ -177,6 +187,6 @@ def _v2():
 
     P.standard_interior(lo=(ix0, iy0, floor_top), hi=(ix1, iy1, CEIL_UNDER),
                         door_center_x=0.0, lights_a=(3, 2), light_b_z=2.50, layout="b",
-                        side_light_f=0.50)
+                        side_light_f=0.50, tall_avoid=avoid(side))
     P.standard_markers(roof_top=PEAK, front_y=-HY)
     return P

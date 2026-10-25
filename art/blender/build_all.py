@@ -85,15 +85,18 @@ def build_one(pid, version, args):
     fbx, glb = K.export_piece(meta, piece.mesh_objects(), piece.socket_objects(), out_dir)
 
     previews = {}
+    brand, emblem = K.preview_identity(pid)
     render_info = dict(engine=None, view_transform=None, samples=args.samples)
     if not args.no_render:
         K.preview_world()
-        K.preview_dress(piece, screen_image=os.path.join(ART, "samples", "sample_screen.png"))
+        K.preview_dress(piece, brand=brand, emblem=emblem,
+                        screen_image=os.path.join(ART, "samples", "sample_screen.png"))
         previews = K.render_previews(piece, meta, os.path.join(ART, "previews"),
                                      samples=args.samples)
         render_info = dict(engine=bpy.context.scene.render.engine,
                            view_transform=K.view_transform_used(),
-                           samples=args.samples)
+                           samples=args.samples,
+                           preview_brand=brand, preview_emblem=emblem)
 
     elapsed = time.time() - t0
     manifest = K.write_manifest(

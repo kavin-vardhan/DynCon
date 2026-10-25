@@ -79,7 +79,9 @@ def _base_hall(P, *, layout, side_windows, back_windows, side_light_f):
     P.add_sign((0.0, -HY, SIGN_Z), (0.0, -1.0, 0.0), depth=0.13)
     P.standard_interior(lo=(ix0, iy0, floor_top), hi=(ix1, iy1, CEIL_UNDER),
                         door_center_x=0.0, lights_a=(3, 2), light_b_z=2.45, layout=layout,
-                        side_light_f=side_light_f)
+                        side_light_f=side_light_f,
+                        tall_avoid=[(c - w / 2 - 0.30, c + w / 2 + 0.30)
+                                    for (c, w, _s, _h) in side_windows])
     return floor_top
 
 
@@ -93,13 +95,20 @@ def _fin_ring(P, half, deg, z0, z1, *, count=5, w=0.16, d=0.26, mat="M_Trim"):
             P.extrude(rect, "xy", z0, z1, mat)
 
 
+def _corner_posts(P, half, deg, z0, z1, *, w=0.34, d=0.13, mat="M_Trim"):
+    """A post on each corner of a rotated volume, so the eye can trace which way it is turned."""
+    rect = [(half - w, half - w), (half + d, half - w), (half + d, half + d), (half - w, half + d)]
+    for side in range(4):
+        P.extrude(MB.rot2d(MB.rot2d(rect, 90.0 * side), deg), "xy", z0, z1, mat)
+
+
 # ----------------------------------------------------------------------------------- v1
 def _v1():
     P = K.Piece("content3", "v1", "T")
     P.notes.append("17.0 m tall, so it is the only piece that fits A2 and nothing else.")
     _base_hall(P, layout="a", side_light_f=0.62,
                side_windows=[(c, 1.50, 1.15, 3.25) for c in (-2.6, 0.0, 2.6)],
-               back_windows=[(sx * 3.80, 1.60, 1.15, 3.25) for sx in (-1, 1)])
+               back_windows=[(sx * 4.00, 1.60, 1.15, 3.25) for sx in (-1, 1)])
 
     # cornice, then two stacked closed volumes with horizontal glazing bands
     P.box((-HX - 0.22, -HY - 0.22, BASE_TOP), (HX + 0.22, HY + 0.22, BASE_TOP + 0.28), "M_Trim")
@@ -130,29 +139,36 @@ def _v1():
 # ----------------------------------------------------------------------------------- v2
 def _v2():
     P = K.Piece("content3", "v2", "T")
-    P.notes.append("Same base hall and socket set as v1; the stacked volumes twist 15 and 30 "
+    P.notes.append("Same base hall and socket set as v1; the stacked volumes twist 20 and 47 "
                    "degrees, fins replace the bands, and a stepped crown takes it to 18.6 m.")
     _base_hall(P, layout="b", side_light_f=0.50,
                side_windows=[(c, 2.20, 1.25, 3.60) for c in (-2.4, 2.4)],
-               back_windows=[(sx * 3.60, 1.80, 1.25, 3.60) for sx in (-1, 1)])
+               back_windows=[(sx * 4.00, 1.80, 1.25, 3.60) for sx in (-1, 1)])
 
+    # The twist only reads if each volume's corners hang over the slab it stands on. In 003 the
+    # angles were 15 / 30 and the volumes were small enough to stay inside the plan below them,
+    # so from the front three-quarter view the tower looked like three straight boxes. Now each
+    # volume is wider, the angles are bigger (20, then 47 — 27 of relative twist), the slab
+    # under each one keeps the angle of the volume BELOW it, and corner posts draw the edges.
+    D1, D2 = 20.0, 47.0
+    V1H, V2H = 4.30, 3.60
     P.box((-HX - 0.22, -HY - 0.22, BASE_TOP), (HX + 0.22, HY + 0.22, BASE_TOP + 0.28), "M_Trim")
-    V1H, V2H = 4.00, 3.30
-    P.extrude(MB.square2d(V1H, deg=15.0), "xy", BASE_TOP + 0.20, 11.00, "M_Wall",
-              cap_mat="M_Roof")
-    P.extrude(MB.square2d(V1H + 0.22, deg=15.0), "xy", 11.00, 11.34, "M_Trim")
-    P.extrude(MB.square2d(V2H, deg=30.0), "xy", 11.26, 17.00, "M_Wall", cap_mat="M_Roof")
+    P.extrude(MB.square2d(V1H, deg=D1), "xy", BASE_TOP + 0.20, 11.00, "M_Wall", cap_mat="M_Roof")
+    P.extrude(MB.square2d(V1H + 0.26, deg=D1), "xy", 11.00, 11.34, "M_Trim")
+    P.extrude(MB.square2d(V2H, deg=D2), "xy", 11.26, 17.00, "M_Wall", cap_mat="M_Roof")
 
-    _fin_ring(P, V1H, 15.0, BASE_TOP + 0.80, 10.80, count=5, w=0.18, d=0.28)
-    _fin_ring(P, V2H, 30.0, 11.60, 16.80, count=4, w=0.18, d=0.28)
-    for (h, deg, z0, z1) in ((V1H, 15.0, BASE_TOP + 0.34, BASE_TOP + 0.66),
-                             (V2H, 30.0, 11.40, 11.60)):
-        P.extrude(MB.square2d(h + 0.09, deg=deg), "xy", z0, z1, "M_BrandAccent")
-    for (h, deg, z0, z1) in ((V1H, 15.0, 4.0, 10.4), (V2H, 30.0, 11.8, 16.6)):
+    _fin_ring(P, V1H, D1, BASE_TOP + 0.80, 10.80, count=5, w=0.18, d=0.28)
+    _fin_ring(P, V2H, D2, 11.60, 16.80, count=4, w=0.18, d=0.28)
+    _corner_posts(P, V1H, D1, BASE_TOP + 0.20, 11.00)
+    _corner_posts(P, V2H, D2, 11.26, 17.00)
+    for (h, deg, z0, z1) in ((V1H, D1, BASE_TOP + 0.34, BASE_TOP + 0.70),
+                             (V2H, D2, 11.34, 11.62)):
+        P.extrude(MB.square2d(h + 0.16, deg=deg), "xy", z0, z1, "M_BrandAccent")
+    for (h, deg, z0, z1) in ((V1H, D1, 4.0, 10.4), (V2H, D2, 11.8, 16.6)):
         P.extrude(MB.square2d(h + 0.025, deg=deg), "xy", z0 + 2.0, z1 - 2.0, "M_Glass")
 
-    P.extrude(MB.square2d(V2H + 0.30, deg=30.0), "xy", 17.00, 17.34, "M_Roof")
-    P.extrude(MB.square2d(2.10, deg=45.0), "xy", 17.34, 18.10, "M_Trim")
+    P.extrude(MB.square2d(V2H + 0.30, deg=D2), "xy", 17.00, 17.34, "M_Roof")
+    P.extrude(MB.square2d(2.10, deg=0.0), "xy", 17.34, 18.10, "M_Trim")
     P.sb.disc((0.0, 0.0), 0.18, "xy", 18.10, 18.60, "M_Metal", segs=10)
     P.standard_markers(roof_top=18.60, front_y=-HY)
     return P

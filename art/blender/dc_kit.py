@@ -106,34 +106,53 @@ DEFAULT_MATERIALS = {
 
 # Per piece-version palette. Pieces are told apart by shape and tone, never by theme, and a
 # v2 shifts tone as well as shape so an update reads from across the booth.
+#
+# M_WallInterior is a real tint, not an off-white: with light group A on, anything above about
+# #E8 renders as the same white box in every piece, which is exactly what the rooms used to
+# look like. Each interior tint comes out of its own piece's palette family.
 PALETTES = {
     "default_v1":  dict(name="neutral grey",
-                        M_Wall="#C8C6C1", M_WallInterior="#D4D2CD", M_Floor="#8D8B86",
+                        M_Wall="#C8C6C1", M_WallInterior="#9E9C94", M_Floor="#8D8B86",
                         M_Roof="#6A6966", M_Trim="#56554F"),
     "content1_v1": dict(name="pale concrete + blue-grey",
-                        M_Wall="#CDD3D7", M_WallInterior="#ECEFF1", M_Floor="#8A9199",
+                        M_Wall="#CDD3D7", M_WallInterior="#9FB7C6", M_Floor="#8A9199",
                         M_Roof="#4E565C", M_Trim="#333A40", M_Door="#5E6A72"),
     "content1_v2": dict(name="graphite + warm white",
-                        M_Wall="#5B6165", M_WallInterior="#F2F1ED", M_Floor="#43484C",
+                        M_Wall="#5B6165", M_WallInterior="#BAA886", M_Floor="#43484C",
                         M_Roof="#2E3337", M_Trim="#D6DADC", M_Door="#C9CDCF"),
     "content2_v1": dict(name="sand + bronze",
-                        M_Wall="#E2D4B8", M_WallInterior="#F6EFDE", M_Floor="#A89474",
+                        M_Wall="#E2D4B8", M_WallInterior="#C39E5E", M_Floor="#A89474",
                         M_Roof="#7A5E3A", M_Trim="#4A3B28", M_Door="#8A6B42"),
     "content2_v2": dict(name="sage-grey + graphite",
-                        M_Wall="#C4CCBF", M_WallInterior="#EEF2EA", M_Floor="#8D958A",
+                        M_Wall="#C4CCBF", M_WallInterior="#99B48D", M_Floor="#8D958A",
                         M_Roof="#3E4440", M_Trim="#2C312E", M_Door="#5A6358"),
     "content3_v1": dict(name="cream + timber brown",
-                        M_Wall="#F0E7D6", M_WallInterior="#FAF5EA", M_Floor="#A2927C",
+                        M_Wall="#F0E7D6", M_WallInterior="#CBB184", M_Floor="#A2927C",
                         M_Roof="#6B5440", M_Trim="#4A3A2C", M_Door="#8E7152"),
     "content3_v2": dict(name="slate + pale stone",
-                        M_Wall="#B8BEC3", M_WallInterior="#E9EDF0", M_Floor="#7E858B",
+                        M_Wall="#B8BEC3", M_WallInterior="#9FA5B2", M_Floor="#7E858B",
                         M_Roof="#2F363B", M_Trim="#242A2F", M_Door="#4C555C"),
     "content4_v1": dict(name="warm white + charcoal",
-                        M_Wall="#EFEAE0", M_WallInterior="#F8F5EF", M_Floor="#93908A",
+                        M_Wall="#EFEAE0", M_WallInterior="#ADA78F", M_Floor="#93908A",
                         M_Roof="#3A3A38", M_Trim="#2F2F2D", M_Door="#8A8276"),
     "content4_v2": dict(name="pale terracotta + umber",
-                        M_Wall="#E0C4B2", M_WallInterior="#F7EDE5", M_Floor="#9C8375",
+                        M_Wall="#E0C4B2", M_WallInterior="#CF9876", M_Floor="#9C8375",
                         M_Roof="#6E4A3C", M_Trim="#3A2F2A", M_Door="#7E5B47"),
+    # The rivals. Their neutrals are picked to differ from content1-4 and to flatter the
+    # runtime colour the server gives them (see PREVIEW_IDENTITY) — but nothing here is the
+    # brand colour itself: a rival is a neutral shell plus a runtime colour, like any content.
+    "rival1_v1":   dict(name="warm stone + ink",
+                        M_Wall="#B2A796", M_WallInterior="#BCA383", M_Floor="#7E776A",
+                        M_Roof="#2E2A26", M_Trim="#201D19", M_Door="#4F4A41"),
+    "rival2_v1":   dict(name="steel blue + navy",
+                        M_Wall="#99A6B4", M_WallInterior="#7E99AD", M_Floor="#68727C",
+                        M_Roof="#2C3741", M_Trim="#1C242C", M_Door="#44515C"),
+    "rival3_v1":   dict(name="pale olive + bark",
+                        M_Wall="#CBCAB2", M_WallInterior="#A9AC8A", M_Floor="#87876F",
+                        M_Roof="#4E4C41", M_Trim="#33322B", M_Door="#6C6855"),
+    "rivalsmall_v1": dict(name="green-slate + bone",
+                        M_Wall="#7D8784", M_WallInterior="#9FB4AD", M_Floor="#4C5351",
+                        M_Roof="#2A302F", M_Trim="#DFE4E1", M_Door="#CBD2CF"),
 }
 
 
@@ -149,6 +168,21 @@ STATE_SCHEMA = ["light_a_on", "light_b_on", "door_open", "screen_image_index"]
 # sample brand identity used for previews only (never baked into an export)
 PREVIEW_BRAND_COLOR = "#1F8FC6"
 PREVIEW_EMBLEM = "hexagon"
+
+# The rivals are the one case where the preview shows a *particular* identity: at the booth the
+# server hands each region's rival this colour and emblem, so a preview with the sample blue
+# would be misleading. Still runtime-only — nothing here is baked into an FBX or a GLB.
+PREVIEW_IDENTITY = {
+    "rival1":     ("#1FA39A", "triangle"),
+    "rival2":     ("#F28C28", "ring"),
+    "rival3":     ("#7B5CD6", "diamond"),
+    "rivalsmall": ("#1FA39A", "triangle"),
+}
+
+
+def preview_identity(pid):
+    """(brand colour, emblem) to dress a preview of this piece with."""
+    return PREVIEW_IDENTITY.get(pid, (PREVIEW_BRAND_COLOR, PREVIEW_EMBLEM))
 
 _ART = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
@@ -290,18 +324,25 @@ class MeshBuilder:
         uvs = [(0.0, 0.0), (1.0, 0.0), (1.0, 1.0), (0.0, 1.0)] if uv01 else None
         self.poly(pts, mat, uvs)
 
-    def extrude(self, poly2d, plane, a, b, side_mat, cap_mat=None, cap_a_mat=None, cap_b_mat=None):
+    def extrude(self, poly2d, plane, a, b, side_mat, cap_mat=None, cap_a_mat=None, cap_b_mat=None,
+                side_mats=None):
         """Extrude a 2-D profile into a closed solid.
 
         plane 'xz' -> profile is (x, z), extruded along Y from a to b
         plane 'xy' -> profile is (x, y), extruded along Z from a to b
         plane 'yz' -> profile is (y, z), extruded along X from a to b
+
+        `side_mats` gives one material per profile EDGE (edge i runs poly[i] -> poly[i+1]) —
+        that is how a shell gets one material outside and another inside, e.g. a barrel vault
+        whose underside is the room's ceiling. As with `revolve(mats=...)`, the caller must
+        then hand over a counter-clockwise profile, because reordering it here would shuffle
+        the material list with it.
         """
         self._new_group()
         cap_mat = cap_mat or side_mat
         cap_a_mat = cap_a_mat or cap_mat
         cap_b_mat = cap_b_mat or cap_mat
-        poly = _ccw(poly2d)
+        poly = list(poly2d) if side_mats else _ccw(poly2d)
         n = len(poly)
 
         if plane == "xz":
@@ -334,7 +375,8 @@ class MeshBuilder:
                 want = (out2[0], out2[1], 0.0)
             else:
                 want = (0.0, out2[0], out2[1])
-            self.poly(_oriented([mk(p, a), mk(q, a), mk(q, b), mk(p, b)], want), side_mat)
+            m = side_mats[i] if side_mats else side_mat
+            self.poly(_oriented([mk(p, a), mk(q, a), mk(q, b), mk(p, b)], want), m)
 
     # -- round things -------------------------------------------------------------
     @staticmethod
@@ -551,7 +593,7 @@ def reset_scene():
         sc.eevee.use_raytracing = True
     except Exception:
         pass
-    for attr, val in (("shadow_pool_size", "512"), ("gi_irradiance_pool_size", "256")):
+    for attr, val in (("shadow_pool_size", "1024"), ("gi_irradiance_pool_size", "256")):
         try:
             setattr(sc.eevee, attr, val)       # a lit interior overflows the default pool
         except Exception:
@@ -649,6 +691,8 @@ class Piece:
         self.light_b = 0
         self.notes: list[str] = []
         self.preview_int = None                 # (camera loc, target) override
+        self.preview_int_lens = None            # mm, overrides the by-depth default
+        self.tall_avoid: list[tuple] = []       # y ranges no full-height furniture may cover
         self.objects: dict[str, bpy.types.Object] = {}
 
     # -- naming -------------------------------------------------------------------
@@ -672,8 +716,10 @@ class Piece:
     def box(self, lo, hi, mat, faces=None):
         self.sb.box(lo, hi, mat, faces)
 
-    def extrude(self, poly2d, plane, a, b, side_mat, cap_mat=None, cap_a_mat=None, cap_b_mat=None):
-        self.sb.extrude(poly2d, plane, a, b, side_mat, cap_mat, cap_a_mat, cap_b_mat)
+    def extrude(self, poly2d, plane, a, b, side_mat, cap_mat=None, cap_a_mat=None, cap_b_mat=None,
+                side_mats=None):
+        self.sb.extrude(poly2d, plane, a, b, side_mat, cap_mat, cap_a_mat, cap_b_mat,
+                        side_mats=side_mats)
 
     # ---------------------------------------------------------------- floor / plinth
     def plinth(self, half_x, half_y, *, skirt=0.15, base_h=0.09, deck_h=0.05, mat="M_Trim", deck_mat="M_Floor"):
@@ -899,9 +945,12 @@ class Piece:
         self.box((lo[0], lo[1], z0), (hi[0], hi[1], z1), mat, faces={"-z": under})
 
     # ---------------------------------------------------------------- fittings
-    def light_a_fixture(self, x, y, z_under, *, size=0.46, h=0.09):
+    def light_a_fixture(self, x, y, z_under, *, size=0.46, h=0.09, stem_to=None):
+        """Ceiling fixture. `stem_to` hangs it on a rod from a ceiling higher up — a vault."""
         self.box((x - size / 2, y - size / 2, z_under), (x + size / 2, y + size / 2, z_under + h),
                  "M_LightEmissive", faces={"+z": "M_Metal"})
+        if stem_to is not None and stem_to > z_under + h:
+            self.sb.disc((x, y), 0.035, "xy", z_under + h, stem_to, "M_Metal", segs=6)
         self.light_a += 1
         self.socket("SOCKET_LightA_%d" % self.light_a, (x, y, z_under - 0.02))
 
@@ -1116,6 +1165,24 @@ class Piece:
         else:
             self.box((x - r, y - r, z0 + h), (x + r, y + r, z0 + h + r * 1.8), "M_Metal")
 
+    def feature_panel(self, *, center_x, y_wall, z0, z_top, width, proud=0.07,
+                      mat="M_BrandAccent", trim="M_Trim", reveal=0.09):
+        """The accent panel the screen is mounted on, on the wall facing the door.
+
+        Brand colour is a runtime input, so without this the brand only ever reads from
+        outside: a visitor who walks in sees a neutral room. The screen and the two wall
+        fixtures beside it sit on this panel's face, not on the wall behind it.
+        """
+        hw = width / 2
+        y0 = y_wall - proud
+        self.box((center_x - hw, y0, z0), (center_x + hw, y_wall, z_top), mat)
+        for (xa, xb) in ((center_x - hw - reveal, center_x - hw),
+                         (center_x + hw, center_x + hw + reveal)):
+            self.box((xa, y0 - 0.02, z0), (xb, y_wall, z_top + reveal), trim)
+        self.box((center_x - hw - reveal, y0 - 0.02, z_top),
+                 (center_x + hw + reveal, y_wall, z_top + reveal), trim)
+        return y0
+
     def shelving(self, *, center, size=(2.2, 0.42), h=2.05, z0=0.0, axis="x", shelves=4,
                  mat="M_Trim", back="M_WallInterior"):
         x, y = center
@@ -1241,17 +1308,29 @@ class Piece:
     def standard_interior(self, *, lo, hi, door_center_x=0.0, layout="a",
                           lights_a=(2, 1), light_b_z=2.25, furniture=True,
                           switch_surface=None, inside_offset=None, screen_z=None,
-                          floor=True, skirt=True, side_lights=True, side_light_f=0.82):
+                          floor=True, skirt=True, side_lights=True, side_light_f=0.82,
+                          panel=True, panel_width=None, light_a_stem=None, tall_avoid=(),
+                          volume=None):
         """The whole shared interior fit-out: floor zones, skirting, ceiling fixtures (group A),
-        wall fixtures (group B), the screen on the wall facing the door, the two switches, and a
-        furniture layout. `layout` 'a' or 'b' gives the two versions of a piece different rooms
-        while keeping the socket names and the interactable set identical.
+        wall fixtures (group B), the brand-accent feature panel and the screen on the wall facing
+        the door, the two switches, and a furniture layout. `layout` 'a' or 'b' gives the two
+        versions of a piece different rooms while keeping the socket names and the interactable
+        set identical.
+
+        tall_avoid    y ranges (absolute, already padded) where a full-height item must not go —
+                      the side-wall windows. Shelving slides to the nearest clear stretch.
+        light_a_stem  ceiling height for the group-A fixtures to hang from: a number, or a
+                      callable (x, y) -> z for a vault.
+        volume        VOLUME_Interior box, when the walkable room is not the fit-out rectangle:
+                      under a vault the furniture goes right up to the walls, but the box that
+                      measures dwell has to be the largest box that actually fits inside.
         """
         x0, y0, z0 = lo
         x1, y1, z1 = hi
         cx = (x0 + x1) / 2
         w, dpt = x1 - x0, y1 - y0
         ph = self.PATH_HALF
+        self.tall_avoid = list(tall_avoid)
 
         if floor:
             self.floor_zones(lo, hi, inset=min(0.75, w * 0.09), path_half=ph)
@@ -1263,16 +1342,22 @@ class Piece:
             for j in range(ny):
                 lx = x0 + w * (i + 1) / (nx + 1)
                 ly = y0 + dpt * (j + 1) / (ny + 1)
-                self.light_a_fixture(lx, ly, z1 - 0.09)
+                stem = light_a_stem(lx, ly) if callable(light_a_stem) else light_a_stem
+                self.light_a_fixture(lx, ly, z1 - 0.09, stem_to=stem)
 
-        # screen on the wall facing the door (+Y), looking back into the room
+        # the brand-accent panel, then the screen and its two fixtures mounted on its face
         sc_w, sc_h = SCREEN_SIZE[self.size_class]
         sc_z = screen_z if screen_z is not None else z0 + min(1.80, (z1 - z0) * 0.45)
-        self.add_screen((cx, y1, sc_z), (0.0, -1.0, 0.0))
+        wall_y = y1
+        if panel:
+            pw = panel_width if panel_width is not None else min(sc_w + 1.70, w - 0.70)
+            p_top = min(z1 - 0.30, sc_z + sc_h / 2 + 0.95)
+            wall_y = self.feature_panel(center_x=cx, y_wall=y1, z0=z0, z_top=p_top, width=pw)
+        self.add_screen((cx, wall_y, sc_z), (0.0, -1.0, 0.0))
 
         # wall fixtures flanking the screen, plus one on each side wall
         for sx in (cx - sc_w / 2 - 0.55, cx + sc_w / 2 + 0.55):
-            self.light_b_fixture((sx, y1, light_b_z), (0.0, -1.0, 0.0))
+            self.light_b_fixture((sx, wall_y, light_b_z), (0.0, -1.0, 0.0))
         if side_lights:
             for (sx, nrm) in ((x0, (1.0, 0.0, 0.0)), (x1, (-1.0, 0.0, 0.0))):
                 self.wall_lamp((sx, y0 + dpt * side_light_f, light_b_z), nrm)
@@ -1288,12 +1373,20 @@ class Piece:
         if furniture:
             self._fit_out(lo, hi, layout)
 
-        self.interior_volume(lo, hi)
+        self.interior_volume(*(volume if volume else (lo, hi)))
         ins = inside_offset if inside_offset is not None else min(1.9, dpt * 0.30)
         self.socket("SOCKET_Inside", (cx, y0 + ins, z0), (0.0, 0.0, math.pi))
-        # aimed a little above the screen so the ceiling fixtures (light group A) are in frame
-        self.preview_int = ((cx - 0.40, y0 + 0.45, z0 + 1.72),
-                            (cx + 0.15, y1 - 0.1, z0 + min(2.60, (z1 - z0) * 0.55)))
+        if self.size_class == "S":
+            # A small room shot square-on from the doorway is a wall with a screen on it. Stand
+            # in the door -> screen corridor (the one lane the layouts always keep clear) and
+            # look diagonally across on a wider lens: two walls, the floor and the furniture.
+            self.preview_int = ((cx - ph * 0.62, y0 + 0.42, z0 + 1.62),
+                                (x1 - w * 0.16, y1 - 0.10, z0 + 1.20))
+            self.preview_int_lens = 13.0
+        else:
+            # aimed a little above the screen so the ceiling fixtures (light group A) are in frame
+            self.preview_int = ((cx - 0.40, y0 + 0.45, z0 + 1.72),
+                                (cx + 0.15, y1 - 0.1, z0 + min(2.60, (z1 - z0) * 0.55)))
 
     # (side, y-band start, y-band end, what, shape) — the two layouts of the same room.
     # Items live in a left or right lane and in a y band of their own, so nothing can ever
@@ -1312,6 +1405,34 @@ class Piece:
               (+1, 0.80, 0.97, "bench", None)],
     }
 
+    TALL_MIN_LEN = 1.00         # a shelving unit shorter than this is not worth building
+
+    def _clear_band(self, ya, yb, y0, y1):
+        """Slide a full-height item off the side-wall windows.
+
+        Returns a (ya, yb) inside [y0, y1] that misses every `tall_avoid` range and is as near
+        as possible to where the layout asked for it, or None if the wall has no clear stretch.
+        """
+        if not self.tall_avoid:
+            return ya, yb
+        want_len, want_mid = yb - ya, (ya + yb) / 2
+        free, cur = [], y0
+        for (b0, b1) in sorted(self.tall_avoid):
+            if b1 <= y0 or b0 >= y1:
+                continue
+            if b0 > cur:
+                free.append((cur, min(b0, y1)))
+            cur = max(cur, b1)
+        if cur < y1:
+            free.append((cur, y1))
+        free = [f for f in free if f[1] - f[0] >= self.TALL_MIN_LEN]
+        if not free:
+            return None
+        fa, fb = min(free, key=lambda f: abs((f[0] + f[1]) / 2 - want_mid))
+        ln = min(want_len, fb - fa)
+        mid = min(max(want_mid, fa + ln / 2), fb - ln / 2)
+        return mid - ln / 2, mid + ln / 2
+
     def _fit_out(self, lo, hi, layout):
         """Furniture. Everything stays clear of the door -> screen corridor."""
         x0, y0, z0 = lo
@@ -1327,6 +1448,11 @@ class Piece:
             if lw < 0.5:
                 continue
             ya, yb = y0 + dpt * f0, y0 + dpt * f1
+            if kind == "shelving":
+                band = self._clear_band(ya, yb, y0 + 0.10, y1 - 0.10)
+                if band is None:
+                    continue
+                ya, yb = band
             ylen, ymid = yb - ya, (ya + yb) / 2
 
             if kind == "bench":
@@ -1626,7 +1752,7 @@ def preview_dress(piece, *, brand=PREVIEW_BRAND_COLOR, emblem=PREVIEW_EMBLEM,
     for s in piece.sockets:
         grp = None
         if s["name"].startswith("SOCKET_LightA_") and lights_a_on:
-            grp = ("A", 90.0, 1.1)
+            grp = ("A", 62.0, 1.1)
         elif s["name"].startswith("SOCKET_LightB_") and lights_b_on:
             grp = ("B", 35.0, 0.5)
         if not grp:
@@ -1778,7 +1904,8 @@ def render_previews(piece, meta, out_dir, *, samples=64):
 
     # --- interior, from just inside the door, looking at the screen --------------------
     depth = (piece.interior[1][1] - piece.interior[0][1]) if piece.interior else 8.0
-    cam_i = _camera("PV_Int", lens=20.0 if depth > 6.5 else 15.0)
+    lens_i = getattr(piece, "preview_int_lens", None) or (20.0 if depth > 6.5 else 15.0)
+    cam_i = _camera("PV_Int", lens=lens_i)
     sc.camera = cam_i
     if piece.preview_int:
         loc, tgt = piece.preview_int

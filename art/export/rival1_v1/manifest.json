@@ -1,0 +1,851 @@
+{
+ "schema_version": 1,
+ "id": "rival1",
+ "version": "v1",
+ "size_class": "L",
+ "class_limits": {
+  "x": 14.0,
+  "y": 14.0,
+  "z": 9.0
+ },
+ "front_axis": "-Y",
+ "bounds": {
+  "min": [
+   -6.52,
+   -6.82,
+   0.0
+  ],
+  "max": [
+   6.52,
+   6.52,
+   6.61
+  ],
+  "size": [
+   13.04,
+   13.34,
+   6.61
+  ]
+ },
+ "fits_slots": [
+  "A1",
+  "A2",
+  "B1"
+ ],
+ "triangles": 14854,
+ "triangles_by_object": {
+  "SM_rival1_v1_Shell": 14630,
+  "SM_rival1_v1_Door": 132,
+  "SM_rival1_v1_Switch": 88,
+  "SM_rival1_v1_Screen": 2,
+  "SM_rival1_v1_Sign": 2
+ },
+ "objects": [
+  {
+   "name": "SM_rival1_v1_Shell",
+   "role": "Shell",
+   "triangles": 14630,
+   "location": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "materials": [
+    "M_Trim",
+    "M_Floor",
+    "M_Wall",
+    "M_WallInterior",
+    "M_Glass",
+    "M_Roof",
+    "M_Metal",
+    "M_BrandAccent",
+    "M_LightEmissive",
+    "M_Door"
+   ]
+  },
+  {
+   "name": "SM_rival1_v1_Door",
+   "role": "Door",
+   "triangles": 132,
+   "location": [
+    -2.9,
+    -5.87,
+    0.14
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "materials": [
+    "M_Door",
+    "M_Wall",
+    "M_Metal"
+   ]
+  },
+  {
+   "name": "SM_rival1_v1_Switch",
+   "role": "Switch",
+   "triangles": 88,
+   "location": [
+    -0.95,
+    -5.74,
+    1.2
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    180.0
+   ],
+   "materials": [
+    "M_Switch",
+    "M_Trim"
+   ]
+  },
+  {
+   "name": "SM_rival1_v1_Screen",
+   "role": "Screen",
+   "triangles": 2,
+   "location": [
+    -2.0,
+    5.905,
+    1.94
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "materials": [
+    "M_Screen"
+   ]
+  },
+  {
+   "name": "SM_rival1_v1_Sign",
+   "role": "Sign",
+   "triangles": 2,
+   "location": [
+    -2.0,
+    -6.125,
+    4.9
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "materials": [
+    "M_Sign"
+   ]
+  }
+ ],
+ "palette": "warm stone + ink",
+ "materials": [
+  {
+   "slot": "M_Wall",
+   "base_color_hex": "#B2A796",
+   "base_color_linear": [
+    0.4452,
+    0.38643,
+    0.30499
+   ],
+   "roughness": 0.55,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 0.0,
+   "runtime_input": false
+  },
+  {
+   "slot": "M_WallInterior",
+   "base_color_hex": "#BCA383",
+   "base_color_linear": [
+    0.50289,
+    0.36625,
+    0.22697
+   ],
+   "roughness": 0.72,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 0.0,
+   "runtime_input": false
+  },
+  {
+   "slot": "M_Floor",
+   "base_color_hex": "#7E776A",
+   "base_color_linear": [
+    0.20864,
+    0.18447,
+    0.14413
+   ],
+   "roughness": 0.45,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 0.0,
+   "runtime_input": false
+  },
+  {
+   "slot": "M_Roof",
+   "base_color_hex": "#2E2A26",
+   "base_color_linear": [
+    0.02732,
+    0.02315,
+    0.01938
+   ],
+   "roughness": 0.62,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 0.0,
+   "runtime_input": false
+  },
+  {
+   "slot": "M_Trim",
+   "base_color_hex": "#201D19",
+   "base_color_linear": [
+    0.01444,
+    0.01229,
+    0.00972
+   ],
+   "roughness": 0.42,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 0.0,
+   "runtime_input": false
+  },
+  {
+   "slot": "M_Glass",
+   "base_color_hex": "#CBDDE5",
+   "base_color_linear": [
+    0.5972,
+    0.72306,
+    0.78354
+   ],
+   "roughness": 0.07,
+   "metallic": 0.0,
+   "alpha": 0.2,
+   "emissive_strength": 0.0,
+   "runtime_input": false
+  },
+  {
+   "slot": "M_Metal",
+   "base_color_hex": "#B6BABE",
+   "base_color_linear": [
+    0.46778,
+    0.49102,
+    0.51492
+   ],
+   "roughness": 0.28,
+   "metallic": 0.9,
+   "alpha": 1.0,
+   "emissive_strength": 0.0,
+   "runtime_input": false
+  },
+  {
+   "slot": "M_Door",
+   "base_color_hex": "#4F4A41",
+   "base_color_linear": [
+    0.07819,
+    0.06848,
+    0.05286
+   ],
+   "roughness": 0.45,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 0.0,
+   "runtime_input": false
+  },
+  {
+   "slot": "M_Switch",
+   "base_color_hex": "#F3F1EE",
+   "base_color_linear": [
+    0.89627,
+    0.87962,
+    0.85499
+   ],
+   "roughness": 0.34,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 0.0,
+   "runtime_input": false
+  },
+  {
+   "slot": "M_LightEmissive",
+   "base_color_hex": "#FFF4DE",
+   "base_color_linear": [
+    1.0,
+    0.90466,
+    0.73046
+   ],
+   "roughness": 0.5,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 4.0,
+   "runtime_input": false
+  },
+  {
+   "slot": "M_BrandAccent",
+   "base_color_hex": "#AFAFAF",
+   "base_color_linear": [
+    0.42869,
+    0.42869,
+    0.42869
+   ],
+   "roughness": 0.4,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 0.0,
+   "runtime_input": true
+  },
+  {
+   "slot": "M_Sign",
+   "base_color_hex": "#C7C7C7",
+   "base_color_linear": [
+    0.57112,
+    0.57112,
+    0.57112
+   ],
+   "roughness": 0.46,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 0.0,
+   "runtime_input": true
+  },
+  {
+   "slot": "M_Screen",
+   "base_color_hex": "#191B1E",
+   "base_color_linear": [
+    0.00972,
+    0.01096,
+    0.01298
+   ],
+   "roughness": 0.18,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 0.0,
+   "runtime_input": true
+  }
+ ],
+ "material_slot_count": 13,
+ "sockets": [
+  {
+   "name": "SOCKET_Door",
+   "location": [
+    -2.9,
+    -5.87,
+    0.14
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_LightB_1",
+   "location": [
+    -3.35,
+    -6.225,
+    2.3
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_LightB_2",
+   "location": [
+    -0.65,
+    -6.225,
+    2.3
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_Sign",
+   "location": [
+    -2.0,
+    -6.125,
+    4.9
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_LightA_1",
+   "location": [
+    -4.02,
+    -1.8133,
+    5.64
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_LightA_2",
+   "location": [
+    -4.02,
+    2.1133,
+    5.64
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_LightA_3",
+   "location": [
+    -2.0,
+    -1.8133,
+    5.64
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_LightA_4",
+   "location": [
+    -2.0,
+    2.1133,
+    5.64
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_LightA_5",
+   "location": [
+    0.02,
+    -1.8133,
+    5.64
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_LightA_6",
+   "location": [
+    0.02,
+    2.1133,
+    5.64
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_Screen",
+   "location": [
+    -2.0,
+    5.905,
+    1.94
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_LightB_3",
+   "location": [
+    -4.55,
+    5.905,
+    2.55
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_LightB_4",
+   "location": [
+    0.55,
+    5.905,
+    2.55
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_LightB_5",
+   "location": [
+    -5.815,
+    -1.4992,
+    2.55
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    90.0
+   ],
+   "forward": [
+    1.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_LightB_6",
+   "location": [
+    1.815,
+    -1.4992,
+    2.55
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    -90.0
+   ],
+   "forward": [
+    -1.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_SwitchA",
+   "location": [
+    -0.95,
+    -5.74,
+    1.2
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    180.0
+   ],
+   "forward": [
+    -0.0,
+    1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_SwitchB",
+   "location": [
+    -0.57,
+    -5.74,
+    1.2
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    180.0
+   ],
+   "forward": [
+    -0.0,
+    1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "VOLUME_Interior",
+   "location": [
+    -2.0,
+    0.15,
+    2.945
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_Inside",
+   "location": [
+    -2.0,
+    -3.84,
+    0.14
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    180.0
+   ],
+   "forward": [
+    -0.0,
+    1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_LightA_7",
+   "location": [
+    3.6,
+    2.9,
+    4.54
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_LightA_8",
+   "location": [
+    5.1,
+    4.9,
+    4.54
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_LightB_7",
+   "location": [
+    5.815,
+    3.6,
+    2.45
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    -90.0
+   ],
+   "forward": [
+    -1.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_Waypoint",
+   "location": [
+    0.0,
+    -2.7,
+    7.42
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_ThumbCam",
+   "location": [
+    0.0,
+    -15.0,
+    1.7
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  }
+ ],
+ "interior_volume": {
+  "min": [
+   -6.04,
+   -5.74,
+   0.14
+  ],
+  "max": [
+   2.04,
+   6.04,
+   5.75
+  ],
+  "center": [
+   -2.0,
+   0.15,
+   2.945
+  ],
+  "size": [
+   8.08,
+   11.78,
+   5.61
+  ]
+ },
+ "door": {
+  "hinge_socket": "SOCKET_Door",
+  "open_axis": "Z",
+  "open_degrees": 90,
+  "open_sign": 1,
+  "clear_width": 1.8,
+  "clear_height": 2.81,
+  "leaf_size": [
+   1.76,
+   0.08,
+   2.79
+  ],
+  "swings": "inward"
+ },
+ "clearances": {
+  "door_clear_height": 2.81,
+  "door_clear_width": 1.8,
+  "floor_top_z": 0.14,
+  "interior_clear_height": 5.61
+ },
+ "interactables": {
+  "door": true,
+  "screen": true,
+  "sign": true,
+  "switches": 2,
+  "lights_a": 8,
+  "lights_b": 7,
+  "state_schema_version": 1
+ },
+ "state_schema": [
+  "light_a_on",
+  "light_b_on",
+  "door_open",
+  "screen_image_index"
+ ],
+ "notes": [
+  "L plan: the main bar carries the door, the screen and the fit-out; the wing is a lower side room open to it through a 3 m portal.",
+  "VOLUME_Interior is the main bar \u2014 the wing is walkable but is not where dwell is measured."
+ ],
+ "build_seconds": 31.34,
+ "exports": {
+  "fbx": "export/rival1_v1/rival1_v1.fbx",
+  "glb": "export/rival1_v1/rival1_v1.glb"
+ },
+ "previews": {
+  "ext": "previews/rival1_v1_ext.png",
+  "int": "previews/rival1_v1_int.png",
+  "top": "previews/rival1_v1_top.png"
+ },
+ "render": {
+  "engine": "BLENDER_EEVEE",
+  "view_transform": "Standard",
+  "samples": 64,
+  "preview_brand": "#1FA39A",
+  "preview_emblem": "triangle"
+ },
+ "generator": {
+  "dc_kit_sha256": "88c5a3a84b66af88de7000fa8436c3694e71c8d9b3c04385d4c47461904811ad",
+  "piece_script": "blender/pieces/rival1.py",
+  "piece_sha256": "88c8118349665205920e3c8889e9d788e26c81544d200c6c59a02904b86b7732",
+  "blender": "5.2.2 LTS",
+  "built_utc": "2026-10-25T22:55:22Z"
+ }
+}

@@ -29,9 +29,9 @@
  "fits_slots": [
   "A2"
  ],
- "triangles": 14500,
+ "triangles": 14676,
  "triangles_by_object": {
-  "SM_content3_v1_Shell": 14276,
+  "SM_content3_v1_Shell": 14452,
   "SM_content3_v1_Door": 132,
   "SM_content3_v1_Switch": 88,
   "SM_content3_v1_Screen": 2,
@@ -41,7 +41,7 @@
   {
    "name": "SM_content3_v1_Shell",
    "role": "Shell",
-   "triangles": 14276,
+   "triangles": 14452,
    "location": [
     0.0,
     0.0,
@@ -110,7 +110,7 @@
    "triangles": 2,
    "location": [
     0.0,
-    4.685,
+    4.615,
     1.94
    ],
    "rotation_euler_deg": [
@@ -159,11 +159,11 @@
   },
   {
    "slot": "M_WallInterior",
-   "base_color_hex": "#FAF5EA",
+   "base_color_hex": "#CBB184",
    "base_color_linear": [
-    0.95597,
-    0.9131,
-    0.82279
+    0.5972,
+    0.43966,
+    0.23074
    ],
    "roughness": 0.72,
    "metallic": 0.0,
@@ -512,7 +512,7 @@
    "name": "SOCKET_Screen",
    "location": [
     0.0,
-    4.685,
+    4.615,
     1.94
    ],
    "rotation_euler_deg": [
@@ -530,7 +530,7 @@
    "name": "SOCKET_LightB_3",
    "location": [
     -2.55,
-    4.685,
+    4.615,
     2.45
    ],
    "rotation_euler_deg": [
@@ -548,7 +548,7 @@
    "name": "SOCKET_LightB_4",
    "location": [
     2.55,
-    4.685,
+    4.615,
     2.45
    ],
    "rotation_euler_deg": [
@@ -767,7 +767,7 @@
  "notes": [
   "17.0 m tall, so it is the only piece that fits A2 and nothing else."
  ],
- "build_seconds": 30.81,
+ "build_seconds": 29.44,
  "exports": {
   "fbx": "export/content3_v1/content3_v1.fbx",
   "glb": "export/content3_v1/content3_v1.glb"
@@ -780,13 +780,15 @@
  "render": {
   "engine": "BLENDER_EEVEE",
   "view_transform": "Standard",
-  "samples": 64
+  "samples": 64,
+  "preview_brand": "#1F8FC6",
+  "preview_emblem": "hexagon"
  },
  "generator": {
-  "dc_kit_sha256": "477581272143a7e110b23191da6a8d906032ebd6f7f99d319adf640bd748e7d9",
+  "dc_kit_sha256": "70f3b1f7eaf366125c8d92b350998270931276dbd5c54763f61ccb2f09410b96",
   "piece_script": "blender/pieces/content3.py",
-  "piece_sha256": "e83b33bdd4f6ae83eeb0379f1117b40902c436ca2176a04d9090749b645799f5",
+  "piece_sha256": "36c5ddeea74dbb747db6b2fd4c6bf83c23c3d6830e2cad0514417583a7e05943",
   "blender": "5.2.2 LTS",
-  "built_utc": "2026-10-25T19:32:25Z"
+  "built_utc": "2026-10-25T22:29:58Z"
  }
 }

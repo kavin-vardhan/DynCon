@@ -1,0 +1,48 @@
+{
+ "id": "rivalsmall",
+ "version": "v1",
+ "fbx": "export/rivalsmall_v1/rivalsmall_v1.fbx",
+ "meshes": [
+  "SM_rivalsmall_v1_Door",
+  "SM_rivalsmall_v1_Screen",
+  "SM_rivalsmall_v1_Shell",
+  "SM_rivalsmall_v1_Sign",
+  "SM_rivalsmall_v1_Switch"
+ ],
+ "sockets": [
+  "SOCKET_Door",
+  "SOCKET_Inside",
+  "SOCKET_LightA_1",
+  "SOCKET_LightA_2",
+  "SOCKET_LightA_3",
+  "SOCKET_LightA_4",
+  "SOCKET_LightB_1",
+  "SOCKET_LightB_2",
+  "SOCKET_LightB_3",
+  "SOCKET_LightB_4",
+  "SOCKET_LightB_5",
+  "SOCKET_LightB_6",
+  "SOCKET_Screen",
+  "SOCKET_Sign",
+  "SOCKET_SwitchA",
+  "SOCKET_SwitchB",
+  "SOCKET_ThumbCam",
+  "SOCKET_Waypoint",
+  "VOLUME_Interior"
+ ],
+ "imported_bounds": {
+  "min": [
+   -2.78,
+   -3.27,
+   -0.0
+  ],
+  "max": [
+   2.78,
+   2.76,
+   4.7996
+  ]
+ },
+ "imported_triangles": 8090,
+ "failures": [],
+ "ok": true
+}

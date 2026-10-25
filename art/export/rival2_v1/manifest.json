@@ -1,0 +1,796 @@
+{
+ "schema_version": 1,
+ "id": "rival2",
+ "version": "v1",
+ "size_class": "L",
+ "class_limits": {
+  "x": 14.0,
+  "y": 14.0,
+  "z": 9.0
+ },
+ "front_axis": "-Y",
+ "bounds": {
+  "min": [
+   -6.918,
+   -6.12,
+   0.0
+  ],
+  "max": [
+   6.918,
+   5.9929,
+   7.56
+  ],
+  "size": [
+   13.836,
+   12.1129,
+   7.56
+  ]
+ },
+ "fits_slots": [
+  "A1",
+  "A2",
+  "B1"
+ ],
+ "triangles": 10024,
+ "triangles_by_object": {
+  "SM_rival2_v1_Shell": 9800,
+  "SM_rival2_v1_Door": 132,
+  "SM_rival2_v1_Switch": 88,
+  "SM_rival2_v1_Screen": 2,
+  "SM_rival2_v1_Sign": 2
+ },
+ "objects": [
+  {
+   "name": "SM_rival2_v1_Shell",
+   "role": "Shell",
+   "triangles": 9800,
+   "location": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "materials": [
+    "M_Trim",
+    "M_Floor",
+    "M_Wall",
+    "M_WallInterior",
+    "M_Glass",
+    "M_BrandAccent",
+    "M_Roof",
+    "M_Metal",
+    "M_LightEmissive",
+    "M_Door"
+   ]
+  },
+  {
+   "name": "SM_rival2_v1_Door",
+   "role": "Door",
+   "triangles": 132,
+   "location": [
+    -0.9,
+    -5.2294,
+    0.14
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "materials": [
+    "M_Door",
+    "M_Wall",
+    "M_Metal"
+   ]
+  },
+  {
+   "name": "SM_rival2_v1_Switch",
+   "role": "Switch",
+   "triangles": 88,
+   "location": [
+    0.99,
+    -5.0894,
+    1.2
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    180.0
+   ],
+   "materials": [
+    "M_Switch",
+    "M_Trim"
+   ]
+  },
+  {
+   "name": "SM_rival2_v1_Screen",
+   "role": "Screen",
+   "triangles": 2,
+   "location": [
+    0.0,
+    4.9544,
+    2.05
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "materials": [
+    "M_Screen"
+   ]
+  },
+  {
+   "name": "SM_rival2_v1_Sign",
+   "role": "Sign",
+   "triangles": 2,
+   "location": [
+    0.0,
+    -5.4944,
+    3.95
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "materials": [
+    "M_Sign"
+   ]
+  }
+ ],
+ "palette": "steel blue + navy",
+ "materials": [
+  {
+   "slot": "M_Wall",
+   "base_color_hex": "#99A6B4",
+   "base_color_linear": [
+    0.31855,
+    0.38133,
+    0.45641
+   ],
+   "roughness": 0.55,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 0.0,
+   "runtime_input": false
+  },
+  {
+   "slot": "M_WallInterior",
+   "base_color_hex": "#7E99AD",
+   "base_color_linear": [
+    0.20864,
+    0.31855,
+    0.41789
+   ],
+   "roughness": 0.72,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 0.0,
+   "runtime_input": false
+  },
+  {
+   "slot": "M_Floor",
+   "base_color_hex": "#68727C",
+   "base_color_linear": [
+    0.13843,
+    0.16827,
+    0.20156
+   ],
+   "roughness": 0.45,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 0.0,
+   "runtime_input": false
+  },
+  {
+   "slot": "M_Roof",
+   "base_color_hex": "#2C3741",
+   "base_color_linear": [
+    0.02519,
+    0.0382,
+    0.05286
+   ],
+   "roughness": 0.62,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 0.0,
+   "runtime_input": false
+  },
+  {
+   "slot": "M_Trim",
+   "base_color_hex": "#1C242C",
+   "base_color_linear": [
+    0.01161,
+    0.01764,
+    0.02519
+   ],
+   "roughness": 0.42,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 0.0,
+   "runtime_input": false
+  },
+  {
+   "slot": "M_Glass",
+   "base_color_hex": "#CBDDE5",
+   "base_color_linear": [
+    0.5972,
+    0.72306,
+    0.78354
+   ],
+   "roughness": 0.07,
+   "metallic": 0.0,
+   "alpha": 0.2,
+   "emissive_strength": 0.0,
+   "runtime_input": false
+  },
+  {
+   "slot": "M_Metal",
+   "base_color_hex": "#B6BABE",
+   "base_color_linear": [
+    0.46778,
+    0.49102,
+    0.51492
+   ],
+   "roughness": 0.28,
+   "metallic": 0.9,
+   "alpha": 1.0,
+   "emissive_strength": 0.0,
+   "runtime_input": false
+  },
+  {
+   "slot": "M_Door",
+   "base_color_hex": "#44515C",
+   "base_color_linear": [
+    0.05781,
+    0.08228,
+    0.10702
+   ],
+   "roughness": 0.45,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 0.0,
+   "runtime_input": false
+  },
+  {
+   "slot": "M_Switch",
+   "base_color_hex": "#F3F1EE",
+   "base_color_linear": [
+    0.89627,
+    0.87962,
+    0.85499
+   ],
+   "roughness": 0.34,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 0.0,
+   "runtime_input": false
+  },
+  {
+   "slot": "M_LightEmissive",
+   "base_color_hex": "#FFF4DE",
+   "base_color_linear": [
+    1.0,
+    0.90466,
+    0.73046
+   ],
+   "roughness": 0.5,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 4.0,
+   "runtime_input": false
+  },
+  {
+   "slot": "M_BrandAccent",
+   "base_color_hex": "#AFAFAF",
+   "base_color_linear": [
+    0.42869,
+    0.42869,
+    0.42869
+   ],
+   "roughness": 0.4,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 0.0,
+   "runtime_input": true
+  },
+  {
+   "slot": "M_Sign",
+   "base_color_hex": "#C7C7C7",
+   "base_color_linear": [
+    0.57112,
+    0.57112,
+    0.57112
+   ],
+   "roughness": 0.46,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 0.0,
+   "runtime_input": true
+  },
+  {
+   "slot": "M_Screen",
+   "base_color_hex": "#191B1E",
+   "base_color_linear": [
+    0.00972,
+    0.01096,
+    0.01298
+   ],
+   "roughness": 0.18,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 0.0,
+   "runtime_input": true
+  }
+ ],
+ "material_slot_count": 13,
+ "sockets": [
+  {
+   "name": "SOCKET_Door",
+   "location": [
+    -0.9,
+    -5.2294,
+    0.14
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_LightB_1",
+   "location": [
+    -1.36,
+    -5.5944,
+    2.3
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_LightB_2",
+   "location": [
+    1.36,
+    -5.5944,
+    2.3
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_Sign",
+   "location": [
+    0.0,
+    -5.4944,
+    3.95
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_LightB_3",
+   "location": [
+    -4.2127,
+    2.4322,
+    2.45
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    60.0
+   ],
+   "forward": [
+    0.866,
+    -0.5,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_LightB_4",
+   "location": [
+    -4.2127,
+    -2.4322,
+    2.45
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    120.0
+   ],
+   "forward": [
+    0.866,
+    0.5,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_LightA_1",
+   "location": [
+    -0.9667,
+    -1.1277,
+    5.24
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_LightA_2",
+   "location": [
+    -0.9667,
+    0.9447,
+    5.24
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_LightA_3",
+   "location": [
+    -0.9667,
+    3.017,
+    5.24
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_LightA_4",
+   "location": [
+    0.9667,
+    -1.1277,
+    5.24
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_LightA_5",
+   "location": [
+    0.9667,
+    0.9447,
+    5.24
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_LightA_6",
+   "location": [
+    0.9667,
+    3.017,
+    5.24
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_Screen",
+   "location": [
+    0.0,
+    4.9544,
+    2.05
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_LightB_5",
+   "location": [
+    -2.55,
+    4.9544,
+    2.55
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_LightB_6",
+   "location": [
+    2.55,
+    4.9544,
+    2.55
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_SwitchA",
+   "location": [
+    0.99,
+    -5.0894,
+    1.2
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    180.0
+   ],
+   "forward": [
+    -0.0,
+    1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_SwitchB",
+   "location": [
+    1.37,
+    -5.0894,
+    1.2
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    180.0
+   ],
+   "forward": [
+    -0.0,
+    1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "VOLUME_Interior",
+   "location": [
+    0.0,
+    0.9447,
+    2.745
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_Inside",
+   "location": [
+    0.0,
+    -1.3,
+    0.14
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    180.0
+   ],
+   "forward": [
+    -0.0,
+    1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_Waypoint",
+   "location": [
+    0.0,
+    -2.4162,
+    8.46
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "name": "SOCKET_ThumbCam",
+   "location": [
+    0.0,
+    -15.0,
+    1.7
+   ],
+   "rotation_euler_deg": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "forward": [
+    0.0,
+    -1.0,
+    0.0
+   ]
+  }
+ ],
+ "interior_volume": {
+  "min": [
+   -2.9,
+   -3.2,
+   0.14
+  ],
+  "max": [
+   2.9,
+   5.0894,
+   5.35
+  ],
+  "center": [
+   0.0,
+   0.9447,
+   2.745
+  ],
+  "size": [
+   5.8,
+   8.2894,
+   5.21
+  ]
+ },
+ "door": {
+  "hinge_socket": "SOCKET_Door",
+  "open_axis": "Z",
+  "open_degrees": 90,
+  "open_sign": 1,
+  "clear_width": 1.8,
+  "clear_height": 2.76,
+  "leaf_size": [
+   1.76,
+   0.08,
+   2.74
+  ],
+  "swings": "inward"
+ },
+ "clearances": {
+  "door_clear_height": 2.76,
+  "door_clear_width": 1.8,
+  "floor_top_z": 0.14,
+  "interior_clear_height": 5.21
+ },
+ "interactables": {
+  "door": true,
+  "screen": true,
+  "sign": true,
+  "switches": 2,
+  "lights_a": 6,
+  "lights_b": 6,
+  "state_schema_version": 1
+ },
+ "state_schema": [
+  "light_a_on",
+  "light_b_on",
+  "door_open",
+  "screen_image_index"
+ ],
+ "notes": [
+  "Six facets: the front one is flat to -Y so the door, the sign and the brand band sit on straight wall; the back one carries the screen."
+ ],
+ "build_seconds": 28.84,
+ "exports": {
+  "fbx": "export/rival2_v1/rival2_v1.fbx",
+  "glb": "export/rival2_v1/rival2_v1.glb"
+ },
+ "previews": {
+  "ext": "previews/rival2_v1_ext.png",
+  "int": "previews/rival2_v1_int.png",
+  "top": "previews/rival2_v1_top.png"
+ },
+ "render": {
+  "engine": "BLENDER_EEVEE",
+  "view_transform": "Standard",
+  "samples": 64,
+  "preview_brand": "#F28C28",
+  "preview_emblem": "ring"
+ },
+ "generator": {
+  "dc_kit_sha256": "88c5a3a84b66af88de7000fa8436c3694e71c8d9b3c04385d4c47461904811ad",
+  "piece_script": "blender/pieces/rival2.py",
+  "piece_sha256": "f071978e85f1b8018f37c98b62fe9e0d05ab213774a4dca82984134a8c5ff41f",
+  "blender": "5.2.2 LTS",
+  "built_utc": "2026-10-25T22:55:51Z"
+ }
+}

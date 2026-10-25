@@ -31,9 +31,9 @@
   "A2",
   "B1"
  ],
- "triangles": 10700,
+ "triangles": 10876,
  "triangles_by_object": {
-  "SM_content2_v2_Shell": 10476,
+  "SM_content2_v2_Shell": 10652,
   "SM_content2_v2_Door": 132,
   "SM_content2_v2_Switch": 88,
   "SM_content2_v2_Screen": 2,
@@ -43,7 +43,7 @@
   {
    "name": "SM_content2_v2_Shell",
    "role": "Shell",
-   "triangles": 10476,
+   "triangles": 10652,
    "location": [
     0.0,
     0.0,
@@ -112,7 +112,7 @@
    "triangles": 2,
    "location": [
     0.0,
-    4.635,
+    4.565,
     2.0
    ],
    "rotation_euler_deg": [
@@ -161,11 +161,11 @@
   },
   {
    "slot": "M_WallInterior",
-   "base_color_hex": "#EEF2EA",
+   "base_color_hex": "#99B48D",
    "base_color_linear": [
-    0.85499,
-    0.88792,
-    0.82279
+    0.31855,
+    0.45641,
+    0.26636
    ],
    "roughness": 0.72,
    "metallic": 0.0,
@@ -496,7 +496,7 @@
    "name": "SOCKET_Screen",
    "location": [
     0.0,
-    4.635,
+    4.565,
     2.0
    ],
    "rotation_euler_deg": [
@@ -514,7 +514,7 @@
    "name": "SOCKET_LightB_5",
    "location": [
     -2.55,
-    4.635,
+    4.565,
     2.55
    ],
    "rotation_euler_deg": [
@@ -532,7 +532,7 @@
    "name": "SOCKET_LightB_6",
    "location": [
     2.55,
-    4.635,
+    4.565,
     2.55
    ],
    "rotation_euler_deg": [
@@ -733,7 +733,7 @@
  "notes": [
   "Twelve facets with one of them flat to the front, so the door, the sign and the brand-wrapped columns all sit on straight surfaces."
  ],
- "build_seconds": 26.65,
+ "build_seconds": 27.16,
  "exports": {
   "fbx": "export/content2_v2/content2_v2.fbx",
   "glb": "export/content2_v2/content2_v2.glb"
@@ -746,13 +746,15 @@
  "render": {
   "engine": "BLENDER_EEVEE",
   "view_transform": "Standard",
-  "samples": 64
+  "samples": 64,
+  "preview_brand": "#1F8FC6",
+  "preview_emblem": "hexagon"
  },
  "generator": {
-  "dc_kit_sha256": "477581272143a7e110b23191da6a8d906032ebd6f7f99d319adf640bd748e7d9",
+  "dc_kit_sha256": "70f3b1f7eaf366125c8d92b350998270931276dbd5c54763f61ccb2f09410b96",
   "piece_script": "blender/pieces/content2.py",
   "piece_sha256": "e5c0b8e2c6deff934b526021dd849656e0d8f303e87070003cfa44ea66261383",
   "blender": "5.2.2 LTS",
-  "built_utc": "2026-10-25T19:31:54Z"
+  "built_utc": "2026-10-25T22:29:28Z"
  }
 }

@@ -7,13 +7,8 @@ before anything is resolved into it, so it must never look like a brand's conten
 
 import dc_kit as K
 
-PALETTE = {
-    "M_Wall":         {"color": "#C8C6C1"},
-    "M_WallInterior": {"color": "#D4D2CD"},
-    "M_Floor":        {"color": "#8D8B86"},
-    "M_Roof":         {"color": "#6A6966"},
-    "M_Trim":         {"color": "#56554F"},
-}
+# The palette lives in dc_kit.PALETTES["default_v1"] like every other piece-version — this
+# file used to carry its own copy, which quietly went stale the first time the table changed.
 
 HX = HY = 3.0           # 6 x 6 m plinth
 POST = 0.30
@@ -24,7 +19,7 @@ VERSIONS = ("v1",)
 
 
 def build(version):
-    P = K.Piece("default", version, "S", palette=PALETTE)
+    P = K.Piece("default", version, "S")
     P.notes.append("Placeholder: no door, switches, screen, sign or brand accent by design.")
     P.notes.append("Roof underside is 3.80 m (not ~3.6) so the canopy still clears 3.5 m above the deck.")
 
