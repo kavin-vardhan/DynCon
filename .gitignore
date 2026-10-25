@@ -5,3 +5,13 @@ __pycache__/
 *.blend1
 Thumbs.db
 desktop.ini
+
+# generated art: the per-piece previews and QA close-ups regenerate from the scripts,
+# so only the three sheets in art/previews/ are committed
+art/_qa/
+art/previews/*_ext.png
+art/previews/*_int.png
+art/previews/*_top.png
+!art/previews/contact_sheet.png
+!art/previews/contact_ext.png
+!art/previews/swap_pairs.png

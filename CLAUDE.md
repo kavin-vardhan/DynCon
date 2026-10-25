@@ -64,7 +64,10 @@ session. Chat Claude writes each brief and reads every report before writing the
 4. **Stay in scope.** Useful things you notice outside the brief go under *Suggestions*; don't do them.
 5. **Shell:** your Bash tool fails in headless runs on this PC (`/c/ClaudeTemp/...-cwd: No such file or directory`). Use
    PowerShell from the start; don't spend a retry on Bash.
-6. **Leave nothing running** when you finish (a session killed with background tasks still running is reported RED).
+6. **Leave nothing running, and never end on a promise.** A headless run ENDS the moment you send your final message —
+   nobody resumes you, and any background task is killed with the session. So run long jobs in the **foreground** (split them
+   into stages that fit the tool timeout), or wait until every background task has finished, *then* write the report.
+   A final message like "still running, I'll pick it up" loses the work (it happened in brief 003).
 7. **Final message = the report**, verbatim. Use this shape:
    - Line 1: a one-line headline of the outcome.
    - `## Done` — what you did, with file paths.

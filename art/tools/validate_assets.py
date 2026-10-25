@@ -184,6 +184,16 @@ def check(path, m):
     return fails, warns
 
 
+def roundtrip(path):
+    """Result of the last fbx_roundtrip.py run for this piece, if there is one."""
+    p = os.path.join(os.path.dirname(path), "roundtrip.json")
+    if not os.path.exists(p):
+        return None, []
+    with open(p, "r", encoding="utf-8") as fh:
+        r = json.load(fh)
+    return bool(r.get("ok")), list(r.get("failures", []))
+
+
 def cross_version(manifests):
     """v1 and v2 of the same id must share the exact socket set and interactable set."""
     fails = []
@@ -224,22 +234,30 @@ def main():
         print("no manifests found under art/export")
         return 1
 
-    print("%-11s %-3s %-2s %-22s %8s %5s %-14s %s"
-          % ("id", "ver", "cl", "bounds x*y*z (m)", "tris", "mats", "fits", "result"))
-    print("-" * 96)
+    print("%-11s %-3s %-2s %-22s %8s %5s %-14s %-9s %s"
+          % ("id", "ver", "cl", "bounds x*y*z (m)", "tris", "mats", "fits", "roundtrip", "result"))
+    print("-" * 108)
     bad = 0
     detail = []
     for path, m in manifests:
         fails, warns = check(path, m)
+        rt_ok, rt_fails = roundtrip(path)
+        rt = "-" if rt_ok is None else ("PASS" if rt_ok else "FAIL")
+        if rt_ok is False:
+            bad += len(rt_fails)
+            for f in rt_fails:
+                detail.append("  FAIL %s %s roundtrip: %s" % (m["id"], m["version"], f))
+        elif rt_ok is None:
+            warns.append("FBX round-trip not run yet")
         s = m["bounds"]["size"]
         result = "PASS" if not fails else "FAIL (%d)" % len(fails)
         if warns and not fails:
             result = "PASS (%d warn)" % len(warns)
-        print("%-11s %-3s %-2s %-22s %8d %5d %-14s %s"
+        print("%-11s %-3s %-2s %-22s %8d %5d %-14s %-9s %s"
               % (m["id"], m["version"], m["size_class"],
                  "%.2f x %.2f x %.2f" % (s[0], s[1], s[2]),
                  m["triangles"], m["material_slot_count"],
-                 ",".join(m["fits_slots"]), result))
+                 ",".join(m["fits_slots"]), rt, result))
         for f in fails:
             detail.append("  FAIL %s %s: %s" % (m["id"], m["version"], f))
         for w in warns:

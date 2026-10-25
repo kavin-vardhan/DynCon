@@ -28,3 +28,10 @@ decisions. Each line: date · decision · why. Kavin can overturn any of these; 
   management material). · Names stay out of code.
 - 2026-10-25 · Attract rotation: each slot alternates rival / default per 3-minute block; right after a visitor's block, the
   region's rival takes over. · Deterministic "content changes as blocks roll over" without any timers.
+- 2026-10-26 · Unreal = the launcher install **UE 5.7.4 at `E:\EpicGames\UE_5.7`** (the engine Heist Crew uses); the 5.1 source
+  build at `D:\UESource` is not used. · Found read-only in brief 002.
+- 2026-10-26 · Per-piece preview PNGs are regenerated, not committed; only the contact sheets go into git. · Keeps the repo from
+  growing ~35 MB per art rebuild.
+- 2026-10-26 · Next after the art: a UE **pack round-trip spike** before the server — package a base game, cook one content piece
+  into its own pak, mount it at runtime and spawn it. · It is the riskiest unknown in the whole demo; a morning answer to "does
+  runtime mount work with our art on 5.7" is worth more than server code that is certain to work.

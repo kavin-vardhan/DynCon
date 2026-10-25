@@ -1,0 +1,28 @@
+{
+ "id": "default",
+ "version": "v1",
+ "fbx": "export/default_v1/default_v1.fbx",
+ "meshes": [
+  "SM_default_v1_Shell"
+ ],
+ "sockets": [
+  "SOCKET_ThumbCam",
+  "SOCKET_Waypoint",
+  "VOLUME_Interior"
+ ],
+ "imported_bounds": {
+  "min": [
+   -3.2,
+   -3.2,
+   -0.0
+  ],
+  "max": [
+   3.2,
+   3.2,
+   4.02
+  ]
+ },
+ "imported_triangles": 484,
+ "failures": [],
+ "ok": true
+}

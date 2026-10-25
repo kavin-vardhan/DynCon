@@ -104,6 +104,46 @@ DEFAULT_MATERIALS = {
     "M_Screen":        dict(color="#191B1E", roughness=0.18, metallic=0.0),
 }
 
+# Per piece-version palette. Pieces are told apart by shape and tone, never by theme, and a
+# v2 shifts tone as well as shape so an update reads from across the booth.
+PALETTES = {
+    "default_v1":  dict(name="neutral grey",
+                        M_Wall="#C8C6C1", M_WallInterior="#D4D2CD", M_Floor="#8D8B86",
+                        M_Roof="#6A6966", M_Trim="#56554F"),
+    "content1_v1": dict(name="pale concrete + blue-grey",
+                        M_Wall="#CDD3D7", M_WallInterior="#ECEFF1", M_Floor="#8A9199",
+                        M_Roof="#4E565C", M_Trim="#333A40", M_Door="#5E6A72"),
+    "content1_v2": dict(name="graphite + warm white",
+                        M_Wall="#5B6165", M_WallInterior="#F2F1ED", M_Floor="#43484C",
+                        M_Roof="#2E3337", M_Trim="#D6DADC", M_Door="#C9CDCF"),
+    "content2_v1": dict(name="sand + bronze",
+                        M_Wall="#E2D4B8", M_WallInterior="#F6EFDE", M_Floor="#A89474",
+                        M_Roof="#7A5E3A", M_Trim="#4A3B28", M_Door="#8A6B42"),
+    "content2_v2": dict(name="sage-grey + graphite",
+                        M_Wall="#C4CCBF", M_WallInterior="#EEF2EA", M_Floor="#8D958A",
+                        M_Roof="#3E4440", M_Trim="#2C312E", M_Door="#5A6358"),
+    "content3_v1": dict(name="cream + timber brown",
+                        M_Wall="#F0E7D6", M_WallInterior="#FAF5EA", M_Floor="#A2927C",
+                        M_Roof="#6B5440", M_Trim="#4A3A2C", M_Door="#8E7152"),
+    "content3_v2": dict(name="slate + pale stone",
+                        M_Wall="#B8BEC3", M_WallInterior="#E9EDF0", M_Floor="#7E858B",
+                        M_Roof="#2F363B", M_Trim="#242A2F", M_Door="#4C555C"),
+    "content4_v1": dict(name="warm white + charcoal",
+                        M_Wall="#EFEAE0", M_WallInterior="#F8F5EF", M_Floor="#93908A",
+                        M_Roof="#3A3A38", M_Trim="#2F2F2D", M_Door="#8A8276"),
+    "content4_v2": dict(name="pale terracotta + umber",
+                        M_Wall="#E0C4B2", M_WallInterior="#F7EDE5", M_Floor="#9C8375",
+                        M_Roof="#6E4A3C", M_Trim="#3A2F2A", M_Door="#7E5B47"),
+}
+
+
+def palette_for(pid, version):
+    p = PALETTES.get("%s_%s" % (pid, version))
+    if not p:
+        return None, {}
+    return p.get("name"), {k: {"color": v} for k, v in p.items() if k.startswith("M_")}
+
+
 STATE_SCHEMA = ["light_a_on", "light_b_on", "door_open", "screen_image_index"]
 
 # sample brand identity used for previews only (never baked into an export)
@@ -205,10 +245,22 @@ class MeshBuilder:
         return i
 
     def poly(self, pts, mat, uvs=None):
-        idx = tuple(self._v(p) for p in pts)
-        if len(set(idx)) < 3:
+        # Collapse repeated vertices: a revolved quad at the pole of a dome or a sphere comes
+        # in as [A, B, C, A]. Blender will take that polygon and then fall over inside the
+        # bevel modifier, so it has to become a clean triangle here.
+        idx = []
+        for p in pts:
+            i = self._v(p)
+            if not idx or idx[-1] != i:
+                idx.append(i)
+        while len(idx) > 1 and idx[0] == idx[-1]:
+            idx.pop()
+        if len(idx) < 3 or len(set(idx)) != len(idx):
             return
-        self.faces.append((idx, mat, uvs))
+        n = _face_normal([self.verts[i] for i in idx])
+        if n[0] * n[0] + n[1] * n[1] + n[2] * n[2] < 1e-14:
+            return
+        self.faces.append((tuple(idx), mat, uvs))
 
     # -- primitives ---------------------------------------------------------------
     def box(self, lo, hi, mat, faces=None):
@@ -296,34 +348,135 @@ class MeshBuilder:
     def disc(self, center2d, r, plane, a, b, mat, segs=24, cap_mat=None):
         self.extrude(self.circle2d(center2d[0], center2d[1], r, segs), plane, a, b, mat, cap_mat)
 
-    def annulus(self, center2d, r_in, r_out, plane, a, b, mat, segs=24, face_mat=None):
-        """Ring solid: two cylindrical skins plus two flat ring faces."""
+    @staticmethod
+    def arc2d(cx, cy, r, segs, start_deg, span_deg):
+        """`segs+1` points along an arc (use span 360 and drop the last point for a full ring)."""
+        a0 = math.radians(start_deg)
+        da = math.radians(span_deg)
+        return [(cx + r * math.cos(a0 + da * i / segs), cy + r * math.sin(a0 + da * i / segs))
+                for i in range(segs + 1)]
+
+    @staticmethod
+    def rot2d(poly2d, deg, cx=0.0, cy=0.0):
+        a = math.radians(deg)
+        ca, sa = math.cos(a), math.sin(a)
+        return [(cx + (u - cx) * ca - (v - cy) * sa, cy + (u - cx) * sa + (v - cy) * ca)
+                for (u, v) in poly2d]
+
+    @staticmethod
+    def square2d(half, cx=0.0, cy=0.0, deg=0.0):
+        p = [(cx - half, cy - half), (cx + half, cy - half), (cx + half, cy + half), (cx - half, cy + half)]
+        return MeshBuilder.rot2d(p, deg, cx, cy) if deg else p
+
+    def ring(self, center2d, r_in, r_out, plane, a, b, mat, segs=24, face_mat=None,
+             start_deg=0.0, span_deg=360.0, inner_mat=None):
+        """Ring or ring-arc solid: inner and outer skins, two flat ring faces, end caps if partial.
+
+        With segs = 12 this is a twelve-sided prism ring, which is how the faceted pieces are
+        built; with segs = 64 it reads as a drum.
+        """
         self._new_group()
         face_mat = face_mat or mat
-        inner = self.circle2d(center2d[0], center2d[1], r_in, segs)
-        outer = self.circle2d(center2d[0], center2d[1], r_out, segs)
+        full = abs(span_deg) >= 359.999
+        n = max(1, int(round(segs * abs(span_deg) / 360.0)))
+        inner = self.arc2d(center2d[0], center2d[1], r_in, n, start_deg, span_deg)
+        outer = self.arc2d(center2d[0], center2d[1], r_out, n, start_deg, span_deg)
+        if full:
+            inner, outer = inner[:-1] + [inner[0]], outer[:-1] + [outer[0]]
+
         if plane == "xz":
             mk = lambda uv, w: (uv[0], w, uv[1])
             axis = (0.0, 1.0, 0.0)
+            wk = lambda d: (d[0], 0.0, d[1])
         elif plane == "xy":
             mk = lambda uv, w: (uv[0], uv[1], w)
             axis = (0.0, 0.0, 1.0)
+            wk = lambda d: (d[0], d[1], 0.0)
         else:
             mk = lambda uv, w: (w, uv[0], uv[1])
             axis = (1.0, 0.0, 0.0)
+            wk = lambda d: (0.0, d[0], d[1])
         neg = tuple(-c for c in axis)
-        for i in range(segs):
-            j = (i + 1) % segs
-            # ring faces
+
+        for i in range(n):
+            j = i + 1
             self.poly(_oriented([mk(inner[i], a), mk(outer[i], a), mk(outer[j], a), mk(inner[j], a)], neg), face_mat)
             self.poly(_oriented([mk(inner[i], b), mk(outer[i], b), mk(outer[j], b), mk(inner[j], b)], axis), face_mat)
-            # outer skin (normal away from centre), inner skin (normal toward centre)
-            mid_o = ((outer[i][0] + outer[j][0]) * 0.5 - center2d[0], (outer[i][1] + outer[j][1]) * 0.5 - center2d[1])
-            w_o = mk(mid_o, 0.0)
-            w_o = (mid_o[0], 0.0, mid_o[1]) if plane == "xz" else ((mid_o[0], mid_o[1], 0.0) if plane == "xy" else (0.0, mid_o[0], mid_o[1]))
+            mid_o = ((outer[i][0] + outer[j][0]) * 0.5 - center2d[0],
+                     (outer[i][1] + outer[j][1]) * 0.5 - center2d[1])
+            w_o = wk(mid_o)
             self.poly(_oriented([mk(outer[i], a), mk(outer[j], a), mk(outer[j], b), mk(outer[i], b)], w_o), mat)
             w_i = tuple(-c for c in w_o)
-            self.poly(_oriented([mk(inner[i], a), mk(inner[j], a), mk(inner[j], b), mk(inner[i], b)], w_i), mat)
+            self.poly(_oriented([mk(inner[i], a), mk(inner[j], a), mk(inner[j], b), mk(inner[i], b)], w_i),
+                      inner_mat or mat)
+
+        if not full:
+            for (k, side) in ((0, -1.0), (n, 1.0)):
+                d = (outer[k][0] - inner[k][0], outer[k][1] - inner[k][1])
+                want = wk((-d[1] * side, d[0] * side))
+                self.poly(_oriented([mk(inner[k], a), mk(outer[k], a), mk(outer[k], b), mk(inner[k], b)], want),
+                          face_mat)
+
+    def annulus(self, center2d, r_in, r_out, plane, a, b, mat, segs=24, face_mat=None):
+        """Full ring solid (kept for callers that predate `ring`)."""
+        self.ring(center2d, r_in, r_out, plane, a, b, mat, segs=segs, face_mat=face_mat)
+
+    def revolve(self, profile_rz, cx, cy, mat, segs=32, start_deg=0.0, span_deg=360.0, mats=None):
+        """Revolve a CLOSED (r, z) profile around the vertical axis at (cx, cy).
+
+        Domes, cones and spheres all come from here. With segs = 12 the same call gives the
+        folded, faceted version of the same form. Everything stays flat shaded, so a round
+        piece reads as a faceted architectural model rather than a smooth CAD surface.
+        """
+        self._new_group()
+        # with per-edge materials the caller must already hand over a CCW profile, because
+        # reordering it would shuffle the material list with it
+        poly = list(profile_rz) if mats else _ccw(profile_rz)
+        n = len(poly)
+        full = abs(span_deg) >= 359.999
+        nseg = max(1, int(round(segs * abs(span_deg) / 360.0)))
+        a0, da = math.radians(start_deg), math.radians(span_deg)
+        ang = [a0 + da * k / nseg for k in range(nseg + 1)]
+        if full:
+            ang[-1] = ang[0]
+
+        def at(p, k):
+            return (cx + p[0] * math.cos(ang[k]), cy + p[0] * math.sin(ang[k]), p[1])
+
+        for i in range(n):
+            p, q = poly[i], poly[(i + 1) % n]
+            dr, dz = q[0] - p[0], q[1] - p[1]
+            if abs(dr) < 1e-9 and abs(dz) < 1e-9:
+                continue
+            nr, nz = dz, -dr                      # outward normal of a CCW (r, z) edge
+            m = mats[i] if mats else mat
+            for k in range(nseg):
+                am = (ang[k] + ang[k + 1]) * 0.5
+                want = (nr * math.cos(am), nr * math.sin(am), nz)
+                self.poly(_oriented([at(p, k), at(q, k), at(q, k + 1), at(p, k + 1)], want), m)
+
+    def cone(self, center2d, r, z0, z1, mat, segs=16, r_top=0.0, start_deg=0.0):
+        prof = [(0.0, z0), (r, z0), (r_top, z1)] if r_top <= 1e-6 else \
+               [(0.0, z0), (r, z0), (r_top, z1), (0.0, z1)]
+        self.revolve(prof, center2d[0], center2d[1], mat, segs=segs, start_deg=start_deg)
+
+    def dome_shell(self, center2d, r_out, r_in, z0, h_out, h_in, mat, segs=32, rings=10,
+                   inner_mat=None, rim_mat=None):
+        """A hollow dome: the inside is the room's ceiling, the outside is the roof."""
+        outer = [(r_out * math.cos(math.pi / 2 * i / rings), z0 + h_out * math.sin(math.pi / 2 * i / rings))
+                 for i in range(rings + 1)]
+        inner = [(r_in * math.cos(math.pi / 2 * i / rings), z0 + h_in * math.sin(math.pi / 2 * i / rings))
+                 for i in range(rings + 1)]
+        prof = outer + list(reversed(inner))
+        mats = ([mat] * rings + [mat] + [inner_mat or mat] * rings + [rim_mat or mat]
+                if inner_mat or rim_mat else None)
+        self.revolve(prof, center2d[0], center2d[1], mat, segs=segs, mats=mats)
+
+    def sphere(self, center, r, mat, segs=12, rings=7):
+        cx, cy, cz = center
+        prof = [(r * math.sin(math.pi * i / rings), cz - r * math.cos(math.pi * i / rings))
+                for i in range(rings + 1)]
+        self.revolve(prof, cx, cy, mat, segs=segs)
 
     # -- bake ---------------------------------------------------------------------
     def material_names(self):
@@ -398,6 +551,11 @@ def reset_scene():
         sc.eevee.use_raytracing = True
     except Exception:
         pass
+    for attr, val in (("shadow_pool_size", "512"), ("gi_irradiance_pool_size", "256")):
+        try:
+            setattr(sc.eevee, attr, val)       # a lit interior overflows the default pool
+        except Exception:
+            pass
     return sc
 
 
@@ -476,6 +634,10 @@ class Piece:
         self.bevel = bevel
         self.t0 = time.time()
 
+        name, table = palette_for(pid, version)
+        if palette is None:
+            palette = table
+        self.palette_name = name or "custom"
         self.mats, self.mat_specs = make_materials(palette)
         self.sb = MeshBuilder()                 # the Shell
         self.sockets: list[dict] = []
@@ -773,6 +935,209 @@ class Piece:
             for sy in (y - hl + 0.12, y + hl - 0.24):
                 self.box((x - hd + 0.06, sy, z), (x + hd - 0.06, sy + 0.12, seat_z - 0.07), mat)
 
+    # ---------------------------------------------------------------- exterior detail
+    def _perimeter_bands(self, half_x, half_y, z0, z1, proud, depth, mat, skip_front=None):
+        hx, hy = half_x + proud, half_y + proud
+        fy = -half_y + depth
+        if skip_front:
+            a, b = skip_front
+            self.box((-hx, -hy, z0), (a, fy, z1), mat)
+            self.box((b, -hy, z0), (hx, fy, z1), mat)
+        else:
+            self.box((-hx, -hy, z0), (hx, fy, z1), mat)
+        self.box((-hx, half_y - depth, z0), (hx, hy, z1), mat)
+        self.box((-hx, -hy, z0), (-half_x + depth, hy, z1), mat)
+        self.box((half_x - depth, -hy, z0), (hx, hy, z1), mat)
+
+    def perimeter_band(self, half_x, half_y, z0, z1, *, proud=0.05, depth=0.12, mat="M_Trim"):
+        """A band round all four faces of a block — window bands, cornices, stripes."""
+        self._perimeter_bands(half_x, half_y, z0, z1, proud, depth, mat)
+
+    def round_plinth(self, r, *, segs=64, skirt=0.20, base_h=0.09, deck_h=0.05,
+                     mat="M_Trim", deck_mat="M_Floor"):
+        self.sb.disc((0.0, 0.0), r + skirt, "xy", 0.0, base_h, mat, segs=segs)
+        top = base_h + deck_h
+        self.sb.disc((0.0, 0.0), r, "xy", base_h, top, deck_mat, segs=segs)
+        self.clearances["floor_top_z"] = round(top, 4)
+        return top
+
+    def base_course(self, half_x, half_y, z0, z1, *, proud=0.06, mat="M_Trim", skip_front=None):
+        """A band standing proud all round the base — stops a wall meeting the ground flat."""
+        self._perimeter_bands(half_x, half_y, z0, z1, proud, 0.03, mat, skip_front)
+
+    def coping(self, half_x, half_y, z, *, t=0.09, proud=0.05, wide=0.30, mat="M_Trim"):
+        """Capping band on top of a parapet."""
+        self._perimeter_bands(half_x, half_y, z, z + t, proud, wide, mat)
+
+    def panel_joints(self, *, along, outer, out_sign, a, b, z0, z1, pitch=1.9,
+                     w=0.05, proud=0.035, mat="M_Trim", skip=()):
+        """Vertical panel joints that give a blank wall a rhythm."""
+        lo_p, hi_p = sorted((outer - out_sign * 0.02, outer + out_sign * proud))
+        n = max(1, int(round((b - a) / pitch)))
+        for i in range(1, n):
+            u = a + (b - a) * i / n
+            if any(lo <= u <= hi for (lo, hi) in skip):
+                continue
+            if along == "x":
+                self.box((u - w / 2, lo_p, z0), (u + w / 2, hi_p, z1), mat)
+            else:
+                self.box((lo_p, u - w / 2, z0), (hi_p, u + w / 2, z1), mat)
+
+    def fins(self, *, along, outer, out_sign, a, b, z0, z1, pitch=0.78, w=0.12, depth=0.34,
+             mat="M_Trim", skip=()):
+        """Deep vertical fins — a brise-soleil front."""
+        lo_p, hi_p = sorted((outer - out_sign * 0.03, outer + out_sign * depth))
+        n = max(1, int(round((b - a) / pitch)))
+        for i in range(n + 1):
+            u = a + (b - a) * i / n
+            if any(lo <= u <= hi for (lo, hi) in skip):
+                continue
+            if along == "x":
+                self.box((u - w / 2, lo_p, z0), (u + w / 2, hi_p, z1), mat)
+            else:
+                self.box((lo_p, u - w / 2, z0), (hi_p, u + w / 2, z1), mat)
+
+    def wall_lamp(self, center, normal, *, group="B", arm=0.14, size=0.17, height=0.34):
+        """Bracket + emissive shade. group 'B' registers a LightB socket, None is decoration."""
+        n = Vector(normal).normalized()
+        c = Vector(center)
+        br0 = c
+        br1 = c + n * arm
+        lo = tuple(min(br0[i], br1[i]) - (0.035 if abs(n[i]) < 0.5 else 0.0) for i in range(3))
+        hi = tuple(max(br0[i], br1[i]) + (0.035 if abs(n[i]) < 0.5 else 0.0) for i in range(3))
+        self.box(lo, hi, "M_Metal")
+        s = Vector((size / 2, size / 2, height / 2))
+        for i in range(3):
+            if abs(n[i]) > 0.5:
+                s[i] = size / 2
+        sc = c + n * (arm + size / 2)
+        self.box(tuple(sc[i] - s[i] for i in range(3)), tuple(sc[i] + s[i] for i in range(3)),
+                 "M_LightEmissive", faces={"+z": "M_Metal"})
+        if group == "B":
+            self.light_b += 1
+            self.socket("SOCKET_LightB_%d" % self.light_b, tuple(sc), _rot_from_normal(n))
+
+    def shrub(self, center, r, *, mat="M_Wall", segs=8, rings=5):
+        # the wall colour, not the trim colour: the planter box is M_Trim, and the palettes are
+        # built as a light/dark pair, so the planting always reads against its box
+        self.sb.sphere(center, r, mat, segs=segs, rings=rings)
+
+    def planter(self, center, *, size=(1.1, 0.75), h=0.56, z0=0.0, shrubs=2, mat="M_Trim"):
+        x, y = center
+        hx, hy = size[0] / 2, size[1] / 2
+        self.box((x - hx, y - hy, z0), (x + hx, y + hy, z0 + h), mat, faces={"+z": "M_Wall"})
+        self.box((x - hx + 0.09, y - hy + 0.09, z0 + h - 0.06), (x + hx - 0.09, y + hy - 0.09, z0 + h),
+                 "M_Roof")
+        for i in range(shrubs):
+            fx = x + (size[0] * 0.26) * (-1 if i % 2 == 0 else 1) * (1 if shrubs > 1 else 0)
+            r = 0.30 if i % 2 == 0 else 0.24
+            self.shrub((fx, y, z0 + h + r * 0.55), r)
+
+    def roof_plant_box(self, center, *, size=(1.6, 0.9), h=0.42, z0=0.0):
+        self.planter(center, size=size, h=h, z0=z0, shrubs=2)
+
+    def downpipe(self, x, y, z0, z1, *, r=0.075, mat="M_Metal"):
+        self.sb.disc((x, y), r, "xy", z0, z1, mat, segs=8)
+        for z in (z0 + (z1 - z0) * 0.25, z0 + (z1 - z0) * 0.75):
+            self.sb.disc((x, y), r + 0.035, "xy", z, z + 0.07, "M_Trim", segs=8)
+
+    def entrance_step(self, *, center_x, y_out, y_in, half_w, z_top, mat="M_Trim", mat2="M_Floor"):
+        self.box((center_x - half_w - 0.16, y_out, 0.0), (center_x + half_w + 0.16, y_in, z_top - 0.05), mat)
+        self.box((center_x - half_w, y_out + 0.14, z_top - 0.05), (center_x + half_w, y_in, z_top), mat2)
+
+    def entrance_mat(self, *, center_x, y0, y1, half_w, z, mat="M_Roof"):
+        self.box((center_x - half_w, y0, z), (center_x + half_w, y1, z + 0.012), mat)
+
+    def door_frame(self, *, along, outer, out_sign, t, center, width, head, sill=0.0,
+                   w=0.09, proud=0.04, mat="M_Trim"):
+        """A frame lining the door opening, standing slightly proud of the facade."""
+        lo_p, hi_p = sorted((outer - out_sign * (t - 0.02), outer + out_sign * proud))
+        u0, u1 = center - width / 2, center + width / 2
+        for (ua, ub, za, zb) in ((u0 - w, u0, sill, head + w), (u1, u1 + w, sill, head + w),
+                                 (u0 - w, u1 + w, head, head + w)):
+            if along == "x":
+                self.box((ua, lo_p, za), (ub, hi_p, zb), mat)
+            else:
+                self.box((lo_p, ua, za), (hi_p, ub, zb), mat)
+
+    def fascia_band(self, *, along, outer, out_sign, a, b, z0, z1, t=0.28,
+                    mat="M_Wall", in_mat="M_WallInterior"):
+        """Solid header over a glazed front. Signs and brand accent go here, never on glass."""
+        return self.wall_run(along=along, outer=outer, out_sign=out_sign, t=t,
+                             a=a, b=b, z0=z0, z1=z1, mat=mat, in_mat=in_mat)
+
+    # ---------------------------------------------------------------- interior detail
+    def skirting(self, lo, hi, *, h=0.13, t=0.035, mat="M_Trim"):
+        x0, y0, z0 = lo
+        x1, y1, _ = hi
+        self.box((x0, y0, z0), (x1, y0 + t, z0 + h), mat)
+        self.box((x0, y1 - t, z0), (x1, y1, z0 + h), mat)
+        self.box((x0, y0, z0), (x0 + t, y1, z0 + h), mat)
+        self.box((x1 - t, y0, z0), (x1, y1, z0 + h), mat)
+
+    def floor_zones(self, lo, hi, *, inset=0.55, band=0.10, path_half=0.95,
+                    border="M_Trim", path="M_WallInterior"):
+        """An inset border and a two-tone path from the door to the screen."""
+        x0, y0, z = lo
+        x1, y1, _ = hi
+        t = 0.012
+        bx0, by0, bx1, by1 = x0 + inset, y0 + inset, x1 - inset, y1 - inset
+        for (ua, va, ub, vb) in ((bx0, by0, bx1, by0 + band), (bx0, by1 - band, bx1, by1),
+                                 (bx0, by0, bx0 + band, by1), (bx1 - band, by0, bx1, by1)):
+            self.box((ua, va, z), (ub, vb, z + t), border)
+        cx = (x0 + x1) / 2
+        self.box((cx - path_half, y0, z), (cx + path_half, y1, z + t * 0.6), path)
+
+    def counter(self, *, center, size=(2.6, 0.75), h=1.05, z0=0.0, axis="x",
+                mat="M_Wall", top="M_Trim", front="M_BrandAccent"):
+        x, y = center
+        w, d = (size if axis == "x" else (size[1], size[0]))
+        hx, hy = w / 2, d / 2
+        self.box((x - hx, y - hy, z0), (x + hx, y + hy, z0 + h - 0.06), mat)
+        self.box((x - hx - 0.05, y - hy - 0.05, z0 + h - 0.06), (x + hx + 0.05, y + hy + 0.05, z0 + h), top)
+        if axis == "x":
+            self.box((x - hx + 0.10, y - hy - 0.035, z0 + 0.18), (x + hx - 0.10, y - hy, z0 + h - 0.22), front)
+        else:
+            self.box((x - hx - 0.035, y - hy + 0.10, z0 + 0.18), (x - hx, y + hy - 0.10, z0 + h - 0.22), front)
+
+    def display_plinth(self, center, *, size=0.72, h=0.92, z0=0.0, shape="sphere",
+                       mat="M_Trim", top="M_Wall"):
+        x, y = center
+        s = size / 2
+        self.box((x - s, y - s, z0), (x + s, y + s, z0 + h - 0.05), mat)
+        self.box((x - s - 0.04, y - s - 0.04, z0 + h - 0.05), (x + s + 0.04, y + s + 0.04, z0 + h), top)
+        r = size * 0.36
+        if shape == "sphere":
+            self.sb.sphere((x, y, z0 + h + r), r, "M_Metal", segs=12, rings=8)
+        elif shape == "cylinder":
+            self.sb.disc((x, y), r * 0.9, "xy", z0 + h, z0 + h + r * 2.1, "M_Metal", segs=14)
+        elif shape == "cone":
+            self.sb.cone((x, y), r * 1.05, z0 + h, z0 + h + r * 2.3, "M_Metal", segs=14)
+        else:
+            self.box((x - r, y - r, z0 + h), (x + r, y + r, z0 + h + r * 1.8), "M_Metal")
+
+    def shelving(self, *, center, size=(2.2, 0.42), h=2.05, z0=0.0, axis="x", shelves=4,
+                 mat="M_Trim", back="M_WallInterior"):
+        x, y = center
+        w, d = (size if axis == "x" else (size[1], size[0]))
+        hx, hy = w / 2, d / 2
+        if axis == "x":
+            for (ua, ub) in ((x - hx, x - hx + 0.07), (x + hx - 0.07, x + hx)):
+                self.box((ua, y - hy, z0), (ub, y + hy, z0 + h), mat)
+        else:
+            for (va, vb) in ((y - hy, y - hy + 0.07), (y + hy - 0.07, y + hy)):
+                self.box((x - hx, va, z0), (x + hx, vb, z0 + h), mat)
+        for k in range(shelves + 1):
+            z = z0 + h * k / shelves
+            self.box((x - hx, y - hy, z), (x + hx, y + hy, z + 0.05), mat, faces={"+z": back})
+        for k in range(shelves):
+            z = z0 + h * (k + 0.5) / shelves
+            ox = (-1 if k % 2 else 1) * w * 0.18
+            if axis == "x":
+                self.sb.disc((x + ox, y), 0.10, "xy", z - h / shelves * 0.3, z + h / shelves * 0.12, "M_Metal", segs=10)
+            else:
+                self.sb.disc((x, y + ox), 0.10, "xy", z - h / shelves * 0.3, z + h / shelves * 0.12, "M_Metal", segs=10)
+
     # ---------------------------------------------------------------- sub-objects
     def add_door(self, *, hinge, width, height, thickness=0.08, open_sign=1, leaf_gap=0.02):
         """Door leaf authored at its hinge (origin on the hinge axis at floor level)."""
@@ -786,7 +1151,7 @@ class Piece:
         # recessed panel + handle
         ins = 0.16
         b.box((x0 + hs * ins, -thickness / 2 - 0.025, 0.30), (x1 - hs * ins, thickness / 2 + 0.025, h - 0.30),
-              "M_Door", faces={"-y": "M_Trim", "+y": "M_Trim"})
+              "M_Door", faces={"-y": "M_Wall", "+y": "M_Wall"})
         hx = x1 - hs * 0.18
         b.box((hx - 0.03, -thickness / 2 - 0.07, 1.00), (hx + 0.03, thickness / 2 + 0.07, 1.14), "M_Metal")
         self.sub["Door"] = dict(builder=b, loc=tuple(hinge), rot=(0.0, 0.0, 0.0))
@@ -871,31 +1236,46 @@ class Piece:
         d = THUMBCAM_DIST[self.size_class]
         self.socket("SOCKET_ThumbCam", (0.0, -d, THUMBCAM_EYE), (0.0, 0.0, 0.0))
 
-    def standard_interior(self, *, lo, hi, door_center_x=0.0, wall_t=0.22,
+    PATH_HALF = 0.85            # door -> screen corridor stays 1.7 m clear
+
+    def standard_interior(self, *, lo, hi, door_center_x=0.0, layout="a",
                           lights_a=(2, 1), light_b_z=2.25, furniture=True,
-                          switch_surface=None, inside_offset=None):
-        """Ceiling fixtures, wall fixtures, screen on the wall facing the door, two switches
-        beside the door, simple furniture and the interior volume — the parts every walk-in
-        piece shares. `lo`/`hi` are the interior box (floor top .. ceiling underside)."""
+                          switch_surface=None, inside_offset=None, screen_z=None,
+                          floor=True, skirt=True, side_lights=True, side_light_f=0.82):
+        """The whole shared interior fit-out: floor zones, skirting, ceiling fixtures (group A),
+        wall fixtures (group B), the screen on the wall facing the door, the two switches, and a
+        furniture layout. `layout` 'a' or 'b' gives the two versions of a piece different rooms
+        while keeping the socket names and the interactable set identical.
+        """
         x0, y0, z0 = lo
         x1, y1, z1 = hi
         cx = (x0 + x1) / 2
+        w, dpt = x1 - x0, y1 - y0
+        ph = self.PATH_HALF
+
+        if floor:
+            self.floor_zones(lo, hi, inset=min(0.75, w * 0.09), path_half=ph)
+        if skirt:
+            self.skirting(lo, hi)
 
         nx, ny = lights_a
         for i in range(nx):
             for j in range(ny):
-                lx = x0 + (x1 - x0) * (i + 1) / (nx + 1)
-                ly = y0 + (y1 - y0) * (j + 1) / (ny + 1)
+                lx = x0 + w * (i + 1) / (nx + 1)
+                ly = y0 + dpt * (j + 1) / (ny + 1)
                 self.light_a_fixture(lx, ly, z1 - 0.09)
 
         # screen on the wall facing the door (+Y), looking back into the room
         sc_w, sc_h = SCREEN_SIZE[self.size_class]
-        sc_z = z0 + min(1.80, (z1 - z0) * 0.45)
+        sc_z = screen_z if screen_z is not None else z0 + min(1.80, (z1 - z0) * 0.45)
         self.add_screen((cx, y1, sc_z), (0.0, -1.0, 0.0))
 
-        # wall fixtures flanking the screen
+        # wall fixtures flanking the screen, plus one on each side wall
         for sx in (cx - sc_w / 2 - 0.55, cx + sc_w / 2 + 0.55):
             self.light_b_fixture((sx, y1, light_b_z), (0.0, -1.0, 0.0))
+        if side_lights:
+            for (sx, nrm) in ((x0, (1.0, 0.0, 0.0)), (x1, (-1.0, 0.0, 0.0))):
+                self.wall_lamp((sx, y0 + dpt * side_light_f, light_b_z), nrm)
 
         # two switches next to the door at 1.2 m, facing into the room.
         # switch_surface = (x_of_first, y_of_mounting_face) when the door wall is not solid there.
@@ -906,26 +1286,67 @@ class Piece:
         self.add_switches((sw_x0, sw_y, 1.20), (sw_x0 + 0.38, sw_y, 1.20), (0.0, 1.0, 0.0))
 
         if furniture:
-            # kept off the door -> screen path (|x - cx| < 0.95 stays clear) and close enough
-            # to the middle that the interior preview actually shows it
-            w, dpt = x1 - x0, y1 - y0
-            self.bench((cx - w * 0.26, y0 + dpt * 0.45, z0),
-                       length=min(2.2, dpt * 0.40), depth=0.52, seat_z=z0 + 0.46, axis="y")
-            pw, pd = min(1.20, w * 0.17), min(1.20, dpt * 0.17)
-            px = cx + w * 0.17
-            self.furniture_block((px, y0 + dpt * 0.30, z0), (px + pw, y0 + dpt * 0.30 + pd, z0 + 0.80))
-            qx = cx + w * 0.31
-            self.furniture_block((qx, y1 - dpt * 0.26 - pd * 0.8, z0),
-                                 (qx + pw * 0.7, y1 - dpt * 0.26, z0 + 1.10))
-            if w > 8.0:
-                tx = cx - w * 0.30
-                self.furniture_block((tx, y1 - dpt * 0.34, z0), (tx + pw * 1.3, y1 - dpt * 0.34 + pd, z0 + 0.52),
-                                     top="M_WallInterior")
+            self._fit_out(lo, hi, layout)
 
         self.interior_volume(lo, hi)
-        ins = inside_offset if inside_offset is not None else min(1.9, (y1 - y0) * 0.30)
+        ins = inside_offset if inside_offset is not None else min(1.9, dpt * 0.30)
         self.socket("SOCKET_Inside", (cx, y0 + ins, z0), (0.0, 0.0, math.pi))
-        self.preview_int = ((cx - 0.40, y0 + 0.45, z0 + 1.72), (cx + 0.15, y1 - 0.1, z0 + 1.15))
+        # aimed a little above the screen so the ceiling fixtures (light group A) are in frame
+        self.preview_int = ((cx - 0.40, y0 + 0.45, z0 + 1.72),
+                            (cx + 0.15, y1 - 0.1, z0 + min(2.60, (z1 - z0) * 0.55)))
+
+    # (side, y-band start, y-band end, what, shape) — the two layouts of the same room.
+    # Items live in a left or right lane and in a y band of their own, so nothing can ever
+    # overlap and the door -> screen corridor stays clear whatever the room size.
+    LAYOUTS = {
+        "a": [(-1, 0.05, 0.36, "bench", None),
+              (-1, 0.44, 0.92, "counter", None),
+              (+1, 0.06, 0.29, "plinth", "sphere"),
+              (+1, 0.36, 0.59, "plinth", "cylinder"),
+              (+1, 0.67, 0.96, "shelving", None)],
+        "b": [(+1, 0.05, 0.40, "counter", None),
+              (-1, 0.09, 0.33, "plinth", "cone"),
+              (-1, 0.41, 0.65, "plinth", "sphere"),
+              (+1, 0.49, 0.73, "plinth", "cylinder"),
+              (-1, 0.74, 0.97, "shelving", None),
+              (+1, 0.80, 0.97, "bench", None)],
+    }
+
+    def _fit_out(self, lo, hi, layout):
+        """Furniture. Everything stays clear of the door -> screen corridor."""
+        x0, y0, z0 = lo
+        x1, y1, zt = hi
+        cx = (x0 + x1) / 2
+        dpt = y1 - y0
+        ph = self.PATH_HALF
+        lanes = {-1: (x0 + 0.08, cx - ph - 0.10), 1: (cx + ph + 0.10, x1 - 0.08)}
+
+        for (side, f0, f1, kind, shape) in self.LAYOUTS.get(layout, self.LAYOUTS["a"]):
+            xa, xb = lanes[side]
+            lw = xb - xa
+            if lw < 0.5:
+                continue
+            ya, yb = y0 + dpt * f0, y0 + dpt * f1
+            ylen, ymid = yb - ya, (ya + yb) / 2
+
+            if kind == "bench":
+                d = min(0.55, lw * 0.80)
+                self.bench(((xa + xb) / 2, ymid, z0), length=min(2.4, ylen), depth=d,
+                           seat_z=z0 + 0.46, axis="y")
+            elif kind == "counter":
+                d = min(0.78, lw * 0.60)
+                x = xa + d / 2 if side < 0 else xb - d / 2
+                self.counter(center=(x, ymid), axis="y", size=(min(3.2, ylen), d), h=1.05, z0=z0)
+            elif kind == "plinth":
+                s = min(0.80, lw * 0.70, ylen * 0.85)
+                x = xa + lw * 0.42 if side < 0 else xb - lw * 0.42
+                self.display_plinth((x, ymid), size=s, h=0.86 + 0.10 * (f0 > 0.35),
+                                    z0=z0, shape=shape)
+            elif kind == "shelving":
+                d = min(0.44, lw * 0.45)
+                x = xa + d / 2 if side < 0 else xb - d / 2
+                self.shelving(center=(x, ymid), axis="y", size=(min(2.8, ylen), d),
+                              h=min(2.10, (zt - z0) * 0.52), z0=z0, shelves=4)
 
     # ---------------------------------------------------------------- bake
     def finish(self):
@@ -1059,6 +1480,7 @@ class Piece:
             triangles=sum(tris.values()),
             triangles_by_object=tris,
             objects=objects,
+            palette=self.palette_name,
             materials=materials_table(self.mat_specs, used_mats),
             material_slot_count=len(used_mats),
             sockets=sockets,
@@ -1355,7 +1777,8 @@ def render_previews(piece, meta, out_dir, *, samples=64):
     shoot("ext", os.path.join(out_dir, stem + "_ext.png"))
 
     # --- interior, from just inside the door, looking at the screen --------------------
-    cam_i = _camera("PV_Int", lens=20.0)
+    depth = (piece.interior[1][1] - piece.interior[0][1]) if piece.interior else 8.0
+    cam_i = _camera("PV_Int", lens=20.0 if depth > 6.5 else 15.0)
     sc.camera = cam_i
     if piece.preview_int:
         loc, tgt = piece.preview_int

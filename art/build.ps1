@@ -19,6 +19,7 @@ param(
     [switch]  $NoBevel,
     [int]     $Samples = 64,
     [switch]  $SkipEmblems,
+    [switch]  $QaShots,
     [string]  $Blender = ""
 )
 
@@ -44,12 +45,13 @@ function Find-Blender {
         }
     }
     $found = @()
-    foreach ($c in $cands) {
-        if (Test-Path $c) {
-            $v = (Get-Item $c).VersionInfo.ProductVersion
-            if (-not $v) { $v = "0.0" }
-            $found += [pscustomobject]@{ Path = $c; Version = [version]($v -replace '[^0-9\.]', '') }
-        }
+    foreach ($c in ($cands | Select-Object -Unique)) {
+        if (-not (Test-Path $c)) { continue }
+        # old builds report no usable product version at all, so fall back to 0.0
+        $raw = (Get-Item $c).VersionInfo.ProductVersion
+        $num = if ($raw) { ($raw -replace '[^0-9\.]', '').Trim('.') } else { '' }
+        if ($num -notmatch '^\d+(\.\d+)*$') { $num = '0.0' }
+        $found += [pscustomobject]@{ Path = $c; Version = [version]$num }
     }
     if (-not $found) { throw "No Blender found. Install Blender or pass -Blender <path to blender.exe>." }
     ($found | Sort-Object Version -Descending | Select-Object -First 1).Path
@@ -78,16 +80,30 @@ $blArgs += @("--samples", "$Samples")
 $buildCode = $LASTEXITCODE
 if ($buildCode -ne 0) { throw "build_all.py failed (exit $buildCode)" }
 
+Write-Host "`n== fbx round-trip =="
+$rtArgs = @("-b", "--factory-startup", "-noaudio", "-P", (Join-Path $art "tools\fbx_roundtrip.py"), "--")
+if ($Only) { $rtArgs += @("--only", $Only) }
+& $blender @rtArgs
+$rtCode = $LASTEXITCODE
+
 Write-Host "`n== validate =="
 python (Join-Path $art "tools\validate_assets.py")
 $valCode = $LASTEXITCODE
 
-Write-Host "`n== contact sheet =="
+if ($QaShots) {
+    Write-Host "`n== qa shots =="
+    $qaArgs = @("-b", "--factory-startup", "-noaudio", "-P", (Join-Path $art "tools\qa_shots.py"), "--")
+    if ($Only) { $qaArgs += @("--only", $Only) }
+    & $blender @qaArgs
+    if ($LASTEXITCODE -ne 0) { throw "qa_shots.py failed" }
+}
+
+Write-Host "`n== sheets =="
 python (Join-Path $art "tools\contact_sheet.py")
 if ($LASTEXITCODE -ne 0) { throw "contact_sheet.py failed" }
 
-if ($valCode -ne 0) {
-    Write-Host "`nVALIDATION FAILED" -ForegroundColor Red
+if ($valCode -ne 0 -or $rtCode -ne 0) {
+    Write-Host "`nFAILED (validate=$valCode roundtrip=$rtCode)" -ForegroundColor Red
     exit 1
 }
 Write-Host "`nall good" -ForegroundColor Green

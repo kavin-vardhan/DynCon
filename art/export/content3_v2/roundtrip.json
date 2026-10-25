@@ -1,0 +1,50 @@
+{
+ "id": "content3",
+ "version": "v2",
+ "fbx": "export/content3_v2/content3_v2.fbx",
+ "meshes": [
+  "SM_content3_v2_Door",
+  "SM_content3_v2_Screen",
+  "SM_content3_v2_Shell",
+  "SM_content3_v2_Sign",
+  "SM_content3_v2_Switch"
+ ],
+ "sockets": [
+  "SOCKET_Door",
+  "SOCKET_Inside",
+  "SOCKET_LightA_1",
+  "SOCKET_LightA_2",
+  "SOCKET_LightA_3",
+  "SOCKET_LightA_4",
+  "SOCKET_LightA_5",
+  "SOCKET_LightA_6",
+  "SOCKET_LightB_1",
+  "SOCKET_LightB_2",
+  "SOCKET_LightB_3",
+  "SOCKET_LightB_4",
+  "SOCKET_LightB_5",
+  "SOCKET_LightB_6",
+  "SOCKET_Screen",
+  "SOCKET_Sign",
+  "SOCKET_SwitchA",
+  "SOCKET_SwitchB",
+  "SOCKET_ThumbCam",
+  "SOCKET_Waypoint",
+  "VOLUME_Interior"
+ ],
+ "imported_bounds": {
+  "min": [
+   -5.25,
+   -5.84,
+   -0.0
+  ],
+  "max": [
+   5.25,
+   5.25,
+   18.6
+  ]
+ },
+ "imported_triangles": 12222,
+ "failures": [],
+ "ok": true
+}
