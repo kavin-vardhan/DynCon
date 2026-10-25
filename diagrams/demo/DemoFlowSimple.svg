@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-labelledby="title desc">
+<title id="title">The demo, in simple terms</title>
+<desc id="desc">A winning bid makes your building appear in mock region. A rival appears in mock region 2. Updates wait for the player to leave, and keep their choices.</desc>
+<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse"><path d="M 0 0 L 9 5 L 0 10 Z" fill="#607180"/></marker></defs>
+<rect width="1920" height="1080" fill="#FFFFFF"/>
+<text x="48.00" y="92.00" font-family="Arial, sans-serif" font-size="44" font-weight="700" fill="#233444" text-anchor="start">The demo, in simple terms</text>
+<text x="48.00" y="142.00" font-family="Arial, sans-serif" font-size="25" font-weight="400" fill="#607180" text-anchor="start">You choose the building. The player keeps playing.</text>
+<polyline points="288,437.0 312,437.0" fill="none" stroke="#607180" stroke-width="2.2" marker-end="url(#arrow)"/>
+<polyline points="552,437.0 576,437.0" fill="none" stroke="#607180" stroke-width="2.2" marker-end="url(#arrow)"/>
+<polyline points="816,437.0 840,437.0" fill="none" stroke="#607180" stroke-width="2.2" marker-end="url(#arrow)"/>
+<polyline points="1080,437.0 1104,437.0" fill="none" stroke="#607180" stroke-width="2.2" marker-end="url(#arrow)"/>
+<polyline points="1344,437.0 1368,437.0" fill="none" stroke="#607180" stroke-width="2.2" marker-end="url(#arrow)"/>
+<polyline points="1608,437.0 1632,437.0" fill="none" stroke="#607180" stroke-width="2.2" marker-end="url(#arrow)"/>
+<polyline points="960,564 960,714" fill="none" stroke="#607180" stroke-width="2.2" stroke-dasharray="8 6" marker-end="url(#arrow)"/>
+<polyline points="1488,564 1488,714" fill="none" stroke="#607180" stroke-width="2.2" stroke-dasharray="8 6" marker-end="url(#arrow)"/>
+<polyline points="1752,564 1752,714" fill="none" stroke="#607180" stroke-width="2.2" stroke-dasharray="8 6" marker-end="url(#arrow)"/>
+<g id="s_create"><rect x="48" y="310" width="240" height="254" rx="12" fill="#EDF4FB" stroke="#BBC8D1" stroke-width="1.2"/>
+<text x="168.00" y="343.00" font-family="Arial, sans-serif" font-size="16" font-weight="400" fill="#607180" text-anchor="middle">You</text>
+<text x="168.00" y="416.00" font-family="Arial, sans-serif" font-size="26" font-weight="700" fill="#233444" text-anchor="middle">Create your</text>
+<text x="168.00" y="447.00" font-family="Arial, sans-serif" font-size="26" font-weight="700" fill="#233444" text-anchor="middle">brand</text>
+<text x="168.00" y="510.00" font-family="Arial, sans-serif" font-size="20" font-weight="400" fill="#607180" text-anchor="middle">Colour, symbol, add</text>
+<text x="168.00" y="535.00" font-family="Arial, sans-serif" font-size="20" font-weight="400" fill="#607180" text-anchor="middle">building</text>
+</g>
+<g id="s_place"><rect x="312" y="310" width="240" height="254" rx="12" fill="#EDF4FB" stroke="#BBC8D1" stroke-width="1.2"/>
+<text x="432.00" y="343.00" font-family="Arial, sans-serif" font-size="16" font-weight="400" fill="#607180" text-anchor="middle">You</text>
+<text x="432.00" y="416.00" font-family="Arial, sans-serif" font-size="26" font-weight="700" fill="#233444" text-anchor="middle">Choose your</text>
+<text x="432.00" y="447.00" font-family="Arial, sans-serif" font-size="26" font-weight="700" fill="#233444" text-anchor="middle">place</text>
+<text x="432.00" y="510.00" font-family="Arial, sans-serif" font-size="20" font-weight="400" fill="#607180" text-anchor="middle">Game, spot, mock</text>
+<text x="432.00" y="535.00" font-family="Arial, sans-serif" font-size="20" font-weight="400" fill="#607180" text-anchor="middle">region</text>
+</g>
+<g id="s_bid"><rect x="576" y="310" width="240" height="254" rx="12" fill="#EDF4FB" stroke="#BBC8D1" stroke-width="1.2"/>
+<text x="696.00" y="343.00" font-family="Arial, sans-serif" font-size="16" font-weight="400" fill="#607180" text-anchor="middle">You</text>
+<text x="696.00" y="431.50" font-family="Arial, sans-serif" font-size="26" font-weight="700" fill="#233444" text-anchor="middle">Bid and win</text>
+<text x="696.00" y="522.50" font-family="Arial, sans-serif" font-size="20" font-weight="400" fill="#607180" text-anchor="middle">Use pretend credits</text>
+</g>
+<g id="s_appear"><rect x="840" y="310" width="240" height="254" rx="12" fill="#EAF6F2" stroke="#233444" stroke-width="3"/>
+<text x="960.00" y="343.00" font-family="Arial, sans-serif" font-size="16" font-weight="400" fill="#607180" text-anchor="middle">Player</text>
+<text x="960.00" y="416.00" font-family="Arial, sans-serif" font-size="26" font-weight="700" fill="#233444" text-anchor="middle">Your building</text>
+<text x="960.00" y="447.00" font-family="Arial, sans-serif" font-size="26" font-weight="700" fill="#233444" text-anchor="middle">appears</text>
+<text x="960.00" y="522.50" font-family="Arial, sans-serif" font-size="20" font-weight="400" fill="#607180" text-anchor="middle">Player walks nearby</text>
+</g>
+<g id="s_report"><rect x="1104" y="310" width="240" height="254" rx="12" fill="#EDF4FB" stroke="#BBC8D1" stroke-width="1.2"/>
+<text x="1224.00" y="343.00" font-family="Arial, sans-serif" font-size="16" font-weight="400" fill="#607180" text-anchor="middle">You</text>
+<text x="1224.00" y="431.50" font-family="Arial, sans-serif" font-size="26" font-weight="700" fill="#233444" text-anchor="middle">See who visits</text>
+<text x="1224.00" y="522.50" font-family="Arial, sans-serif" font-size="20" font-weight="400" fill="#607180" text-anchor="middle">Visits and time spent</text>
+</g>
+<g id="s_update"><rect x="1368" y="310" width="240" height="254" rx="12" fill="#EAF6F2" stroke="#233444" stroke-width="3"/>
+<text x="1488.00" y="343.00" font-family="Arial, sans-serif" font-size="16" font-weight="400" fill="#607180" text-anchor="middle">You + Player</text>
+<text x="1488.00" y="416.00" font-family="Arial, sans-serif" font-size="26" font-weight="700" fill="#233444" text-anchor="middle">Update the</text>
+<text x="1488.00" y="447.00" font-family="Arial, sans-serif" font-size="26" font-weight="700" fill="#233444" text-anchor="middle">building</text>
+<text x="1488.00" y="522.50" font-family="Arial, sans-serif" font-size="20" font-weight="400" fill="#607180" text-anchor="middle">After the player leaves</text>
+</g>
+<g id="s_end"><rect x="1632" y="310" width="240" height="254" rx="12" fill="#F3EFF9" stroke="#BBC8D1" stroke-width="1.2"/>
+<text x="1752.00" y="343.00" font-family="Arial, sans-serif" font-size="16" font-weight="400" fill="#607180" text-anchor="middle">Player</text>
+<text x="1752.00" y="431.50" font-family="Arial, sans-serif" font-size="26" font-weight="700" fill="#233444" text-anchor="middle">Time runs out</text>
+<text x="1752.00" y="510.00" font-family="Arial, sans-serif" font-size="20" font-weight="400" fill="#607180" text-anchor="middle">Another building</text>
+<text x="1752.00" y="535.00" font-family="Arial, sans-serif" font-size="20" font-weight="400" fill="#607180" text-anchor="middle">replaces yours</text>
+</g>
+<g id="s_region"><rect x="840" y="714" width="240" height="184" rx="12" fill="#FFF3E5" stroke="#233444" stroke-width="3"/>
+<text x="960.00" y="747.00" font-family="Arial, sans-serif" font-size="16" font-weight="400" fill="#607180" text-anchor="middle">Elsewhere</text>
+<text x="960.00" y="801.50" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#233444" text-anchor="middle">mock region 2</text>
+<text x="960.00" y="856.00" font-family="Arial, sans-serif" font-size="18" font-weight="400" fill="#607180" text-anchor="middle">Rival&#x27;s building appears</text>
+<text x="960.00" y="879.00" font-family="Arial, sans-serif" font-size="18" font-weight="400" fill="#607180" text-anchor="middle">here</text>
+</g>
+<g id="s_choices"><rect x="1368" y="714" width="240" height="184" rx="12" fill="#EAF6F2" stroke="#BBC8D1" stroke-width="1.2"/>
+<text x="1488.00" y="747.00" font-family="Arial, sans-serif" font-size="16" font-weight="400" fill="#607180" text-anchor="middle">What stays</text>
+<text x="1488.00" y="788.00" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#233444" text-anchor="middle">Player&#x27;s choices</text>
+<text x="1488.00" y="815.00" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#233444" text-anchor="middle">stay</text>
+<text x="1488.00" y="867.50" font-family="Arial, sans-serif" font-size="18" font-weight="400" fill="#607180" text-anchor="middle">Lights, door and screen</text>
+</g>
+<g id="s_results"><rect x="1632" y="714" width="240" height="184" rx="12" fill="#EDF4FB" stroke="#BBC8D1" stroke-width="1.2"/>
+<text x="1752.00" y="747.00" font-family="Arial, sans-serif" font-size="16" font-weight="400" fill="#607180" text-anchor="middle">You</text>
+<text x="1752.00" y="801.50" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#233444" text-anchor="middle">See your results</text>
+<text x="1752.00" y="867.50" font-family="Arial, sans-serif" font-size="18" font-weight="400" fill="#607180" text-anchor="middle">Then start again</text>
+</g>
+<rect x="24" y="990" width="1872" height="60" fill="#F2F4F6"/>
+<text x="960.00" y="1028.00" font-family="Arial, sans-serif" font-size="23" font-weight="400" fill="#233444" text-anchor="middle">The game keeps running  |  No loading screens  |  Pretend credits only</text>
+</svg>

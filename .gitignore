@@ -1,0 +1,6 @@
+_mailbox/
+_to_delete/
+__pycache__/
+*.pyc
+Thumbs.db
+desktop.ini

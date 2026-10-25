@@ -1,0 +1,71 @@
+# DynamicContents — CLAUDE.md (read this first, every brief)
+
+## What this folder is
+
+The home-PC working folder for **DynamicContents** (internal term **LBDR** — Logically-Bounded Dynamically-Replaceable regions):
+runtime in-game dynamic content for Unreal. A shipped map has fixed **dynamic slots**; when a player nears one, a client plugin asks a
+backend what belongs there, downloads a signed, versioned pak, verifies it, mounts it at runtime and spawns it at the slot — no restart,
+no loading screen, no client patch. Brands upload content and bid for slots through a web portal. It began as a hackathon project at
+Kavin's employer and is now in patent filing.
+
+Two workstreams:
+1. **Patent figure set** — the six figures in `diagrams/` (invention-disclosure drawings, not an engineering design doc).
+2. **Tokyo booth demo** — plan in `DemoPlan/DynamicContents_Tokyo_demo_plan_v6.md` (current; v3 and v4 are superseded history).
+
+Start with `README.md` (cold-reader overview of the system + Claude's read), then the v6 demo plan.
+
+## Folder map
+
+| Path | What |
+|---|---|
+| `README.md` | System overview, cold-reader handoff (2026-09-09) |
+| `DemoPlan/` | Demo plans v3 / v4 / v6 + `build_demo_flow*.py` |
+| `diagrams/` | The six patent figures (PNG); `diagrams/demo/` = demo-flow diagrams (.drawio / .svg / .png) + `make_demo_flow.py` |
+| `DynamicContents_DemoFlow_overview.png` | Non-technical demo-flow picture made for management sign-off |
+| `output/pdf/` | Rendered demo-flow PDFs / PNGs / SVG |
+| `_mailbox/` | The chat ↔ Code bridge. **Never read or write it.** |
+
+## Current position (2026-10-25)
+
+- No code lives here yet. Demo plan v6 is DONE; every build item in it is FUTURE. Nothing is in flight.
+- Who does what: **Kavin** is the owner — he rules on product/scope and does playtests and human errands. **Chat Claude** makes the
+  design/technical calls and writes your briefs. **You (Claude Code)** implement. You never talk to Kavin directly; chat does.
+
+## Standing rules for this project
+
+1. **Confidentiality.** Work only from what is in this folder. Never ask for, fetch or reconstruct office material — patent
+   spec or claims text, docket details, the team's code or builds, office logs or data. If a task truly needs any of it, stop and
+   raise it as NEEDS-KAVIN.
+2. **No real names.** Do not write the employer's name, docket numbers, or real product / studio names into anything here.
+3. **The demo is name-agnostic.** No game titles, no building / brand / shop names, real or invented: Game A / Game B, slots A1–A3 and
+   B1–B2, Content 1–4, "the rival". A brand is a colour plus a simple emblem. In anything meant for management, regions are
+   "Mock region 1" / "Mock region 2", and it says the regions are simulated on one PC.
+4. **Diagrams** always ship in three formats: SVG + editable `.drawio` + high-res PNG. Never put figure numbers or reference numerals
+   on them — Kavin adds those himself.
+5. **Documents** are written for a cold reader in plain words, and mark every item **DONE / QUEUED / FUTURE**.
+6. **Never overwrite or delete a superseded version** (plans, figures). A new version gets a new file name. If something must go,
+   move it to `_to_delete\` and list it in your report — Kavin deletes.
+
+## Mailbox mode (headless runs)
+
+Most of the time you are run headless by the mailbox watcher (`claude -p`, permissions pre-approved), resuming one long-lived
+session. Chat Claude writes each brief and reads every report before writing the next one.
+
+1. **Nobody can answer mid-run.** Every question for Kavin becomes a **NEEDS-KAVIN** item in your final message; every
+   design / technical choice you want chat to rule on goes under **NEEDS-DECISION**. Finish everything that does not depend on the
+   answer, then STOP. Don't guess on a decision that changes scope.
+2. **Never touch `_mailbox\`** (it is the watcher's).
+3. **Git.** This folder is a local repo with no remote. Commit at the end of every brief (message `NNN: <summary>`, NNN = brief
+   number). Never force anything, never rewrite history, never `git clean` / `reset --hard`. `_mailbox/` is git-ignored.
+4. **Stay in scope.** Useful things you notice outside the brief go under *Suggestions*; don't do them.
+5. **Leave nothing running** when you finish (a session killed with background tasks still running is reported RED).
+6. **Final message = the report**, verbatim. Use this shape:
+   - Line 1: a one-line headline of the outcome.
+   - `## Done` — what you did, with file paths.
+   - `## Verification` — how you checked it (commands run, what you opened or rendered).
+   - `## Commits` — hash + message.
+   - `## NEEDS-DECISION` — items for chat, or `none`.
+   - `## NEEDS-KAVIN` — human actions or questions, or `none`.
+   - `## Suggestions` — optional.
+   - Last line, exactly one of: `VERDICT: GREEN` (all done, nothing open) · `VERDICT: NEEDS-DECISION` · `VERDICT: RED` (failed or
+     blocked). A report with no VERDICT line is UNDECLARED and holds the next brief.
