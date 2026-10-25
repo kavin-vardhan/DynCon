@@ -1,0 +1,25 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "0.1",
+	"FriendlyName": "DynamicContents",
+	"Description": "Runtime dynamic content: content packs mounted and spawned into fixed slots while the game is running.",
+	"Category": "DynamicContents",
+	"CreatedBy": "",
+	"CreatedByURL": "",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"EnabledByDefault": true,
+	"CanContainContent": false,
+	"IsBetaVersion": false,
+	"IsExperimentalVersion": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "DynamicContents",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	]
+}
