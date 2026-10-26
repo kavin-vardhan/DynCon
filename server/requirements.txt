@@ -1,0 +1,18 @@
+# Demo server dependencies — pinned. Install into server\.venv (Python 3.13).
+#   server\.venv\Scripts\python.exe -m pip install -r server\requirements.txt
+#
+# Direct dependencies only; pip resolves the rest (starlette, pydantic, anyio, h11,
+# httpcore, cffi, click, colorama, idna, certifi, …).
+#
+# fastapi           the HTTP app
+# uvicorn           the ASGI server (local mode; Lambda would use a different adapter)
+# cryptography      RSA-2048 / RS256 pack + manifest signing
+# python-multipart  multipart parsing for the .dcpack upload
+# pytest            tests
+# httpx             the fake game client's HTTP + the test client's transport
+fastapi==0.162.0
+uvicorn==0.54.0
+cryptography==50.0.2
+python-multipart==0.0.32
+pytest==9.1.1
+httpx==0.28.1

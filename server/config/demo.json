@@ -1,0 +1,107 @@
+{
+  "_comment": [
+    "The demo server's single source of truth. Values from specs/server_spec_v1.md §2",
+    "(which comes from demo plan v6 §9). Nothing tunable belongs in code.",
+    "",
+    "This file is also the source of truth for RIVAL IDENTITY and REGION MAPPING:",
+    "which colour, which emblem and which piece each region's rival wears. The art",
+    "kit's PREVIEW_IDENTITY table (art/blender/dc_kit.py) only dresses previews and",
+    "must agree with this file — tests/test_rival_identity.py fails if it ever drifts.",
+    "",
+    "Region ids stay neutral (r1/r2/r3). 'label' is the booth label; 'neutral_label'",
+    "is what management material says (CLAUDE.md rule 3)."
+  ],
+
+  "mode": "local",
+  "server": { "host": "127.0.0.1", "port": 8700, "admin_key": null },
+  "client": { "poll_interval_s": 1.5, "prefetch_radius_m": 60.0 },
+
+  "regions": {
+    "r1": { "label": "Japan", "neutral_label": "Mock region 1" },
+    "r2": { "label": "India", "neutral_label": "Mock region 2" },
+    "r3": { "label": "Europe", "neutral_label": "Mock region 3" }
+  },
+  "booth": { "main_region": "r1", "preview_default_region": "r2" },
+
+  "size_classes": {
+    "S": { "x": 7.0, "y": 7.0, "z": 5.0 },
+    "L": { "x": 14.0, "y": 14.0, "z": 9.0 },
+    "T": { "x": 14.0, "y": 14.0, "z": 20.0 }
+  },
+
+  "games": {
+    "A": {
+      "label": "Game A",
+      "live_at_booth": true,
+      "players_online": 1840,
+      "map_image": "maps/A.png",
+      "slots": {
+        "A1": { "size_class": "L", "px": { "x": 0.31, "y": 0.44 } },
+        "A2": { "size_class": "T", "px": { "x": 0.58, "y": 0.27 } },
+        "A3": { "size_class": "S", "px": { "x": 0.72, "y": 0.66 } }
+      }
+    },
+    "B": {
+      "label": "Game B",
+      "live_at_booth": false,
+      "players_online": 970,
+      "map_image": "maps/B.png",
+      "slots": {
+        "B1": { "size_class": "L", "px": { "x": 0.38, "y": 0.61 } },
+        "B2": { "size_class": "S", "px": { "x": 0.64, "y": 0.35 } }
+      }
+    }
+  },
+
+  "footfall": {
+    "A1": { "r1": 1200, "r2": 900, "r3": 600 },
+    "A2": { "r1": 800, "r2": 600, "r3": 400 },
+    "A3": { "r1": 300, "r2": 250, "r3": 150 },
+    "B1": { "r1": 700, "r2": 500, "r3": 350 },
+    "B2": { "r1": 250, "r2": 200, "r3": 120 }
+  },
+
+  "rivals": {
+    "r1": { "colour": "#1FA39A", "emblem": "triangle", "pieces": { "large": "rival1", "small": "rivalsmall" } },
+    "r2": { "colour": "#F28C28", "emblem": "ring", "pieces": { "large": "rival2", "small": "rivalsmall" } },
+    "r3": { "colour": "#7B5CD6", "emblem": "diamond", "pieces": { "large": "rival3", "small": "rivalsmall" } }
+  },
+  "default_content": { "piece": "default", "version": "v1" },
+
+  "brand_presets": {
+    "colours": ["#E23D3D", "#2F6FEB", "#2EA44F", "#F2C230", "#E0559B", "#1EB8D0", "#8CC63F", "#23395B"],
+    "emblems": ["circle", "triangle", "square", "diamond", "star", "ring", "chevron", "hexagon"]
+  },
+
+  "auction": {
+    "opening_factor": 0.25,
+    "opening_round_to": 25,
+    "min_raise": 25,
+    "rival_max_factor": 2.0,
+    "rival_delay_s": 3,
+    "clock_s": 45,
+    "soft_close_s": 10
+  },
+
+  "wallet": 2000,
+  "block_demo_hours": 3,
+  "demo_seconds_per_real_second": 60,
+  "demo_clock": { "start_time": "14:00", "label": "demo time" },
+
+  "packs": {
+    "max_bytes": 104857600,
+    "engine_version": "5.7",
+    "allowed_ratings": ["all"],
+    "pacing_seconds": 4.0,
+    "url_ttl_s": 300,
+    "manifest_ttl_s": 300,
+    "fake_filler_min_bytes": 15728640,
+    "fake_filler_max_bytes": 41943040
+  },
+
+  "telemetry": { "view_min_seconds": 1.0, "view_radius_m": 30.0, "types": ["view", "visit", "dwell", "interaction", "mount"] },
+
+  "sabotage": { "freeze_seconds": 5.0 },
+  "idle_reset_s": 60,
+  "client_cache_packs": 8
+}

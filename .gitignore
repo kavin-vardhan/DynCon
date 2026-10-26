@@ -38,3 +38,10 @@ unreal/_packs/
 unreal/spike/shots/*.png
 !unreal/spike/shots/engine_contact.png
 unreal/spike/shots/spike_result.txt
+
+# the demo server: the venv, everything it generates (keys, sqlite, stored packs, client
+# caches) and the generated .dcpack files. The generator is committed, the packs are not.
+server/.venv/
+server/data/
+server/demo_files/*.dcpack
+server/.pytest_cache/
