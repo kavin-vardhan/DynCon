@@ -56,3 +56,7 @@ decisions. Each line: date · decision · why. Kavin can overturn any of these; 
   and a list short enough for a ten-foot UI.
 - 2026-10-26 · `/resolve` returns a signed-payload envelope (the manifest as a string + RS256 over its exact bytes). · The UE
   client verifies bytes, then parses — no JSON re-serialisation to get wrong.
+- 2026-10-26 · "Your computer" serves the **real** cooked packs (0.5–1.3 MB); downloads stay paced to ~4 s. · Real content end
+  to end; the visitor feels time, not megabytes.
+- 2026-10-26 · Report "views" = simulated + live (shown split), and cost per view divides by that total. · The plan labels
+  footfall "simulated + live"; the report must agree with the slot card's credits per 1,000 views.

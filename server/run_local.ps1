@@ -35,8 +35,16 @@ if (-not $NoInstall) {
 }
 
 if ($Packs) {
-    Write-Host "building the demo packs..." -ForegroundColor Cyan
+    # Two passes, and the order matters. First the fake packs (every piece-version, plus the
+    # two built-to-fail files) — they are the fallback on a machine with no UE build output.
+    # Then the real cooked packs out of unreal\_packs\, wrapped as <id>_<v>.real.dcpack,
+    # which the curated "Your computer" list prefers whenever one exists. A clean checkout
+    # has no unreal\_packs\ (it is git-ignored), so that pass simply reports what it skipped
+    # and the demo runs on fakes until the UE side has packaged.
+    Write-Host "building the fake demo packs..." -ForegroundColor Cyan
     & $python (Join-Path $serverDir "tools\make_fake_packs.py")
+    Write-Host "wrapping the real cooked packs (skipped where there is no build output)..." -ForegroundColor Cyan
+    & $python (Join-Path $serverDir "tools\make_fake_packs.py") --real
 }
 
 if ($Data) { $env:DCSERVER_DATA = $Data }

@@ -13,6 +13,13 @@ exist first — until then the map and the thumbnails are drawn placeholders.*
 .\server\run_local.ps1 -Port 8701 # a second instance, out of the way
 ```
 
+`-Packs` makes exactly the state the demo wants, in two passes: the **fake** packs for every
+piece-version (plus the two built-to-fail files), then the **real** cooked packs out of
+`unreal\_packs\` wrapped as `<id>_<v>.real.dcpack`. The curated list prefers a real pack
+wherever one exists, so what a visitor uploads is real content. `unreal\_packs\` is a build
+output and git-ignored, so on a clean checkout the second pass reports what it skipped and
+the demo runs on the fakes until the UE side has packaged — nothing to configure either way.
+
 First run generates the RS256 key pair and the URL secret into `server\data\keys\`, creates
 `server\data\db.sqlite`, seeds games A and B from the config, and registers every rival and
 default pack it finds in `server\demo_files\`. It binds to **127.0.0.1 only**.
@@ -176,8 +183,18 @@ auction is not involved.
   `?purpose=update` returns the version-2 files, which is all the push-an-update screen
   offers. The rated-18+ pack stays on disk for the tests, the rival and default packs are the
   game's own content (seeded at startup), and a `.real.dcpack` always wins over a fake one for
-  the same piece-version — so once every piece is cooked the list is serving real packs with
-  no change anywhere. The curated plan is `demo_files` in `config/demo.json`.
+  the same piece-version. The curated plan is `demo_files` in `config/demo.json`.
+- **The booth serves real packs** (0.5–1.3 MB), not the fake filler: the visitor feels the
+  paced ~4 s download, not the megabytes, so there is no reason to upload something that is
+  not the real thing. The fakes stay for the tests and as the fallback before the UE side has
+  packaged.
+- **The report's views are simulated + live, shown split.** The simulated half uses the same
+  footfall model as the slot card — footfall per demo hour × the 3 demo hours in a block —
+  counted for every block that has *started*; the live half is the views the game really
+  reported inside those blocks. So `cost_per_1000_views` on the Report screen equals the
+  `credits_per_1000_views` the slot card quoted at that price the moment a block is won, and
+  counted views only make it better. Visits, dwell and interactions are live only: they are
+  real events with no simulated model to mix with.
 - A reset wipes the visitor's brand, uploads, lots, bids, credits, allocations, telemetry and
   saved state, deletes their pack bytes, puts the preview window back to its default region,
   and returns a **purge list** that `/changes` repeats to every client, so the next visitor

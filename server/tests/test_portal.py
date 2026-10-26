@@ -146,8 +146,10 @@ def test_the_preview_window_region(env) -> None:
 def test_an_empty_report_reads_as_empty(env) -> None:
     report = env.ok(env.client.get("/report"))
     assert report["brand"] is None
-    assert report["totals"] == {"views": 0, "visits": 0, "dwell_s": 0.0, "interactions": 0,
-                                "charged": 0, "blocks": 0, "cost_per_view": None}
+    assert report["totals"] == {"views": 0, "views_simulated": 0, "views_live": 0,
+                                "visits": 0, "dwell_s": 0.0, "interactions": 0,
+                                "charged": 0, "blocks": 0, "cost_per_view": None,
+                                "cost_per_1000_views": None}
     assert [row["region"] for row in report["regions"]] == ["r1", "r2", "r3"]
     assert all(row["views"] == 0 and row["charged"] == 0 for row in report["regions"])
 
@@ -169,18 +171,65 @@ def test_the_report_counts_what_the_game_reported(env) -> None:
     japan = next(row for row in report["regions"] if row["region"] == "r1")
     assert japan["label"] == "Japan" and japan["neutral_label"] == "Mock region 1"
     assert japan["slots"] == ["A1"] and japan["blocks"] == 1
-    assert (japan["views"], japan["visits"], japan["interactions"]) == (2, 1, 3)
+    # views are simulated + live: A1 is 1,200 per demo hour and a block is 3 demo hours
+    assert japan["views_simulated"] == 3600
+    assert japan["views_live"] == 2
+    assert japan["views"] == 3602
+    assert japan["views_label"] == "simulated + live"
+    assert (japan["visits"], japan["interactions"]) == (1, 3)      # live only, no model
     assert japan["dwell_s"] == 12.5
     assert japan["charged"] == 325
-    assert japan["cost_per_view"] == 162.5
-    assert japan["cost_per_1000_views"] == 162500.0
+    assert japan["cost_per_view"] == round(325 / 3602, 4)
+    assert japan["cost_per_1000_views"] == round(325 / 3.602, 2)
     assert 0 < japan["time_left_s"] <= env.config.block_seconds
     assert japan["showing"]["piece"] == "content1"
     assert japan["paused"] is False
     other = next(row for row in report["regions"] if row["region"] == "r2")
     assert other["views"] == 0 and other["charged"] == 0 and other["time_left_s"] == 0.0
-    assert report["totals"]["views"] == 2 and report["totals"]["charged"] == 325
+    assert report["totals"]["views"] == 3602 and report["totals"]["charged"] == 325
+    assert report["totals"]["views_simulated"] == 3600
     assert report["wallet"] == {"available": 1675, "held": 0, "charged": 325}
+
+
+def test_the_report_and_the_slot_card_agree_on_a_block_just_bought(env) -> None:
+    """The portal quotes credits per 1,000 views on the slot card before the bid; the
+    report has to say the same thing afterwards, or the demo contradicts itself."""
+    env.brand()
+    content = env.upload("content1_v1.dcpack")
+    env.bid("A1", content["content_id"], {"r1": 325})
+    env.close_auction("lot_A1_r1_1")
+    quoted = env.lot("lot_A1_r1_1")["credits_per_1000_views"]
+    japan = next(r for r in env.ok(env.client.get("/report"))["regions"]
+                 if r["region"] == "r1")
+    assert japan["views_live"] == 0                       # nothing counted yet
+    assert japan["views"] == japan["views_simulated"] == 3600
+    assert japan["cost_per_1000_views"] == quoted == round(325 / 3.6, 2)
+
+    # a real counted view can only make the campaign look better, never worse
+    env.ok(env.client.post("/telemetry", json=[
+        {"game": "A", "region": "r1", "slot": "A1", "type": "view", "value": 1,
+         "ts": iso(env.clock.now())}]))
+    after = next(r for r in env.ok(env.client.get("/report"))["regions"]
+                 if r["region"] == "r1")
+    assert after["views_live"] == 1
+    assert after["cost_per_1000_views"] < quoted
+
+
+def test_a_block_booked_for_later_has_not_been_seen_yet(env) -> None:
+    """A queued block counts as booked, but its views only start when it starts."""
+    env.brand()
+    content = env.upload("content4_v1.dcpack")
+    env.bid("A3", content["content_id"], {"r1": 100})     # A3 is 300 views per demo hour
+    env.close_auction("lot_A3_r1_1")
+    env.bid("A3", content["content_id"], {"r1": 100})     # queued behind the first
+    env.close_auction("lot_A3_r1_2")
+    row = next(r for r in env.ok(env.client.get("/report"))["regions"] if r["region"] == "r1")
+    assert (row["blocks"], row["blocks_started"]) == (2, 1)
+    assert row["views_simulated"] == 900                  # one block of 300 x 3 demo hours
+    env.clock.advance(env.config.block_seconds + 1)       # the second block starts
+    later = next(r for r in env.ok(env.client.get("/report"))["regions"] if r["region"] == "r1")
+    assert later["blocks_started"] == 2
+    assert later["views_simulated"] == 1800
 
 
 def test_the_report_shows_a_paused_campaign_and_a_booked_next_block(env) -> None:
@@ -217,4 +266,5 @@ def test_telemetry_from_another_block_is_not_counted(env) -> None:
     env.ok(env.client.post("/telemetry", json=[
         {"game": "A", "region": "r1", "slot": "A3", "type": "view", "value": 1, "ts": stale}]))
     row = next(r for r in env.ok(env.client.get("/report"))["regions"] if r["region"] == "r1")
-    assert row["views"] == 1                                     # only the one in the block
+    assert row["views_live"] == 1                                # only the one in the block
+    assert row["views"] == row["views_simulated"] + 1

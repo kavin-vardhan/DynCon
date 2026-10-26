@@ -483,36 +483,57 @@ class Service:
     # ------------------------------------------------------------------ the report
 
     def report(self) -> dict[str, Any]:
+        """Per region: what the campaign bought, what it cost, and what it got.
+
+        **Views are simulated + live**, and the two halves are reported separately so the
+        portal can say so out loud. The simulated half uses the same footfall model as the
+        slot card — footfall per demo hour × the 3 demo hours in a block — counted for each
+        block that has *started* (a block booked for later has not been seen by anyone yet).
+        So the moment a block is won, `cost_per_1000_views` here equals the
+        `credits_per_1000_views` the slot card quoted at that price, and real counted views
+        can only make it better.
+
+        Visits, dwell and interactions are live only: they are real events, and there is no
+        simulated model for them to be mixed with.
+        """
         ctx = self.tick()
         now = ctx.now
+        block_hours = float(self.config.data["block_demo_hours"])
         allocations = self.repo.visitor_allocations()
         by_region: dict[str, list[dict[str, Any]]] = {r: [] for r in self.config.regions}
         for row in allocations:
             by_region.setdefault(row["region"], []).append(row)
-        regions, totals = [], {"views": 0, "visits": 0, "dwell_s": 0.0, "interactions": 0,
-                               "charged": 0, "blocks": 0}
+        regions = []
+        totals = {"views": 0, "views_simulated": 0, "views_live": 0, "visits": 0,
+                  "dwell_s": 0.0, "interactions": 0, "charged": 0, "blocks": 0}
         for region in self.config.regions:
             rows = by_region.get(region, [])
             counts = self.repo.telemetry_for_allocations(rows) if rows else {}
             charged = self.repo.sum_lots_charged(region)
-            views = int(counts.get("view", 0))
             active = [r for r in rows
                       if parse_iso(r["start_at"]) <= now < parse_iso(r["end_at"])]
+            started = [r for r in rows if parse_iso(r["start_at"]) <= now]
             queued = [r for r in rows if parse_iso(r["start_at"]) > now]
+            views_simulated = int(sum(self.config.footfall(r["slot"], region) * block_hours
+                                      for r in started))
+            views_live = int(counts.get("view", 0))
+            views = views_simulated + views_live
             time_left = (round((parse_iso(active[0]["end_at"]) - now).total_seconds(), 1)
                          if active else 0.0)
             slots = sorted({r["slot"] for r in rows})
-            per_view = round(charged / views, 2) if views else None
+            per_view = round(charged / views, 4) if views else None
             regions.append({
                 "region": region, "label": self.config.region_label(region),
                 "neutral_label": self.config.data["regions"][region].get("neutral_label"),
-                "slots": slots, "blocks": len(rows),
-                "views": views, "visits": int(counts.get("visit", 0)),
+                "slots": slots, "blocks": len(rows), "blocks_started": len(started),
+                "views": views, "views_simulated": views_simulated, "views_live": views_live,
+                "views_label": "simulated + live",
+                "visits": int(counts.get("visit", 0)),
                 "dwell_s": round(float(counts.get("dwell_total", 0.0)), 1),
                 "interactions": int(counts.get("interaction_total", 0)),
                 "mounts": int(counts.get("mount", 0)),
                 "charged": charged, "cost_per_view": per_view,
-                "cost_per_1000_views": round(per_view * 1000, 2) if per_view else None,
+                "cost_per_1000_views": round(charged / (views / 1000.0), 2) if views else None,
                 "time_left_s": time_left,
                 "paused": bool(active and int(active[0]["paused"] or 0)),
                 "next_block_at": queued[0]["start_at"] if queued else None,
@@ -520,16 +541,22 @@ class Service:
                     self.config.slot(slots[0]).game, slots[0], region)) if slots else None,
             })
             totals["views"] += views
+            totals["views_simulated"] += views_simulated
+            totals["views_live"] += views_live
             totals["visits"] += int(counts.get("visit", 0))
             totals["dwell_s"] += float(counts.get("dwell_total", 0.0))
             totals["interactions"] += int(counts.get("interaction_total", 0))
             totals["charged"] += charged
             totals["blocks"] += len(rows)
         totals["dwell_s"] = round(totals["dwell_s"], 1)
-        totals["cost_per_view"] = (round(totals["charged"] / totals["views"], 2)
+        totals["cost_per_view"] = (round(totals["charged"] / totals["views"], 4)
                                    if totals["views"] else None)
+        totals["cost_per_1000_views"] = (round(totals["charged"] / (totals["views"] / 1000.0), 2)
+                                         if totals["views"] else None)
         return {"brand": self.repo.get_brand(), "wallet": auction.wallet(ctx),
                 "regions": regions, "totals": totals, "clock": self.clock_block(),
+                "views_model": ("simulated footfall for every block that has started, "
+                                "plus the views the game really counted"),
                 "paused": any(r["paused"] for r in regions)}
 
     # ------------------------------------------------------------------ preview region

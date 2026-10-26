@@ -265,21 +265,32 @@ class Stage4:
         # ---------------------------------------------------------------- 11
         self.step(11, "the report")
         report = self.api("GET", "/report")
+        self.say(f"views are {report['views_model']}")
         for row in report["regions"]:
-            self.say(f"  {row['label']:7} blocks {row['blocks']} · views {row['views']:>3} · "
+            self.say(f"  {row['label']:7} blocks {row['blocks']} · views {row['views']:>5} "
+                     f"({row['views_simulated']} simulated + {row['views_live']} live) · "
                      f"visits {row['visits']} · dwell {row['dwell_s']:>5.1f}s · "
                      f"interactions {row['interactions']:>2} · charged {row['charged']:>4} · "
-                     f"per view {row['cost_per_view']} · {row['time_left_s']:.0f}s left")
-        japan_row = next(r for r in report["regions"] if r["region"] == "r1")
-        self.check(japan_row["views"] >= 2 and japan_row["mounts"] >= 2,
+                     f"{row['cost_per_1000_views']} per 1,000 views · "
+                     f"{row['time_left_s']:.0f}s left")
+        japan = next(r for r in report["regions"] if r["region"] == "r1")
+        self.check(japan["views_live"] >= 2 and japan["mounts"] >= 2,
                    "the report counts what the game posted",
-                   f"{japan_row['views']} views from {japan_row['mounts']} mounts")
-        self.check(japan_row["charged"] == self.won_amount and japan_row["cost_per_view"],
-                   "credits charged and cost per view",
-                   f"{japan_row['charged']} / {japan_row['views']} = "
-                   f"{japan_row['cost_per_view']}")
-        self.check(japan_row["time_left_s"] > 0, "the block has time left on it",
-                   f"{japan_row['time_left_s']:.0f}s")
+                   f"{japan['views_live']} live views from {japan['mounts']} mounts")
+        self.check(japan["views"] == japan["views_simulated"] + japan["views_live"]
+                   and japan["views_simulated"] == 3600,
+                   "views are simulated + live, shown split",
+                   f"{japan['views_simulated']} + {japan['views_live']} = {japan['views']}")
+        # the slot card quoted a price per 1,000 views before the bid; the report has to
+        # agree with it afterwards, give or take the live views that only improve it
+        quoted = self.api("GET", f"/lots/{self.lot_id}")["credits_per_1000_views"]
+        self.check(japan["charged"] == self.won_amount
+                   and 0 < japan["cost_per_1000_views"] <= quoted,
+                   "cost per 1,000 views agrees with the slot card",
+                   f"report {japan['cost_per_1000_views']} vs card {quoted} "
+                   f"(charged {japan['charged']}, per view {japan['cost_per_view']})")
+        self.check(japan["time_left_s"] > 0, "the block has time left on it",
+                   f"{japan['time_left_s']:.0f}s")
 
         # ---------------------------------------------------------------- 12
         self.step(12, "a multi-region round on A1, split by footfall")
