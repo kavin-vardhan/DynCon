@@ -10,7 +10,7 @@ import time
 from typing import Any
 
 from fastapi import APIRouter, Body, Depends, File, Header, Query, Request, UploadFile
-from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel, Field
 
 from .service import Service, ServiceError
@@ -42,13 +42,16 @@ def client_config(svc: Service = Depends(get_svc)) -> dict[str, Any]:
 @client.get("/changes")
 def changes(game: str = Query(...), region: str = Query(...),
             svc: Service = Depends(get_svc)) -> dict[str, Any]:
+    svc.tick()                       # the game's poll is what closes a due auction
     return svc.changes(game, region)
 
 
 @client.get("/resolve")
 def resolve(game: str = Query(...), slot: str = Query(...), region: str = Query(...),
+            format: str = Query("envelope", pattern="^(envelope|flat)$"),
             svc: Service = Depends(get_svc)) -> dict[str, Any]:
-    return svc.manifest(game, slot, region)
+    svc.tick()                       # a resolve is also when a due auction gets settled
+    return svc.resolve(game, slot, region, envelope=(format != "flat"))
 
 
 def parse_range(header: str | None, total: int) -> tuple[int, int, bool]:
@@ -177,6 +180,73 @@ class PauseIn(BaseModel):
     paused: bool
 
 
+class PreviewIn(BaseModel):
+    region: str
+
+
+# The map and the thumbnails are drawn here as SVG — no image library, no binary assets in
+# git — and are replaced by the real ones the moment the UE slot-map tool writes them.
+PIN_COLOURS = ["#2EA44F", "#F2C230", "#E23D3D"]      # low, middle, high footfall
+
+
+def placeholder_map(svc: Service, game: str) -> str:
+    cfg = svc.config
+    if game not in cfg.games:
+        raise ServiceError(404, f"There is no game {game}.")
+    w, h = 1600, 900
+    slots = cfg.slots_of(game)
+    ranked = sorted(slots, key=lambda s: cfg.footfall(s.id, cfg.main_region))
+    rank = {s.id: i for i, s in enumerate(ranked)}
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" '
+        f'viewBox="0 0 {w} {h}">',
+        f'<rect width="{w}" height="{h}" fill="#10151c"/>',
+    ]
+    for x in range(0, w, 80):
+        parts.append(f'<line x1="{x}" y1="0" x2="{x}" y2="{h}" stroke="#1b232e" stroke-width="2"/>')
+    for y in range(0, h, 80):
+        parts.append(f'<line x1="0" y1="{y}" x2="{w}" y2="{y}" stroke="#1b232e" stroke-width="2"/>')
+    parts.append(f'<text x="40" y="70" fill="#5d6b7d" font-family="sans-serif" '
+                 f'font-size="34">{cfg.game_label(game)} — placeholder map</text>')
+    for slot in slots:
+        cx, cy = int(slot.px[0] * w), int(slot.px[1] * h)
+        colour = PIN_COLOURS[min(rank[slot.id] * len(PIN_COLOURS) // max(len(slots), 1),
+                                 len(PIN_COLOURS) - 1)]
+        parts += [
+            f'<circle cx="{cx}" cy="{cy}" r="46" fill="{colour}" fill-opacity="0.18" '
+            f'stroke="{colour}" stroke-width="4"/>',
+            f'<circle cx="{cx}" cy="{cy}" r="8" fill="{colour}"/>',
+            f'<text x="{cx}" y="{cy + 86}" fill="#e8eef6" font-family="sans-serif" '
+            f'font-size="40" text-anchor="middle">{slot.id}</text>',
+            f'<text x="{cx}" y="{cy + 122}" fill="#8b9aae" font-family="sans-serif" '
+            f'font-size="26" text-anchor="middle">{slot.size_class}</text>',
+        ]
+    parts.append("</svg>")
+    return "".join(parts)
+
+
+def placeholder_thumb(svc: Service, slot_id: str) -> str:
+    cfg = svc.config
+    slot = cfg.slot(slot_id)
+    limits = cfg.limits(slot.size_class)
+    w, h = 480, 270
+    return "".join([
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" '
+        f'viewBox="0 0 {w} {h}">',
+        f'<rect width="{w}" height="{h}" fill="#141a22"/>',
+        f'<rect x="12" y="12" width="{w - 24}" height="{h - 24}" fill="none" '
+        f'stroke="#2b3542" stroke-width="3"/>',
+        f'<rect x="150" y="120" width="180" height="110" fill="#1f2a36" stroke="#3a4a5c" '
+        f'stroke-width="3"/>',
+        f'<text x="{w // 2}" y="78" fill="#e8eef6" font-family="sans-serif" font-size="56" '
+        f'text-anchor="middle">{slot.id}</text>',
+        f'<text x="{w // 2}" y="{h - 28}" fill="#8b9aae" font-family="sans-serif" '
+        f'font-size="22" text-anchor="middle">class {slot.size_class} · '
+        f'{limits["x"]:.0f} x {limits["y"]:.0f} x {limits["z"]:.0f} m</text>',
+        "</svg>",
+    ])
+
+
 @portal.get("/config/public")
 def config_public(svc: Service = Depends(get_svc)) -> dict[str, Any]:
     return svc.public_config()
@@ -205,8 +275,9 @@ def wallet(svc: Service = Depends(get_svc)) -> dict[str, Any]:
 
 
 @portal.get("/demo-files")
-def demo_files(svc: Service = Depends(get_svc)) -> dict[str, Any]:
-    return {"files": svc.demo_files()}
+def demo_files(purpose: str = Query("upload", pattern="^(upload|update)$"),
+               svc: Service = Depends(get_svc)) -> dict[str, Any]:
+    return {"purpose": purpose, "files": svc.demo_files(purpose)}
 
 
 @portal.get("/demo-files/{name}")
@@ -241,7 +312,94 @@ def campaign_pause(body: PauseIn, svc: Service = Depends(get_svc)) -> dict[str, 
 
 @portal.get("/status/live")
 def status_live(svc: Service = Depends(get_svc)) -> dict[str, Any]:
+    svc.tick()
     return {"server_time": svc.clock_block()["server_time"], "showing": svc.live_status()}
+
+
+# ---- games and the slot map -----------------------------------------------------------
+
+@portal.get("/games")
+def games(svc: Service = Depends(get_svc)) -> dict[str, Any]:
+    return svc.games()
+
+
+@portal.get("/games/{game}")
+def game(game: str, svc: Service = Depends(get_svc)) -> dict[str, Any]:
+    return svc.game_card(game)
+
+
+@portal.get("/games/{game}/map")
+def game_map(game: str, svc: Service = Depends(get_svc)):
+    """The real map image once the UE slot-map tool has made one; a drawn placeholder
+    until then, so the portal has something to put a pin on."""
+    real = svc.map_file(game)
+    if real:
+        return FileResponse(real)
+    return Response(content=placeholder_map(svc, game), media_type="image/svg+xml",
+                    headers={"Cache-Control": "no-store"})
+
+
+@portal.get("/games/{game}/slots/{slot}/thumb")
+def slot_thumb(game: str, slot: str, svc: Service = Depends(get_svc)):
+    if not svc.config.has_slot(slot) or svc.config.slot(slot).game != game:
+        raise ServiceError(404, f"Game {game} has no slot {slot}.")
+    return Response(content=placeholder_thumb(svc, slot), media_type="image/svg+xml",
+                    headers={"Cache-Control": "no-store"})
+
+
+# ---- the auction ----------------------------------------------------------------------
+
+class RegionBid(BaseModel):
+    region: str
+    amount: int
+    lot_id: str | None = None        # what the portal was showing, if it knows
+
+
+class BidsIn(BaseModel):
+    slot: str
+    content_id: str
+    bids: list[RegionBid]
+
+
+@portal.post("/bids")
+def post_bids(body: BidsIn, svc: Service = Depends(get_svc)) -> dict[str, Any]:
+    return svc.place_bids(body.slot, body.content_id,
+                          [b.model_dump() for b in body.bids])
+
+
+@portal.get("/bids/split")
+def split_bid(slot: str = Query(...), total: int = Query(..., gt=0),
+              regions: str = Query(...), svc: Service = Depends(get_svc)) -> dict[str, Any]:
+    """One total across ticked regions, split by footfall — the portal's shortcut."""
+    return svc.split_bid(slot, total, [r.strip() for r in regions.split(",") if r.strip()])
+
+
+@portal.get("/lots")
+def lots(game: str | None = Query(None), slot: str | None = Query(None),
+         region: str | None = Query(None), svc: Service = Depends(get_svc)) -> dict[str, Any]:
+    return svc.lots(game, slot, region)
+
+
+@portal.get("/lots/{lot_id}")
+def lot(lot_id: str, svc: Service = Depends(get_svc)) -> dict[str, Any]:
+    return svc.lot(lot_id)
+
+
+# ---- the report and the preview window ------------------------------------------------
+
+@portal.get("/report")
+def report(svc: Service = Depends(get_svc)) -> dict[str, Any]:
+    return svc.report()
+
+
+@portal.get("/preview/region")
+def get_preview_region(svc: Service = Depends(get_svc)) -> dict[str, Any]:
+    return svc.preview_region()
+
+
+@portal.post("/preview/region")
+def post_preview_region(body: PreviewIn, svc: Service = Depends(get_svc)) -> dict[str, Any]:
+    return svc.set_preview_region(body.region)
 
 
 # =============================================================================== admin
@@ -256,6 +414,10 @@ class AllocateIn(BaseModel):
     region: str
     content_id: str
     minutes: float | None = None
+
+
+class CloseAuctionIn(BaseModel):
+    lot_id: str = Field(default="all", description='a lot id, or "all"')
 
 
 @admin.get("/health")
@@ -276,3 +438,9 @@ def sabotage(body: SabotageIn, svc: Service = Depends(get_svc)) -> dict[str, Any
 @admin.post("/allocate", dependencies=[Depends(admin_guard)])
 def allocate(body: AllocateIn, svc: Service = Depends(get_svc)) -> dict[str, Any]:
     return svc.allocate(body.game, body.slot, body.region, body.content_id, body.minutes)
+
+
+@admin.post("/close-auction", dependencies=[Depends(admin_guard)])
+def close_auction(body: CloseAuctionIn, svc: Service = Depends(get_svc)) -> dict[str, Any]:
+    """Booth staff: settle a lot now instead of waiting for its clock."""
+    return svc.close_auction(body.lot_id)

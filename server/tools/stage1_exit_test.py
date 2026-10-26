@@ -147,7 +147,8 @@ class ExitTest:
             # the rotation would put the same piece here, so prove the *allocation* is
             # what is showing rather than the attract rotation
             showing = self.api("GET", "/resolve",
-                               params={"game": "A", "slot": "A3", "region": "r1"})["showing"]
+                               params={"game": "A", "slot": "A3", "region": "r1",
+                                       "format": "flat"})["showing"]
             if showing["source"] != f"alloc:{written['allocation_id']}":
                 raise RuntimeError(f"A3/r1 is showing {showing['source']}, not the "
                                    f"allocation that was just written")

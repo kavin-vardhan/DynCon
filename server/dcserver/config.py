@@ -218,6 +218,17 @@ class Config:
     def mode(self) -> str:
         return str(self.data.get("mode", "local"))
 
+    @property
+    def main_region(self) -> str:
+        """The region the booth's main screen plays as."""
+        return self.data.get("booth", {}).get("main_region") or self.regions[0]
+
+    @property
+    def preview_region(self) -> str:
+        """The region the preview copy of the game starts as."""
+        return (self.data.get("booth", {}).get("preview_default_region")
+                or self.regions[min(1, len(self.regions) - 1)])
+
     # ---- validation -----------------------------------------------------------------------
 
     def validate(self) -> None:

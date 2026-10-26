@@ -46,3 +46,13 @@ decisions. Each line: date · decision · why. Kavin can overturn any of these; 
   `ContentUnitScale` back to 1) in one go. · A half-done unit change between two briefs is how scale bugs ship.
 - 2026-10-26 · Content yaw offset Blender → UE = −90° (Blender −Y lands on UE +Y); the FBX importer strips `SOCKET_`. ·
   Measured in brief 004.
+- 2026-10-26 · Chunk ids frozen alphabetically, 100–112 (`unreal/Tools/chunk_ids.json`). · One table both the importer and
+  the staging script read, so a pack's chunk never shifts.
+- 2026-10-26 · Lumen stays on with **Detail Tracing** (`r.Lumen.TraceMeshSDFs=1`). · Global Tracing hung this PC's GPU once the
+  art reached true centimetres; Detail Tracing keeps the look. Whether to turn Lumen off on the booth PC is a later test.
+- 2026-10-26 · FBX now carries centimetres baked into the mesh data; `ContentUnitScale` = 1. · Proven in brief 006 to 0.004 cm.
+- 2026-10-26 · Portal "Your computer" = Content 1–4 v1 + one built-to-fail file (engine 5.3); v2 files only on the push-update
+  screen. Real cooked packs replace the fake ones from the UE-client brief on; fakes stay for tests. · The plan's one bad file,
+  and a list short enough for a ten-foot UI.
+- 2026-10-26 · `/resolve` returns a signed-payload envelope (the manifest as a string + RS256 over its exact bytes). · The UE
+  client verifies bytes, then parses — no JSON re-serialisation to get wrong.

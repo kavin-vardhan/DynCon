@@ -158,12 +158,18 @@ class KeyStore:
             return False
 
 
-def verify_with_public_pem(public_pem: str, obj: Any, signature: str) -> bool:
-    """What the game client does: verify a manifest with nothing but the public key."""
-    public = serialization.load_pem_public_key(public_pem.encode("utf-8"))
+def verify_bytes_with_public_pem(public_pem: str, payload: bytes, signature: str) -> bool:
+    """What the game client does with the envelope: verify the exact bytes it was given,
+    with nothing but the public key, before it parses or believes any of them."""
     try:
-        public.verify(base64.b64decode(signature), canonical_json(obj),
+        public = serialization.load_pem_public_key(public_pem.encode("utf-8"))
+        public.verify(base64.b64decode(signature), payload,
                       padding.PKCS1v15(), hashes.SHA256())
         return True
-    except (InvalidSignature, ValueError):
+    except (InvalidSignature, ValueError, TypeError):
         return False
+
+
+def verify_with_public_pem(public_pem: str, obj: Any, signature: str) -> bool:
+    """The same check for the flat form: canonicalise the object, then verify."""
+    return verify_bytes_with_public_pem(public_pem, canonical_json(obj), signature)

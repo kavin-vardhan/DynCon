@@ -15,6 +15,46 @@ def floats_in(value, path="") -> list[str]:
     return []
 
 
+def test_the_envelope_is_what_resolve_serves(env) -> None:
+    """`{signed_payload, signature}`: verify the exact bytes, then parse them. No client
+    has to reproduce canonical JSON to check a signature."""
+    import json
+
+    from dcserver.signing import verify_bytes_with_public_pem
+
+    body = env.envelope("A", "A1", "r1")
+    assert sorted(body) == ["signature", "signature_alg", "signed_payload"]
+    assert body["signature_alg"] == "RS256-canonical-json-v1"
+    raw = body["signed_payload"]
+    assert verify_bytes_with_public_pem(env.public_pem(), raw.encode("utf-8"),
+                                        body["signature"])
+    manifest = json.loads(raw)
+    assert manifest["slot"] == "A1"
+    assert manifest["content"]["piece"]
+    assert manifest["pack"]["files"]
+    # the bytes are canonical: keys sorted at every level, no whitespace between tokens
+    # (the human sentences inside the payload keep their own spaces, of course)
+    from dcserver.signing import canonical_json
+    assert canonical_json(manifest) == raw.encode("utf-8")
+    assert raw.startswith('{"alloc_key":')
+    # one byte changed anywhere and the signature stops verifying
+    assert not verify_bytes_with_public_pem(env.public_pem(),
+                                            raw.replace("A1", "A2", 1).encode("utf-8"),
+                                            body["signature"])
+
+
+def test_the_flat_shape_is_still_served_for_one_brief(env) -> None:
+    import json
+
+    flat = env.resolve("A", "A1", "r1", shape="flat")
+    envelope = env.envelope("A", "A1", "r1")
+    assert flat["signature"] == envelope["signature"]
+    assert {k: v for k, v in flat.items() if k != "signature"} == \
+        json.loads(envelope["signed_payload"])
+    assert env.client.get("/resolve", params={"game": "A", "slot": "A1", "region": "r1",
+                                              "format": "nonsense"}).status_code == 422
+
+
 def test_the_signature_verifies_with_nothing_but_the_public_key(env) -> None:
     manifest = env.resolve("A", "A1", "r1")
     signature = manifest.pop("signature")

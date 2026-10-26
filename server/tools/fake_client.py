@@ -42,7 +42,8 @@ import httpx
 SERVER_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(SERVER_DIR))
 
-from dcserver.signing import verify_with_public_pem      # noqa: E402
+from dcserver.signing import (verify_bytes_with_public_pem,   # noqa: E402
+                              verify_with_public_pem)
 
 CHUNK = 1 << 20
 DEFAULT_CACHE = SERVER_DIR / "data" / "client_cache"
@@ -242,18 +243,33 @@ class FakeClient:
             self.post_telemetry(slot, manifest)
 
     def resolve(self, slot: str) -> dict[str, Any]:
+        """Resolve a slot and verify the signature *before* believing a field of it.
+
+        The server's answer is the envelope — `{signed_payload, signature}` — so the check
+        is over the exact bytes it sent and there is no canonical JSON to reproduce. The
+        flat shape part 1 served is still accepted, so a client and a server can be one
+        brief apart without breaking.
+        """
         response = self.http.get("resolve", params={"game": self.game, "slot": slot,
                                                     "region": self.region})
         if response.status_code != 200:
             raise VerifyFailed(f"resolve said {response.status_code}: "
                                f"{response.json().get('error', response.text)[:120]}")
-        manifest = response.json()
+        body = response.json()
         self.stats.resolves += 1
-        signature = manifest.pop("signature", None)
+        signature = body.get("signature")
         if not signature:
             raise VerifyFailed("the manifest carries no signature")
-        if not verify_with_public_pem(self.public_pem, manifest, signature):
-            raise VerifyFailed("the manifest signature did not verify")
+        if "signed_payload" in body:
+            payload = body["signed_payload"]
+            if not verify_bytes_with_public_pem(self.public_pem, payload.encode("utf-8"),
+                                                signature):
+                raise VerifyFailed("the manifest signature did not verify")
+            manifest = json.loads(payload)
+        else:
+            manifest = {k: v for k, v in body.items() if k != "signature"}
+            if not verify_with_public_pem(self.public_pem, manifest, signature):
+                raise VerifyFailed("the manifest signature did not verify")
         manifest["signature"] = signature
         return manifest
 

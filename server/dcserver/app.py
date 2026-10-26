@@ -53,8 +53,11 @@ def create_app(config: Config | str | Path | None = None, *, clock: Clock | None
             "game_client": ["/client-config", "/changes", "/resolve", "/files/{pack}/{name}",
                             "/telemetry"],
             "portal": ["/config/public", "/brand", "/wallet", "/demo-files", "/content",
-                       "/content/{id}/versions", "/campaign/pause", "/status/live", "/clock"],
-            "admin": ["/admin/health", "/admin/reset", "/admin/sabotage", "/admin/allocate"],
+                       "/content/{id}/versions", "/games", "/games/{id}", "/bids",
+                       "/bids/split", "/lots", "/lots/{id}", "/report", "/preview/region",
+                       "/campaign/pause", "/status/live", "/clock"],
+            "admin": ["/admin/health", "/admin/reset", "/admin/sabotage", "/admin/allocate",
+                      "/admin/close-auction"],
         }
 
     logging.getLogger("dcserver").info(

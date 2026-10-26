@@ -1,8 +1,9 @@
 # The demo server — what is here and how to run it
 
-*The stand-in cloud for the Tokyo demo. Built to `specs/server_spec_v1.md`; brief 007 part 1
-covers the whole game-facing delivery path and uploads. The auction (lots, rivals, bids,
-credits) is **QUEUED** for part 2 and is the only thing in the spec that is missing.*
+*The stand-in cloud for the Tokyo demo, built to `specs/server_spec_v1.md`. **DONE**: the
+game-facing delivery path and uploads (brief 007), and the auctions, the portal API and the
+report (brief 008). **QUEUED**: `POST /games/register`, which needs the UE slot-map tool to
+exist first — until then the map and the thumbnails are drawn placeholders.*
 
 ## Run it
 
@@ -20,10 +21,11 @@ default pack it finds in `server\demo_files\`. It binds to **127.0.0.1 only**.
 one-line "is it alive and what does it have" check.
 
 ```powershell
-.\server\.venv\Scripts\python.exe -m pytest           # from server\ — 102 tests
+.\server\.venv\Scripts\python.exe -m pytest           # from server\ — 143 tests
 .\server\.venv\Scripts\python.exe tools\make_fake_packs.py          # the demo packs
 .\server\.venv\Scripts\python.exe tools\fake_client.py --game A --region r1 --once
 .\server\.venv\Scripts\python.exe tools\stage1_exit_test.py         # plan v6 §14 step 1
+.\server\.venv\Scripts\python.exe tools\stage4_exit_test.py         # plan v6 §14 step 4
 ```
 
 ## What is in here
@@ -38,11 +40,13 @@ one-line "is it alive and what does it have" check.
 | `dcserver/signing.py` | RS256 manifests and pack records; HMAC file links; canonical JSON |
 | `dcserver/packs.py` | the `.dcpack` format and the four checks (package → rating → fit → sign) |
 | `dcserver/rules.py` | **what shows in a slot right now** — the one rule the demo turns on |
+| `dcserver/auction.py` | lots, the scripted rival, the clock, credits, the block won on close |
 | `dcserver/service.py` | everything the routes do, with no HTTP in it |
 | `dcserver/routes.py` | the HTTP surface: game client · portal · admin |
 | `tools/make_fake_packs.py` | builds the demo packs; `--real` wraps the real cooked packs |
 | `tools/fake_client.py` | the game's side without Unreal: poll → resolve → verify → download → MOUNT |
 | `tools/stage1_exit_test.py` | ten hand-written allocations, ten right MOUNT lines |
+| `tools/stage4_exit_test.py` | the whole visitor tour: brand → upload → bid → win → mount → update → report |
 | `data/`, `demo_files/*.dcpack`, `.venv/` | generated, git-ignored |
 
 ## The shape of it
@@ -95,19 +99,27 @@ a push-update, a brand change, a pause or a block boundary changes what should b
 
 ## Verifying a manifest (what the UE client has to do)
 
-`GET /resolve` returns the manifest plus a `signature`. To check it:
+`GET /resolve` returns an **envelope**:
 
-1. take the JSON object, **remove the `signature` field**;
-2. serialise what is left as **canonical JSON** — keys sorted at every level, no whitespace
-   (`,` and `:` as separators), UTF-8, no trailing newline;
-3. verify those bytes with **RS256** (PKCS#1 v1.5 + SHA-256) against the public key from
-   `/client-config`.
+```json
+{ "signed_payload": "{\"alloc_key\":\"…\",…}", "signature": "<base64>",
+  "signature_alg": "RS256-canonical-json-v1" }
+```
 
-`signature_alg` says `RS256-canonical-json-v1` so this can change later without guesswork.
-The signed payload deliberately contains **no floating-point numbers** — only strings,
-integers and booleans — so there is nothing for a non-Python verifier to format differently.
-`tests/test_resolve.py` asserts that, and `dcserver/signing.py:verify_with_public_pem` is
-exactly the 12 lines the client needs.
+1. verify `signature` over the **exact UTF-8 bytes of the `signed_payload` string** with
+   RS256 (PKCS#1 v1.5 + SHA-256) and the public key from `/client-config`;
+2. only then parse the string, and use what is inside it.
+
+That way no client has to reproduce canonical JSON to check a signature. The string the
+server signs *is* canonical JSON (keys sorted at every level, no whitespace between tokens,
+UTF-8, no trailing newline) and the payload deliberately contains **no floating-point
+numbers** — only strings, integers and booleans — but a verifier never has to rebuild it.
+
+`GET /resolve?format=flat` still returns part 1's shape (the manifest's fields with
+`signature` alongside them, verified by canonicalising the object yourself). It is there so
+a client and a server can be one brief apart; it goes away once the UE client is on the
+envelope. `dcserver/signing.py:verify_bytes_with_public_pem` is the whole check, and
+`tools/fake_client.py:resolve` is the worked example — it accepts both shapes.
 
 Then: download each file with its signed link (Range supported, resume from where you
 stopped), check **SHA-256** per file, and only mount after both checks pass. On a mismatch the
@@ -119,27 +131,60 @@ client keeps the default up and retries — `tools/fake_client.py` is the worked
 **Game client** — `/client-config` · `/changes?game=&region=` · `/resolve?game=&slot=&region=`
 · `/files/{pack}/{name}?exp=&sig=` · `POST /telemetry`
 
-**Portal** — `/config/public` · `/clock` · `GET|POST /brand` · `/wallet` · `/demo-files` ·
-`/demo-files/{name}` · `POST /content` · `GET /content` · `POST /content/{id}/versions` ·
-`POST /campaign/pause` · `/status/live`
+**Portal** — `/config/public` · `/clock` · `GET|POST /brand` · `/wallet` ·
+`/demo-files[?purpose=update]` · `/demo-files/{name}` · `POST /content` · `GET /content` ·
+`POST /content/{id}/versions` · `/games` · `/games/{id}` · `/games/{id}/map` ·
+`/games/{id}/slots/{slot}/thumb` · `POST /bids` · `/bids/split` · `/lots` · `/lots/{id}` ·
+`/report` · `GET|POST /preview/region` · `POST /campaign/pause` · `/status/live`
 
 **Admin** — `/admin/health` · `POST /admin/reset` · `POST /admin/sabotage` ·
-`POST /admin/allocate`
+`POST /admin/allocate` · `POST /admin/close-auction`
 
-**QUEUED for part 2** — `POST /bids` · `/lots` · `/games` and `/games/{id}` (with the slot-map
-image) · `POST /games/register` · `/report` · `/preview/region` · `POST /admin/close-auction`.
-`POST /admin/allocate` is how an allocation gets written until the auction writes it.
+**QUEUED** — `POST /games/register`, which the UE slot-map tool will call with the real map
+image, the thumbnails and the measured pin positions. Until then `/games/{id}/map` and the
+slot thumbnails are SVGs drawn from the config, and the pin positions are the `px` values in
+`demo.json`. `POST /admin/allocate` stays: it is how a block gets written by hand when the
+auction is not involved.
+
+## The auction
+
+- A **lot** is one slot × one region × the next block, opened on demand — one per
+  slot-region at a time. **open**: the rival holds at the opening price
+  (footfall × 0.25, stepped to 25 — A1 / Japan is 300) with no clock. The visitor's first
+  bid makes it **running** and sets a 45-second clock. **closed** when that runs out.
+- The **rival** waits 3 s after the visitor's first bid, then raises **once**, to
+  min(visitor + 25, 2 × opening), and only if that beats them. Never again. So the
+  2,000-credit wallet can win every region of A1 (1,425 at the most).
+- **Soft close**: a visitor bid with 10 s or less left sets the clock back to 10 s.
+- **Credits** are *derived*, never stored: `held` is what you are leading on, `charged` is
+  what you won, `available` is 2,000 minus both. Being outbid releases by definition.
+- **On close** the winner gets one block. The visitor's starts at the close — or when the
+  block they already hold there ends, which is what "book the next block" means. A rival
+  win writes the rival's own block, so the slot visibly goes to the rival.
+- A bid may name the `lot_id` the portal was showing; a bid that arrives after that auction
+  closed is then refused instead of quietly starting the next one.
+- Nothing above runs on a timer. `Service.tick()` catches every lot up at the top of a
+  request, so the rival's counter-bid and the close are applied by the first request after
+  they fell due — a game client polling `/changes` every 1.5 s is what settles an auction at
+  the booth, and a test just moves the clock.
 
 ## Things worth knowing
 
-- `demo_files/` holds both the fake packs and the `.real.dcpack` wrappers. `GET /demo-files`
-  only lists what a visitor could upload — the rival and default packs live in the same folder
-  but are the game's own content, and the server seeds them at startup (preferring a real pack
-  over a fake one).
-- A reset wipes the visitor's brand, uploads, allocations, telemetry and saved state, deletes
-  their pack bytes, and returns a **purge list** that `/changes` repeats to every client, so
-  the next visitor gets a real download. The rival and default packs, and the demo clock,
-  carry on.
+- `demo_files/` holds both the fake packs and the `.real.dcpack` wrappers, and
+  `GET /demo-files` is a **curated** list, not the folder: version 1 of each uploadable piece
+  plus the one built-to-fail file the tour rejects on purpose (engine 5.3).
+  `?purpose=update` returns the version-2 files, which is all the push-an-update screen
+  offers. The rated-18+ pack stays on disk for the tests, the rival and default packs are the
+  game's own content (seeded at startup), and a `.real.dcpack` always wins over a fake one for
+  the same piece-version — so once every piece is cooked the list is serving real packs with
+  no change anywhere. The curated plan is `demo_files` in `config/demo.json`.
+- A reset wipes the visitor's brand, uploads, lots, bids, credits, allocations, telemetry and
+  saved state, deletes their pack bytes, puts the preview window back to its default region,
+  and returns a **purge list** that `/changes` repeats to every client, so the next visitor
+  gets a real download. The rival and default packs, and the demo clock, carry on.
+- `players_online` and the simulated half of footfall are functions of the demo clock, not
+  random: two screens polling at the same moment agree, and footfall is labelled
+  "simulated + live" with the counted views kept separate.
 - The demo clock runs at 60x from the server's epoch: one demo hour is one real minute, and a
   block is 3 demo hours = 3 real minutes.
 - `saved_state` exists as a table and is wiped by a reset, but nothing writes to it yet — the

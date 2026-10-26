@@ -7,13 +7,14 @@ tests drive the whole server with a fake clock and no sockets.
 from __future__ import annotations
 
 import logging
+import math
 import threading
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Iterable
 
-from . import rules
+from . import auction, rules
 from .blobs import Blobs, FsBlobs
 from .clock import Clock, DemoClock, RealClock, iso, parse_iso
 from .config import Config
@@ -83,15 +84,12 @@ class Service:
         )
         if not self.repo.meta_get("epoch"):
             self.repo.meta_set("epoch", iso(self.now().replace(microsecond=0)))
-        if self.repo.meta_get("wallet") is None:
-            self._reset_wallet()
         if self.repo.meta_get("reset_generation") is None:
             self.repo.meta_set("reset_generation", 0)
+        if self.repo.meta_get("preview_region") is None:
+            self.repo.meta_set("preview_region", self.config.preview_region)
         self.seed_system_packs()
         return self
-
-    def _reset_wallet(self) -> None:
-        self.repo.meta_set("wallet", {"available": self.config.wallet_start, "held": 0, "charged": 0})
 
     # ------------------------------------------------------------------ time
 
@@ -259,30 +257,61 @@ class Service:
 
     # ------------------------------------------------------------------ demo files
 
-    def demo_files(self) -> list[dict[str, Any]]:
-        """"The brand's computer": the packs a visitor can upload. The rival and default
-        packs live in the same folder but are the game's own content, so they are not listed."""
+    def _demo_file_row(self, path: Path) -> dict[str, Any]:
+        meta = peek_dcpack(path) or {}
+        note = None
+        if meta.get("engine_version") and str(meta["engine_version"]) != self.config.engine_version:
+            note = f"built for engine {meta['engine_version']}"
+        elif meta.get("rating") and meta["rating"] not in self.config.allowed_ratings:
+            note = f"rated {meta['rating']}"
+        return {"name": path.name, "bytes": path.stat().st_size,
+                "piece": meta.get("piece"), "version": meta.get("version"),
+                "size_class": meta.get("size_class"),
+                "engine_version": meta.get("engine_version"), "rating": meta.get("rating"),
+                "real": ".real." in path.name or (meta.get("source") or {}).get("kind") == "real",
+                "note": note}
+
+    def _pick_demo_file(self, piece: str, version: str) -> Path | None:
+        """A real pack wins over a fake one for the same piece-version."""
+        folder = self.paths.demo_files
+        for name in (f"{piece}_{version}.real.dcpack", f"{piece}_{version}.dcpack"):
+            if (folder / name).is_file():
+                return folder / name
+        return None
+
+    def demo_files(self, purpose: str = "upload") -> list[dict[str, Any]]:
+        """"The brand's computer" — a curated list, not whatever is in the folder.
+
+        `upload` (the default): version 1 of each uploadable piece, plus the one
+        built-to-fail file the demo shows a rejection with (engine 5.3). `update`: the
+        version-2 files, which is all the push-an-update screen offers. The rival and
+        default packs live in the same folder but are the game's own content, and the
+        rated-18+ file stays on disk for the tests — neither is ever listed.
+        """
         if not self.paths.demo_files.is_dir():
             return []
-        system = set(self.config.system_pieces())
+        version = "v2" if purpose == "update" else "v1"
         out = []
+        for piece in self.uploadable_pieces():
+            path = self._pick_demo_file(piece, version)
+            if path:
+                out.append(self._demo_file_row(path))
+        if purpose != "update":
+            bad = self.paths.demo_files / self.config.data["demo_files"]["built_to_fail"]
+            if bad.is_file():
+                out.append(self._demo_file_row(bad))
+        return out
+
+    def uploadable_pieces(self) -> list[str]:
+        """Every piece that is not the game's own content, in config order."""
+        system = set(self.config.system_pieces())
+        pieces = []
         for path in sorted(self.paths.demo_files.glob("*.dcpack")):
             meta = peek_dcpack(path) or {}
             piece = meta.get("piece")
-            if piece in system:
-                continue
-            row = {"name": path.name, "bytes": path.stat().st_size,
-                   "piece": piece, "version": meta.get("version"),
-                   "size_class": meta.get("size_class"),
-                   "engine_version": meta.get("engine_version"), "rating": meta.get("rating")}
-            note = None
-            if meta.get("engine_version") and str(meta["engine_version"]) != self.config.engine_version:
-                note = f"built for engine {meta['engine_version']}"
-            elif meta.get("rating") and meta["rating"] not in self.config.allowed_ratings:
-                note = f"rated {meta['rating']}"
-            row["note"] = note
-            out.append(row)
-        return out
+            if piece and piece not in system and piece not in pieces:
+                pieces.append(piece)
+        return pieces
 
     def demo_file_path(self, name: str) -> Path:
         safe = Path(name).name
@@ -293,6 +322,230 @@ class Service:
 
     # ------------------------------------------------------------------ brand / wallet
 
+    # ------------------------------------------------------------------ the auction
+
+    def auctions(self) -> auction.AuctionCtx:
+        return auction.AuctionCtx(self.config, self.repo, self.demo(), self.now())
+
+    def tick(self) -> auction.AuctionCtx:
+        """Catch the auctions up before answering. This is the whole of "no timers":
+        every rival counter-bid and every close is applied by the first request after it
+        fell due, which is also why the tests can simply move the clock."""
+        ctx = self.auctions()
+        auction.advance_all(ctx)
+        return ctx
+
+    def lot_cards(self, game: str, slot: str) -> dict[str, Any]:
+        ctx = self.tick()
+        return {region: auction.lot_card(ctx, lot)
+                for region, lot in auction.lots_for_slot(ctx, game, slot).items()}
+
+    def lots(self, game: str | None = None, slot: str | None = None,
+             region: str | None = None) -> dict[str, Any]:
+        ctx = self.tick()
+        if slot:
+            if not self.config.has_slot(slot):
+                raise ServiceError(404, f"There is no slot {slot}.")
+            game = game or self.config.slot(slot).game
+            auction.lots_for_slot(ctx, game, slot)            # make sure they exist
+        rows = [auction.lot_card(ctx, lot) for lot in self.repo.list_lots(game, slot, region)]
+        return {"lots": rows, "wallet": auction.wallet(ctx),
+                "server_time": iso(ctx.now)}
+
+    def lot(self, lot_id: str) -> dict[str, Any]:
+        ctx = self.tick()
+        lot = self.repo.get_lot(lot_id)
+        if not lot:
+            raise ServiceError(404, f"There is no lot {lot_id}.")
+        card = auction.lot_card(ctx, auction.advance_lot(ctx, lot), history=True)
+        card["wallet"] = auction.wallet(ctx)
+        return card
+
+    def place_bids(self, slot: str, content_id: str,
+                   bids: list[dict[str, Any]]) -> dict[str, Any]:
+        if not self.config.has_slot(slot):
+            raise ServiceError(404, f"There is no slot {slot}.")
+        if not bids:
+            raise ServiceError(400, "A bid needs at least one region.")
+        ctx = self.tick()
+        return auction.place_bids(ctx, slot, content_id, bids)
+
+    def split_bid(self, slot: str, total: int, regions: list[str]) -> dict[str, Any]:
+        """The portal's "one total across ticked regions", split by footfall."""
+        if not self.config.has_slot(slot):
+            raise ServiceError(404, f"There is no slot {slot}.")
+        unknown = [r for r in regions if not self.config.has_region(r)]
+        if unknown:
+            raise ServiceError(404, f"There is no region {unknown[0]}.")
+        if not regions:
+            raise ServiceError(400, "Tick at least one region to split a total across.")
+        ctx = self.tick()
+        shares = auction.split_by_footfall(self.config, slot, int(total), regions)
+        out = []
+        for region in regions:
+            lot = auction.current_lot(ctx, self.config.slot(slot).game, slot, region)
+            out.append({"region": region, "label": self.config.region_label(region),
+                        "amount": shares[region],
+                        "footfall": self.config.footfall(slot, region),
+                        "next_bid": auction.next_bid(lot, int(ctx.auction["min_raise"])),
+                        "enough": shares[region] >= auction.next_bid(
+                            lot, int(ctx.auction["min_raise"]))})
+        return {"slot": slot, "total": int(total), "bids": out,
+                "allocated": sum(shares.values())}
+
+    def close_auction(self, which: str) -> dict[str, Any]:
+        ctx = self.tick()
+        closed = auction.force_close(ctx, which)
+        if not closed and which != "all":
+            raise ServiceError(404, f"There is no lot {which}.")
+        return {"closed": closed, "wallet": auction.wallet(self.auctions())}
+
+    # ------------------------------------------------------------------ games
+
+    def players_online(self, game: str) -> int:
+        """Simulated, and deliberately not random: it is a function of the demo clock, so
+        two screens polling at the same moment agree."""
+        base = int(self.config.game(game).get("players_online") or 0)
+        minutes = self.demo().demo_hours_elapsed(self.now()) * 60.0
+        wobble = math.sin(minutes / 17.0) * 0.06 + math.sin(minutes / 3.3) * 0.02
+        return max(0, int(round(base * (1.0 + wobble))))
+
+    def footfall_card(self, slot: str) -> dict[str, Any]:
+        """Seed × demo hours elapsed + the views really counted — "simulated + live"."""
+        demo = self.demo()
+        hours = max(demo.demo_hours_elapsed(self.now()), 0.0)
+        live = self.repo.telemetry_counts_by_slot(slot, "view")
+        out = {}
+        for region in self.config.regions:
+            seed = self.config.footfall(slot, region)
+            simulated = int(seed * hours)
+            counted = int(live.get(region, 0))
+            out[region] = {"per_demo_hour": seed, "simulated": simulated, "live": counted,
+                           "total": simulated + counted, "label": "simulated + live"}
+        return out
+
+    def games(self) -> dict[str, Any]:
+        rows = []
+        for game in self.config.games:
+            data = self.config.game(game)
+            rows.append({
+                "id": game, "label": self.config.game_label(game),
+                "slot_count": len(self.config.slots_of(game)),
+                "players_online": self.players_online(game),
+                "live_at_booth": bool(data.get("live_at_booth")),
+                "map_image_url": f"/games/{game}/map",
+            })
+        return {"games": rows, "clock": self.clock_block()}
+
+    def game_card(self, game: str) -> dict[str, Any]:
+        if game not in self.config.games:
+            raise ServiceError(404, f"There is no game {game}.")
+        ctx = self.tick()
+        mine = self.my_content()["content"]
+        slots = []
+        for slot in self.config.slots_of(game):
+            limits = self.config.limits(slot.size_class)
+            lots = {region: auction.lot_card(ctx, lot) for region, lot
+                    in auction.lots_for_slot(ctx, game, slot.id).items()}
+            slots.append({
+                "id": slot.id, "size_class": slot.size_class, "limits": limits,
+                "limits_words": (f"up to {limits['x']:.0f} x {limits['y']:.0f} m on the ground "
+                                 f"and {limits['z']:.0f} m tall"),
+                "px": {"x": slot.px[0], "y": slot.px[1]},
+                "thumb_url": f"/games/{game}/slots/{slot.id}/thumb",
+                "footfall": self.footfall_card(slot.id),
+                "fits": {c["content_id"]: c["fits"].get(slot.id) for c in mine if c["fits"]},
+                "lots": lots,
+                "showing": {region: self.describe(self.showing(game, slot.id, region))
+                            for region in self.config.regions},
+            })
+        data = self.config.game(game)
+        return {
+            "id": game, "label": self.config.game_label(game),
+            "live_at_booth": bool(data.get("live_at_booth")),
+            "players_online": self.players_online(game),
+            "map_image_url": f"/games/{game}/map",
+            "slots": slots, "regions": {r: self.config.region_label(r)
+                                        for r in self.config.regions},
+            "wallet": auction.wallet(ctx), "clock": self.clock_block(),
+        }
+
+    def map_file(self, game: str) -> Path | None:
+        """The real map image once the UE slot-map tool has made one."""
+        if game not in self.config.games:
+            raise ServiceError(404, f"There is no game {game}.")
+        name = self.config.game(game).get("map_image")
+        if not name:
+            return None
+        path = (self.config.path.parent / name) if self.config.path else None
+        return path if path and path.is_file() else None
+
+    # ------------------------------------------------------------------ the report
+
+    def report(self) -> dict[str, Any]:
+        ctx = self.tick()
+        now = ctx.now
+        allocations = self.repo.visitor_allocations()
+        by_region: dict[str, list[dict[str, Any]]] = {r: [] for r in self.config.regions}
+        for row in allocations:
+            by_region.setdefault(row["region"], []).append(row)
+        regions, totals = [], {"views": 0, "visits": 0, "dwell_s": 0.0, "interactions": 0,
+                               "charged": 0, "blocks": 0}
+        for region in self.config.regions:
+            rows = by_region.get(region, [])
+            counts = self.repo.telemetry_for_allocations(rows) if rows else {}
+            charged = self.repo.sum_lots_charged(region)
+            views = int(counts.get("view", 0))
+            active = [r for r in rows
+                      if parse_iso(r["start_at"]) <= now < parse_iso(r["end_at"])]
+            queued = [r for r in rows if parse_iso(r["start_at"]) > now]
+            time_left = (round((parse_iso(active[0]["end_at"]) - now).total_seconds(), 1)
+                         if active else 0.0)
+            slots = sorted({r["slot"] for r in rows})
+            per_view = round(charged / views, 2) if views else None
+            regions.append({
+                "region": region, "label": self.config.region_label(region),
+                "neutral_label": self.config.data["regions"][region].get("neutral_label"),
+                "slots": slots, "blocks": len(rows),
+                "views": views, "visits": int(counts.get("visit", 0)),
+                "dwell_s": round(float(counts.get("dwell_total", 0.0)), 1),
+                "interactions": int(counts.get("interaction_total", 0)),
+                "mounts": int(counts.get("mount", 0)),
+                "charged": charged, "cost_per_view": per_view,
+                "cost_per_1000_views": round(per_view * 1000, 2) if per_view else None,
+                "time_left_s": time_left,
+                "paused": bool(active and int(active[0]["paused"] or 0)),
+                "next_block_at": queued[0]["start_at"] if queued else None,
+                "showing": self.describe(self.showing(
+                    self.config.slot(slots[0]).game, slots[0], region)) if slots else None,
+            })
+            totals["views"] += views
+            totals["visits"] += int(counts.get("visit", 0))
+            totals["dwell_s"] += float(counts.get("dwell_total", 0.0))
+            totals["interactions"] += int(counts.get("interaction_total", 0))
+            totals["charged"] += charged
+            totals["blocks"] += len(rows)
+        totals["dwell_s"] = round(totals["dwell_s"], 1)
+        totals["cost_per_view"] = (round(totals["charged"] / totals["views"], 2)
+                                   if totals["views"] else None)
+        return {"brand": self.repo.get_brand(), "wallet": auction.wallet(ctx),
+                "regions": regions, "totals": totals, "clock": self.clock_block(),
+                "paused": any(r["paused"] for r in regions)}
+
+    # ------------------------------------------------------------------ preview region
+
+    def preview_region(self) -> dict[str, Any]:
+        region = self.repo.meta_get("preview_region") or self.config.preview_region
+        return {"region": region, "label": self.config.region_label(region),
+                "neutral_label": self.config.data["regions"][region].get("neutral_label"),
+                "main_region": self.config.main_region}
+
+    def set_preview_region(self, region: str) -> dict[str, Any]:
+        if not self.config.has_region(region):
+            raise ServiceError(404, f"There is no region {region}.")
+        self.repo.meta_set("preview_region", region)
+        return self.preview_region()
+
     def set_brand(self, colour: str, emblem: str) -> dict[str, Any]:
         presets = self.config.data["brand_presets"]
         if colour not in presets["colours"]:
@@ -302,8 +555,8 @@ class Service:
         return self.repo.set_brand(colour, emblem, self.now())
 
     def wallet(self) -> dict[str, Any]:
-        return self.repo.meta_get("wallet") or {"available": self.config.wallet_start,
-                                                "held": 0, "charged": 0}
+        """Derived from the lots, so it cannot drift: held = what you lead, charged = won."""
+        return auction.wallet(self.tick())
 
     # ------------------------------------------------------------------ what shows
 
@@ -339,6 +592,25 @@ class Service:
             "purge_packs": list(self.repo.meta_get("purge_packs") or []),
         }
 
+    def resolve(self, game: str, slot: str, region: str, envelope: bool = True) -> dict[str, Any]:
+        """The signed manifest, in one of two shapes.
+
+        **envelope** (the default, and what the UE client will use):
+        `{signed_payload: "<the canonical JSON as a string>", signature: "<RS256 over
+        exactly those UTF-8 bytes>"}` — verify the string, then parse it, so no client has
+        to reproduce canonical JSON to check a signature.
+
+        **flat** (`?format=flat`): the manifest's fields with `signature` alongside them,
+        which is what part 1 served. Kept for one brief so nothing breaks mid-way.
+        """
+        payload = self.manifest(game, slot, region)
+        signature = self.keys.sign(payload)
+        if not envelope:
+            return {**payload, "signature": signature}
+        return {"signed_payload": canonical_json(payload).decode("utf-8"),
+                "signature": signature,
+                "signature_alg": payload["signature_alg"]}
+
     def manifest(self, game: str, slot: str, region: str) -> dict[str, Any]:
         showing = self.showing(game, slot, region)
         if showing is None:
@@ -369,7 +641,7 @@ class Service:
             "server_time": iso(now),
             "signature_alg": "RS256-canonical-json-v1",
         }
-        return {**payload, "signature": self.keys.sign(payload)}
+        return payload
 
     # ------------------------------------------------------------------ allocations
 
@@ -456,7 +728,7 @@ class Service:
         result = self.repo.wipe_visitor_side()
         for pack_id in result["purge_packs"]:
             self.blobs.delete_pack(pack_id)
-        self._reset_wallet()
+        self.repo.meta_set("preview_region", self.config.preview_region)
         generation = int(self.repo.meta_get("reset_generation") or 0) + 1
         self.repo.meta_set("reset_generation", generation)
         self.repo.meta_set("purge_packs", result["purge_packs"])

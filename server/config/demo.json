@@ -99,6 +99,17 @@
     "fake_filler_max_bytes": 41943040
   },
 
+  "demo_files": {
+    "_comment": [
+      "The curated 'Your computer' list the portal shows: version 1 of every uploadable",
+      "piece plus the one built-to-fail file the tour rejects on purpose. The v2 files are",
+      "offered only by the push-an-update screen (GET /demo-files?purpose=update), and the",
+      "rated-18+ pack stays on disk for the tests. A .real.dcpack always wins over a fake",
+      "one for the same piece-version."
+    ],
+    "built_to_fail": "content2_v1_engine53.dcpack"
+  },
+
   "telemetry": { "view_min_seconds": 1.0, "view_radius_m": 30.0, "types": ["view", "visit", "dwell", "interaction", "mount"] },
 
   "sabotage": { "freeze_seconds": 5.0 },

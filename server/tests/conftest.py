@@ -7,6 +7,7 @@ the piece table.
 """
 from __future__ import annotations
 
+import json
 import sys
 import threading
 import time
@@ -105,9 +106,49 @@ class Env:
         return self.changes(game, region)["slots"][slot]
 
     def resolve(self, game: str = "A", slot: str = "A1", region: str = "r1",
-                expect: int = 200) -> dict:
+                expect: int = 200, shape: str | None = None) -> dict:
+        """The manifest, whichever shape the server was asked for: the envelope is opened
+        so a test can read the fields, with the signature left on it to check."""
+        params = {"game": game, "slot": slot, "region": region}
+        if shape:
+            params["format"] = shape
+        body = self.ok(self.client.get("/resolve", params=params), expect)
+        if expect != 200 or "signed_payload" not in body:
+            return body
+        manifest = json.loads(body["signed_payload"])
+        manifest["signature"] = body["signature"]
+        return manifest
+
+    def envelope(self, game: str = "A", slot: str = "A1", region: str = "r1") -> dict:
         return self.ok(self.client.get("/resolve", params={"game": game, "slot": slot,
-                                                           "region": region}), expect)
+                                                           "region": region}))
+
+    # ---- the auction ----------------------------------------------------------------
+
+    def bid(self, slot: str, content_id: str, amounts: dict[str, int],
+            expect: int = 200, lot_ids: dict[str, str] | None = None) -> dict:
+        body = {"slot": slot, "content_id": content_id,
+                "bids": [{"region": r, "amount": a, "lot_id": (lot_ids or {}).get(r)}
+                         for r, a in amounts.items()]}
+        return self.ok(self.client.post("/bids", json=body), expect)
+
+    def lot_for(self, slot: str, region: str, game: str | None = None) -> dict:
+        game = game or self.config.slot(slot).game
+        card = self.ok(self.client.get("/games/" + game))
+        return next(s for s in card["slots"] if s["id"] == slot)["lots"][region]
+
+    def lot(self, lot_id: str, expect: int = 200) -> dict:
+        return self.ok(self.client.get(f"/lots/{lot_id}"), expect)
+
+    def wallet(self) -> dict:
+        return self.ok(self.client.get("/wallet"))
+
+    def report(self) -> dict:
+        return self.ok(self.client.get("/report"))
+
+    def close_auction(self, lot_id: str = "all", expect: int = 200) -> dict:
+        return self.ok(self.client.post("/admin/close-auction", json={"lot_id": lot_id}),
+                       expect)
 
     def public_pem(self) -> str:
         return self.ok(self.client.get("/client-config"))["public_key_pem"]

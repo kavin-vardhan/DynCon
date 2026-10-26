@@ -1,7 +1,7 @@
 # Content assets — spec v1 (Tokyo demo)
 
 *Written 2026-10-25 by chat Claude for Claude Code. Source of truth for every piece of walk-in content in the demo.
-Derived from `DemoPlan/DynamicContents_Tokyo_demo_plan_v6.md` §3, §9, §12. Status: DONE (spec). All 13 builds DONE as of brief 005 (2026-10-26); UE packs QUEUED (brief 006).*
+Derived from `DemoPlan/DynamicContents_Tokyo_demo_plan_v6.md` §3, §9, §12. Status: DONE (spec). All 13 builds DONE as of brief 005 (2026-10-26); UE packs DONE (brief 006: 13 packs, true cm, chunks 100–112).*
 
 ## 1. What we are making and why
 

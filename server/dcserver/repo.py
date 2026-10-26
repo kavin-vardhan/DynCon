@@ -13,11 +13,11 @@ import json
 import sqlite3
 import threading
 from abc import ABC, abstractmethod
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Iterable
 
-from .clock import iso
+from .clock import iso, parse_iso
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS meta (
@@ -106,6 +106,39 @@ CREATE TABLE IF NOT EXISTS telemetry (
   ts          TEXT,
   received_at TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS lots (
+  id             TEXT PRIMARY KEY,      -- lot_A1_r1_1
+  game           TEXT NOT NULL,
+  slot           TEXT NOT NULL,
+  region         TEXT NOT NULL,
+  seq            INTEGER NOT NULL,
+  opening        INTEGER NOT NULL,
+  rival_max      INTEGER NOT NULL,
+  state          TEXT NOT NULL,         -- open | running | closed
+  highest        INTEGER NOT NULL,
+  holder         TEXT NOT NULL,         -- you | rival
+  content_id     TEXT,                  -- what the visitor is bidding with
+  first_bid_at   TEXT,
+  close_at       TEXT,
+  rival_bid_done INTEGER NOT NULL DEFAULT 0,
+  soft_closes    INTEGER NOT NULL DEFAULT 0,
+  settled_at     TEXT,
+  won_by         TEXT,
+  charged        INTEGER NOT NULL DEFAULT 0,
+  allocation_id  INTEGER,
+  created_at     TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS lots_lookup ON lots (game, slot, region, state);
+CREATE TABLE IF NOT EXISTS bids (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  lot_id     TEXT NOT NULL,
+  bidder     TEXT NOT NULL,             -- you | rival
+  amount     INTEGER NOT NULL,
+  content_id TEXT,
+  note       TEXT,
+  at         TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS bids_lot ON bids (lot_id, at);
 CREATE TABLE IF NOT EXISTS saved_state (
   slot           TEXT NOT NULL,
   region         TEXT NOT NULL,
@@ -117,8 +150,8 @@ CREATE TABLE IF NOT EXISTS saved_state (
 );
 """
 
-# Everything a reset wipes. Part 2 adds "lots" and "bids" to this list and nothing else.
-VISITOR_TABLES = ("allocations", "telemetry", "saved_state")
+# Everything a reset wipes.
+VISITOR_TABLES = ("allocations", "telemetry", "saved_state", "lots", "bids")
 
 
 def _row(row: sqlite3.Row | None) -> dict[str, Any] | None:
@@ -197,11 +230,44 @@ class Repo(ABC):
     def set_paused(self, alloc_id: int, paused: bool) -> None: ...
     @abstractmethod
     def set_paused_all_visitor(self, paused: bool) -> int: ...
+    @abstractmethod
+    def last_allocation_end(self, game: str, slot: str, region: str) -> datetime | None: ...
+    @abstractmethod
+    def visitor_allocations(self) -> list[dict[str, Any]]: ...
+    # ---- lots and bids (the auction)
+    @abstractmethod
+    def add_lot(self, row: dict[str, Any], now: datetime) -> None: ...
+    @abstractmethod
+    def get_lot(self, lot_id: str) -> dict[str, Any] | None: ...
+    @abstractmethod
+    def open_lot(self, game: str, slot: str, region: str) -> dict[str, Any] | None: ...
+    @abstractmethod
+    def live_lots(self) -> list[dict[str, Any]]: ...
+    @abstractmethod
+    def list_lots(self, game: str | None = None, slot: str | None = None,
+                  region: str | None = None) -> list[dict[str, Any]]: ...
+    @abstractmethod
+    def update_lot(self, lot_id: str, fields: dict[str, Any]) -> None: ...
+    @abstractmethod
+    def next_lot_seq(self, game: str, slot: str, region: str) -> int: ...
+    @abstractmethod
+    def add_bid(self, lot_id: str, bidder: str, amount: int, content_id: str | None,
+                note: str, at: datetime) -> None: ...
+    @abstractmethod
+    def bids_for(self, lot_id: str) -> list[dict[str, Any]]: ...
+    @abstractmethod
+    def sum_lots_held(self) -> int: ...
+    @abstractmethod
+    def sum_lots_charged(self, region: str | None = None) -> int: ...
     # ---- telemetry
     @abstractmethod
     def add_telemetry(self, events: Iterable[dict[str, Any]], now: datetime) -> int: ...
     @abstractmethod
     def telemetry_counts(self, region: str | None = None) -> dict[str, float]: ...
+    @abstractmethod
+    def telemetry_counts_by_slot(self, slot: str, event_type: str) -> dict[str, int]: ...
+    @abstractmethod
+    def telemetry_for_allocations(self, allocations: list[dict[str, Any]]) -> dict[str, float]: ...
     # ---- reset
     @abstractmethod
     def wipe_visitor_side(self) -> dict[str, Any]: ...
@@ -474,6 +540,106 @@ class SqliteRepo(Repo):
             self.conn.commit()
             return cur.rowcount
 
+    def last_allocation_end(self, game: str, slot: str, region: str) -> datetime | None:
+        """When this slot-region is free again — an auction win queues behind it."""
+        with self._lock:
+            row = self.conn.execute(
+                "SELECT MAX(end_at) AS last FROM allocations WHERE game=? AND slot=? AND region=?",
+                (game, slot, region)).fetchone()
+        return parse_iso(row["last"]) if row and row["last"] else None
+
+    def visitor_allocations(self) -> list[dict[str, Any]]:
+        with self._lock:
+            return [dict(r) for r in self.conn.execute(
+                "SELECT * FROM allocations WHERE kind='visitor' ORDER BY start_at, id")]
+
+    # ---- lots and bids -------------------------------------------------------------
+
+    def add_lot(self, row: dict[str, Any], now: datetime) -> None:
+        with self._lock:
+            self.conn.execute(
+                "INSERT INTO lots(id, game, slot, region, seq, opening, rival_max, state,"
+                " highest, holder, created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+                (row["id"], row["game"], row["slot"], row["region"], int(row["seq"]),
+                 int(row["opening"]), int(row["rival_max"]), row["state"],
+                 int(row["highest"]), row["holder"], iso(now)))
+            self.conn.commit()
+
+    def get_lot(self, lot_id: str) -> dict[str, Any] | None:
+        with self._lock:
+            return _row(self.conn.execute("SELECT * FROM lots WHERE id=?", (lot_id,)).fetchone())
+
+    def open_lot(self, game: str, slot: str, region: str) -> dict[str, Any] | None:
+        with self._lock:
+            return _row(self.conn.execute(
+                "SELECT * FROM lots WHERE game=? AND slot=? AND region=? AND state!='closed' "
+                "ORDER BY seq DESC LIMIT 1", (game, slot, region)).fetchone())
+
+    def live_lots(self) -> list[dict[str, Any]]:
+        with self._lock:
+            return [dict(r) for r in self.conn.execute(
+                "SELECT * FROM lots WHERE state!='closed' ORDER BY id")]
+
+    def list_lots(self, game: str | None = None, slot: str | None = None,
+                  region: str | None = None) -> list[dict[str, Any]]:
+        where, args = [], []
+        for column, value in (("game", game), ("slot", slot), ("region", region)):
+            if value:
+                where.append(f"{column}=?")
+                args.append(value)
+        sql = "SELECT * FROM lots"
+        if where:
+            sql += " WHERE " + " AND ".join(where)
+        with self._lock:
+            return [dict(r) for r in self.conn.execute(sql + " ORDER BY slot, region, seq", args)]
+
+    def update_lot(self, lot_id: str, fields: dict[str, Any]) -> None:
+        if not fields:
+            return
+        sets = ", ".join(f"{k}=?" for k in fields)
+        with self._lock:
+            self.conn.execute(f"UPDATE lots SET {sets} WHERE id=?",
+                              (*fields.values(), lot_id))
+            self.conn.commit()
+
+    def next_lot_seq(self, game: str, slot: str, region: str) -> int:
+        with self._lock:
+            row = self.conn.execute(
+                "SELECT MAX(seq) AS top FROM lots WHERE game=? AND slot=? AND region=?",
+                (game, slot, region)).fetchone()
+        return int(row["top"] or 0) + 1
+
+    def add_bid(self, lot_id: str, bidder: str, amount: int, content_id: str | None,
+                note: str, at: datetime) -> None:
+        with self._lock:
+            self.conn.execute(
+                "INSERT INTO bids(lot_id, bidder, amount, content_id, note, at)"
+                " VALUES(?,?,?,?,?,?)", (lot_id, bidder, int(amount), content_id, note, iso(at)))
+            self.conn.commit()
+
+    def bids_for(self, lot_id: str) -> list[dict[str, Any]]:
+        with self._lock:
+            return [dict(r) for r in self.conn.execute(
+                "SELECT * FROM bids WHERE lot_id=? ORDER BY at, id", (lot_id,))]
+
+    def sum_lots_held(self) -> int:
+        """Credits a leading bid is holding: every live lot the visitor is leading."""
+        with self._lock:
+            row = self.conn.execute(
+                "SELECT SUM(highest) AS held FROM lots WHERE holder='you' AND state!='closed'"
+            ).fetchone()
+        return int(row["held"] or 0)
+
+    def sum_lots_charged(self, region: str | None = None) -> int:
+        sql = "SELECT SUM(charged) AS charged FROM lots WHERE won_by='you'"
+        args: tuple = ()
+        if region:
+            sql += " AND region=?"
+            args = (region,)
+        with self._lock:
+            row = self.conn.execute(sql, args).fetchone()
+        return int(row["charged"] or 0)
+
     # ---- telemetry -----------------------------------------------------------------
 
     def add_telemetry(self, events: Iterable[dict[str, Any]], now: datetime) -> int:
@@ -488,6 +654,36 @@ class SqliteRepo(Repo):
                 " VALUES(?,?,?,?,?,?,?,?)", rows)
             self.conn.commit()
         return len(rows)
+
+    def telemetry_counts_by_slot(self, slot: str, event_type: str) -> dict[str, int]:
+        """Real counted events for one slot, per region — the "live" half of footfall."""
+        with self._lock:
+            rows = self.conn.execute(
+                "SELECT region, COUNT(*) AS n FROM telemetry WHERE slot=? AND type=? "
+                "GROUP BY region", (slot, event_type)).fetchall()
+        return {r["region"]: int(r["n"]) for r in rows if r["region"]}
+
+    def telemetry_for_allocations(self, allocations: list[dict[str, Any]]) -> dict[str, float]:
+        """Everything the game reported while these allocations were the thing on screen.
+
+        Telemetry carries the slot, the region and a timestamp, so a campaign's numbers are
+        the events inside its own blocks — a minute of slack at the end covers a batch the
+        client posts just after the block rolls over.
+        """
+        out: dict[str, float] = {}
+        for row in allocations:
+            start = row["start_at"]
+            end = iso(parse_iso(row["end_at"]) + timedelta(seconds=60))
+            with self._lock:
+                counts = self.conn.execute(
+                    "SELECT type, COUNT(*) AS n, SUM(value) AS total FROM telemetry "
+                    "WHERE slot=? AND region=? AND ts>=? AND ts<=? GROUP BY type",
+                    (row["slot"], row["region"], start, end)).fetchall()
+            for count in counts:
+                out[count["type"]] = out.get(count["type"], 0) + int(count["n"])
+                key = f"{count['type']}_total"
+                out[key] = out.get(key, 0.0) + float(count["total"] or 0.0)
+        return out
 
     def telemetry_counts(self, region: str | None = None) -> dict[str, float]:
         sql = "SELECT type, COUNT(*) AS n, SUM(value) AS total FROM telemetry"
@@ -540,6 +736,6 @@ class SqliteRepo(Repo):
         out: dict[str, int] = {}
         with self._lock:
             for table in ("content", "content_versions", "packs", "allocations", "telemetry",
-                          "saved_state", "games", "slots"):
+                          "saved_state", "lots", "bids", "games", "slots"):
                 out[table] = int(self.conn.execute(f"SELECT COUNT(*) AS n FROM {table}").fetchone()["n"])
         return out
