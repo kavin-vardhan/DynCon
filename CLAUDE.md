@@ -59,8 +59,18 @@ session. Chat Claude writes each brief and reads every report before writing the
    design / technical choice you want chat to rule on goes under **NEEDS-DECISION**. Finish everything that does not depend on the
    answer, then STOP. Don't guess on a decision that changes scope.
 2. **Never touch `_mailbox\`** (it is the watcher's).
-3. **Git.** This folder is a local repo with no remote. Commit at the end of every brief (message `NNN: <summary>`, NNN = brief
-   number). Never force anything, never rewrite history, never `git clean` / `reset --hard`. `_mailbox/` is git-ignored.
+3. **Git.** This folder is a git repo with a **private** remote: `origin` =
+   `https://github.com/kavin-vardhan/DynCon.git` (private — the project is patent-pending and must never be public).
+   **Commit *and* push at the end of every brief**: commit with message `NNN: <summary>` (NNN = brief number), then
+   `git push origin main`, and quote the pushed hash in your report. Never force-push, never rewrite pushed history, never
+   force anything, never `git clean` / `reset --hard`. If a push is rejected (the remote moved), stop and report — do not
+   merge or force. `_mailbox/` is git-ignored.
+   - Auth: the `gh` CLI is logged in as `kavin-vardhan`, so a push works without a prompt via
+     `git -c credential.helper= -c "credential.helper=!gh auth git-credential" push origin main`.
+     Set `GIT_TERMINAL_PROMPT=0` first so a missing credential fails fast instead of hanging a headless run.
+   - Before any push, confirm the remote is still private (`gh repo view kavin-vardhan/DynCon --json visibility`, and an
+     anonymous `curl -s -o NUL -w "%{http_code}" https://api.github.com/repos/kavin-vardhan/DynCon` must not return 200).
+     Never push anything from `server/data/`, `_mailbox/` or the UE build outputs — `.gitignore` already keeps them out.
 4. **Stay in scope.** Useful things you notice outside the brief go under *Suggestions*; don't do them.
 5. **Shell:** your Bash tool fails in headless runs on this PC (`/c/ClaudeTemp/...-cwd: No such file or directory`). Use
    PowerShell from the start; don't spend a retry on Bash.
