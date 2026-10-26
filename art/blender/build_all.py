@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import importlib
+import json
 import os
 import sys
 import time
@@ -65,6 +66,24 @@ def wanted(args):
     return out
 
 
+def _previous_previews(out_dir, previews, render_info):
+    """The `previews` / `render` blocks of the manifest written by the last full build."""
+    old = os.path.join(out_dir, "manifest.json")
+    if not os.path.exists(old):
+        return previews, render_info
+    try:
+        with open(old, "r", encoding="utf-8") as fh:
+            prev = json.load(fh)
+    except (OSError, ValueError):
+        return previews, render_info
+    kept = {}
+    for key, rel in (prev.get("previews") or {}).items():
+        abs_path = os.path.join(ART, rel.replace("/", os.sep))
+        if os.path.exists(abs_path):
+            kept[key] = abs_path
+    return kept, (prev.get("render") or render_info)
+
+
 def build_one(pid, version, args):
     t0 = time.time()
     K.reset_scene()
@@ -87,7 +106,12 @@ def build_one(pid, version, args):
     previews = {}
     brand, emblem = K.preview_identity(pid)
     render_info = dict(engine=None, view_transform=None, samples=args.samples)
-    if not args.no_render:
+    if args.no_render:
+        # Carry the last run's preview paths forward rather than dropping them: --no-render is
+        # for re-exporting unchanged geometry (a unit or format change), and the PNGs on disk
+        # are still the right pictures of it. Anything missing on disk is simply not carried.
+        previews, render_info = _previous_previews(out_dir, previews, render_info)
+    else:
         K.preview_world()
         K.preview_dress(piece, brand=brand, emblem=emblem,
                         screen_image=os.path.join(ART, "samples", "sample_screen.png"))

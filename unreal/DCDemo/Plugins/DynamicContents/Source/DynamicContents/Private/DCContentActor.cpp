@@ -52,7 +52,7 @@ namespace
 		UMaterialInstanceDynamic* Mid = Comp->CreateDynamicMaterialInstance(Index);
 		if (Mid == nullptr)
 		{
-			UE_LOG(LogDC, Warning, TEXT("  brand: no material to instance for slot %s on %s"),
+			DC_LOG(Warning, TEXT("  brand: no material to instance for slot %s on %s"),
 				*SlotName.ToString(), *Comp->GetName());
 			return;
 		}
@@ -125,7 +125,7 @@ UStaticMeshComponent* ADCContentActor::AddPart(UStaticMesh* Mesh, const FString&
 	const FName Socket = ResolveSocket(SocketBaseName);
 	if (bAttachPartsAtSockets && Socket == NAME_None)
 	{
-		UE_LOG(LogDC, Warning, TEXT("  part %s: no socket '%s' on the shell, placing at the origin"),
+		DC_LOG(Warning, TEXT("  part %s: no socket '%s' on the shell, placing at the origin"),
 			*Name, *SocketBaseName);
 	}
 
@@ -168,10 +168,15 @@ void ADCContentActor::AddLights()
 		Light->SetMobility(EComponentMobility::Movable);
 		Light->SetupAttachment(ShellComp, SocketName);
 		Light->RegisterComponent();
+
+		// Lumens, not candelas: the defaults above are the numbers a real fitting is sold in,
+		// and UPointLightComponent's own default unit is candelas, so say so explicitly.
+		Light->SetIntensityUnits(ELightUnits::Lumens);
 		Light->SetIntensity(bGroupA ? LightAIntensity : LightBIntensity);
 		Light->SetLightColor(LightColor);
-		Light->SetAttenuationRadius(LightRadius);
-		Light->SetCastShadows(false);
+		Light->SetAttenuationRadius(bGroupA ? LightARadius : LightBRadius);
+		Light->SetSourceRadius(LightSourceRadius);
+		Light->SetCastShadows(bLightsCastShadows);
 		AddInstanceComponent(Light);
 
 		(bGroupA ? LightsA : LightsB).Add(Light);
@@ -184,7 +189,7 @@ void ADCContentActor::Rebuild()
 
 	if (ShellMesh == nullptr)
 	{
-		UE_LOG(LogDC, Error, TEXT("BUILD FAIL  %s_%s has no ShellMesh"),
+		DC_LOG(Error, TEXT("BUILD FAIL  %s_%s has no ShellMesh"),
 			*ContentId.ToString(), *ContentVersion.ToString());
 		return;
 	}
@@ -230,7 +235,7 @@ void ADCContentActor::Rebuild()
 	ApplyBrand();
 	ApplyState();
 
-	UE_LOG(LogDC, Log, TEXT("BUILD ok     %s in %.1f ms"), *DescribeBuild(), DCElapsedMs(Start));
+	DC_LOG(Log, TEXT("BUILD ok     %s in %.1f ms"), *DescribeBuild(), DCElapsedMs(Start));
 }
 
 void ADCContentActor::ApplyBrand()
@@ -253,9 +258,46 @@ void ADCContentActor::ApplyState()
 
 	if (DoorComp)
 	{
+		// Closed is relative rotation zero: the leaf's own origin is its hinge edge and the
+		// socket already carries the door's orientation, so a closed door needs no correction.
 		const float Yaw = bDoorOpen ? (DoorOpenSign >= 0 ? DoorOpenDegrees : -DoorOpenDegrees) : 0.0f;
 		DoorComp->SetRelativeRotation(FRotator(0.0f, Yaw, 0.0f));
 	}
+}
+
+bool ADCContentActor::GetSocketWorldTransform(const FString& SocketBaseName, FTransform& OutTransform) const
+{
+	if (ShellComp == nullptr)
+	{
+		return false;
+	}
+
+	const FName Socket = ResolveSocket(SocketBaseName);
+	if (Socket == NAME_None)
+	{
+		return false;
+	}
+
+	OutTransform = ShellComp->GetSocketTransform(Socket, RTS_World);
+	return true;
+}
+
+bool ADCContentActor::GetScreenWorldLocation(FVector& OutLocation) const
+{
+	if (ScreenComp != nullptr)
+	{
+		OutLocation = ScreenComp->Bounds.Origin;
+		return true;
+	}
+
+	FTransform Socket;
+	if (GetSocketWorldTransform(TEXT("Screen"), Socket))
+	{
+		OutLocation = Socket.GetLocation();
+		return true;
+	}
+
+	return false;
 }
 
 FString ADCContentActor::DescribeBuild() const
@@ -272,17 +314,39 @@ FString ADCContentActor::DescribeBuild() const
 		DoorLocal = GetActorTransform().InverseTransformPosition(DoorComp->GetComponentLocation());
 	}
 
+	// Where the sign ends up, and which way it faces, is the other thing worth printing: a
+	// sign that has gone dark in a screenshot is almost always a sign that is facing the wrong
+	// way, and this line says so without a screenshot.
+	FVector SignLocal = FVector::ZeroVector;
+	FVector SignNormal = FVector::ZeroVector;
+	if (SignComp)
+	{
+		const FTransform Inverse = GetActorTransform().Inverse();
+		// The sign quad is authored in its own XZ plane, so its outward normal is the
+		// component's +Y axis. In the actor's own space it should come out close to (0,1,0),
+		// the piece's front: anything else and the sign is facing into the wall.
+		SignLocal = Inverse.TransformPosition(SignComp->GetComponentLocation());
+		SignNormal = Inverse.TransformVector(SignComp->GetRightVector());
+	}
+
 	return FString::Printf(
 		TEXT("%s_%s  shell=%s unit_scale=%.0f door=%d screen=%d sign=%d switches=%d ")
-		TEXT("lightsA=%d lightsB=%d sockets=%d bounds=%.0fx%.0fx%.0f cm door_local=(%.0f,%.0f,%.0f) ")
+		TEXT("lightsA=%d(%s %.0flm r%.0f) lightsB=%d(%s %.0flm r%.0f) shadows=%s sockets=%d ")
+		TEXT("bounds=%.0fx%.0fx%.0f cm door_local=(%.0f,%.0f,%.0f) door_open=%d ")
+		TEXT("sign_local=(%.0f,%.0f,%.0f) sign_out=(%.2f,%.2f,%.2f) ")
 		TEXT("brand=(%.2f,%.2f,%.2f) emblem=%s screen_img=%s"),
 		*ContentId.ToString(), *ContentVersion.ToString(),
 		ShellMesh ? *ShellMesh->GetName() : TEXT("none"), ContentUnitScale,
 		DoorComp ? 1 : 0, ScreenComp ? 1 : 0, SignComp ? 1 : 0,
-		SwitchComps.Num(), LightsA.Num(), LightsB.Num(),
+		SwitchComps.Num(),
+		LightsA.Num(), bLightAOn ? TEXT("on") : TEXT("off"), LightAIntensity, LightARadius,
+		LightsB.Num(), bLightBOn ? TEXT("on") : TEXT("off"), LightBIntensity, LightBRadius,
+		bLightsCastShadows ? TEXT("yes") : TEXT("no"),
 		ShellComp ? ShellComp->GetAllSocketNames().Num() : 0,
 		Size.X, Size.Y, Size.Z,
-		DoorLocal.X, DoorLocal.Y, DoorLocal.Z,
+		DoorLocal.X, DoorLocal.Y, DoorLocal.Z, bDoorOpen ? 1 : 0,
+		SignLocal.X, SignLocal.Y, SignLocal.Z,
+		SignNormal.X, SignNormal.Y, SignNormal.Z,
 		BrandColor.R, BrandColor.G, BrandColor.B,
 		EmblemTexture ? *EmblemTexture->GetName() : TEXT("none"),
 		ScreenImage ? *ScreenImage->GetName() : TEXT("none"));

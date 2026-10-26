@@ -9,6 +9,14 @@
   "z": 9.0
  },
  "front_axis": "-Y",
+ "units": {
+  "authoring": "m",
+  "fbx": "cm",
+  "glb": "m",
+  "fbx_scale": 100.0,
+  "engine": "cm",
+  "engine_unit_scale": 1.0
+ },
  "bounds": {
   "min": [
    -6.52,
@@ -24,6 +32,23 @@
    13.04,
    13.34,
    6.61
+  ]
+ },
+ "bounds_cm": {
+  "min": [
+   -652.0,
+   -682.0,
+   0.0
+  ],
+  "max": [
+   652.0,
+   652.0,
+   661.0
+  ],
+  "size": [
+   1304.0,
+   1334.0,
+   661.0
   ]
  },
  "fits_slots": [
@@ -49,11 +74,33 @@
     0.0,
     0.0
    ],
+   "location_cm": [
+    0.0,
+    0.0,
+    0.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
     0.0
    ],
+   "bounds_local_cm": {
+    "min": [
+     -652.0,
+     -682.0,
+     0.0
+    ],
+    "max": [
+     652.0,
+     652.0,
+     661.0
+    ],
+    "size": [
+     1304.0,
+     1334.0,
+     661.0
+    ]
+   },
    "materials": [
     "M_Trim",
     "M_Floor",
@@ -76,11 +123,33 @@
     -5.87,
     0.14
    ],
+   "location_cm": [
+    -290.0,
+    -587.0,
+    14.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
     0.0
    ],
+   "bounds_local_cm": {
+    "min": [
+     2.0,
+     -11.0,
+     0.0
+    ],
+    "max": [
+     178.0,
+     11.0,
+     279.0
+    ],
+    "size": [
+     176.0,
+     22.0,
+     279.0
+    ]
+   },
    "materials": [
     "M_Door",
     "M_Wall",
@@ -96,11 +165,33 @@
     -5.74,
     1.2
    ],
+   "location_cm": [
+    -95.0,
+    -574.0,
+    120.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
     180.0
    ],
+   "bounds_local_cm": {
+    "min": [
+     -7.5,
+     -3.6,
+     -10.5
+    ],
+    "max": [
+     7.5,
+     0.0,
+     10.5
+    ],
+    "size": [
+     15.0,
+     3.6,
+     21.0
+    ]
+   },
    "materials": [
     "M_Switch",
     "M_Trim"
@@ -115,11 +206,33 @@
     5.905,
     1.94
    ],
+   "location_cm": [
+    -200.0,
+    590.5,
+    194.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
     0.0
    ],
+   "bounds_local_cm": {
+    "min": [
+     -200.0,
+     0.0,
+     -112.5
+    ],
+    "max": [
+     200.0,
+     0.0,
+     112.5
+    ],
+    "size": [
+     400.0,
+     0.0,
+     225.0
+    ]
+   },
    "materials": [
     "M_Screen"
    ]
@@ -133,11 +246,33 @@
     -6.125,
     4.9
    ],
+   "location_cm": [
+    -200.0,
+    -612.5,
+    490.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
     0.0
    ],
+   "bounds_local_cm": {
+    "min": [
+     -150.0,
+     0.0,
+     -75.0
+    ],
+    "max": [
+     150.0,
+     0.0,
+     75.0
+    ],
+    "size": [
+     300.0,
+     0.0,
+     150.0
+    ]
+   },
    "materials": [
     "M_Sign"
    ]
@@ -337,6 +472,11 @@
     -5.87,
     0.14
    ],
+   "location_cm": [
+    -290.0,
+    -587.0,
+    14.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
@@ -354,6 +494,11 @@
     -3.35,
     -6.225,
     2.3
+   ],
+   "location_cm": [
+    -335.0,
+    -622.5,
+    230.0
    ],
    "rotation_euler_deg": [
     0.0,
@@ -373,6 +518,11 @@
     -6.225,
     2.3
    ],
+   "location_cm": [
+    -65.0,
+    -622.5,
+    230.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
@@ -390,6 +540,11 @@
     -2.0,
     -6.125,
     4.9
+   ],
+   "location_cm": [
+    -200.0,
+    -612.5,
+    490.0
    ],
    "rotation_euler_deg": [
     0.0,
@@ -409,6 +564,11 @@
     -1.8133,
     5.64
    ],
+   "location_cm": [
+    -402.0,
+    -181.33,
+    564.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
@@ -426,6 +586,11 @@
     -4.02,
     2.1133,
     5.64
+   ],
+   "location_cm": [
+    -402.0,
+    211.33,
+    564.0
    ],
    "rotation_euler_deg": [
     0.0,
@@ -445,6 +610,11 @@
     -1.8133,
     5.64
    ],
+   "location_cm": [
+    -200.0,
+    -181.33,
+    564.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
@@ -462,6 +632,11 @@
     -2.0,
     2.1133,
     5.64
+   ],
+   "location_cm": [
+    -200.0,
+    211.33,
+    564.0
    ],
    "rotation_euler_deg": [
     0.0,
@@ -481,6 +656,11 @@
     -1.8133,
     5.64
    ],
+   "location_cm": [
+    2.0,
+    -181.33,
+    564.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
@@ -498,6 +678,11 @@
     0.02,
     2.1133,
     5.64
+   ],
+   "location_cm": [
+    2.0,
+    211.33,
+    564.0
    ],
    "rotation_euler_deg": [
     0.0,
@@ -517,6 +702,11 @@
     5.905,
     1.94
    ],
+   "location_cm": [
+    -200.0,
+    590.5,
+    194.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
@@ -534,6 +724,11 @@
     -4.55,
     5.905,
     2.55
+   ],
+   "location_cm": [
+    -455.0,
+    590.5,
+    255.0
    ],
    "rotation_euler_deg": [
     0.0,
@@ -553,6 +748,11 @@
     5.905,
     2.55
    ],
+   "location_cm": [
+    55.0,
+    590.5,
+    255.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
@@ -570,6 +770,11 @@
     -5.815,
     -1.4992,
     2.55
+   ],
+   "location_cm": [
+    -581.5,
+    -149.92,
+    255.0
    ],
    "rotation_euler_deg": [
     0.0,
@@ -589,6 +794,11 @@
     -1.4992,
     2.55
    ],
+   "location_cm": [
+    181.5,
+    -149.92,
+    255.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
@@ -606,6 +816,11 @@
     -0.95,
     -5.74,
     1.2
+   ],
+   "location_cm": [
+    -95.0,
+    -574.0,
+    120.0
    ],
    "rotation_euler_deg": [
     0.0,
@@ -625,6 +840,11 @@
     -5.74,
     1.2
    ],
+   "location_cm": [
+    -57.0,
+    -574.0,
+    120.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
@@ -642,6 +862,11 @@
     -2.0,
     0.15,
     2.945
+   ],
+   "location_cm": [
+    -200.0,
+    15.0,
+    294.5
    ],
    "rotation_euler_deg": [
     0.0,
@@ -661,6 +886,11 @@
     -3.84,
     0.14
    ],
+   "location_cm": [
+    -200.0,
+    -384.0,
+    14.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
@@ -678,6 +908,11 @@
     3.6,
     2.9,
     4.54
+   ],
+   "location_cm": [
+    360.0,
+    290.0,
+    454.0
    ],
    "rotation_euler_deg": [
     0.0,
@@ -697,6 +932,11 @@
     4.9,
     4.54
    ],
+   "location_cm": [
+    510.0,
+    490.0,
+    454.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
@@ -714,6 +954,11 @@
     5.815,
     3.6,
     2.45
+   ],
+   "location_cm": [
+    581.5,
+    360.0,
+    245.0
    ],
    "rotation_euler_deg": [
     0.0,
@@ -733,6 +978,11 @@
     -2.7,
     7.42
    ],
+   "location_cm": [
+    0.0,
+    -270.0,
+    742.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
@@ -750,6 +1000,11 @@
     0.0,
     -15.0,
     1.7
+   ],
+   "location_cm": [
+    0.0,
+    -1500.0,
+    170.0
    ],
    "rotation_euler_deg": [
     0.0,
@@ -824,7 +1079,7 @@
   "L plan: the main bar carries the door, the screen and the fit-out; the wing is a lower side room open to it through a 3 m portal.",
   "VOLUME_Interior is the main bar \u2014 the wing is walkable but is not where dwell is measured."
  ],
- "build_seconds": 31.34,
+ "build_seconds": 0.31,
  "exports": {
   "fbx": "export/rival1_v1/rival1_v1.fbx",
   "glb": "export/rival1_v1/rival1_v1.glb"
@@ -842,10 +1097,10 @@
   "preview_emblem": "triangle"
  },
  "generator": {
-  "dc_kit_sha256": "88c5a3a84b66af88de7000fa8436c3694e71c8d9b3c04385d4c47461904811ad",
+  "dc_kit_sha256": "bb5a3473ce162fa2e6a00d5e1ebe7a22df324ed05eaf89d6de3aa7cd84bda4bc",
   "piece_script": "blender/pieces/rival1.py",
   "piece_sha256": "88c8118349665205920e3c8889e9d788e26c81544d200c6c59a02904b86b7732",
   "blender": "5.2.2 LTS",
-  "built_utc": "2026-10-25T22:55:22Z"
+  "built_utc": "2026-10-25T23:53:41Z"
  }
 }

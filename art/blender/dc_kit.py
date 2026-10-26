@@ -12,7 +12,9 @@ This module holds the parts every piece shares, so a piece script is mostly comp
         return P.finish()
 
 Conventions (spec v1 §4)
-  * metres, Z up, unit scale 1.0
+  * authored in metres, Z up, unit scale 1.0
+  * the FBX is written in CENTIMETRES (UE's world unit) — see FBX_UNIT_SCALE below; the GLB
+    stays in metres, which is what glTF says and what the portal's viewer expects
   * origin = slot anchor = centre of the footprint at ground level (z = 0); nothing below z = 0
   * the front (main door side) faces -Y
   * geometry is authored from solid boxes and extruded profiles — construction, never booleans
@@ -32,7 +34,7 @@ import os
 import time
 
 import bpy
-from mathutils import Vector
+from mathutils import Matrix, Vector
 
 # --------------------------------------------------------------------------------------
 # constants — the slot contract (spec v1 §2) and the budgets (§4)
@@ -48,6 +50,17 @@ ALL_SLOTS = ("A1", "A2", "A3", "B1", "B2")
 
 SCHEMA_VERSION = 1
 FRONT_AXIS = "-Y"
+
+# Units. Everything in this file - and every number in the manifest's primary fields - is in
+# metres, because that is what the spec's class limits and clearances are written in. The FBX,
+# though, is written in centimetres, because that is Unreal's world unit: a piece then imports
+# at true size with the importer's uniform scale left at 1 and nothing scaling it at spawn.
+# (The FBX importer throws its scene scale away when parts are kept in their own local space,
+# which is why the scale has to be baked into the exported vertex data instead.)
+AUTHOR_UNITS = "m"
+FBX_UNITS = "cm"
+GLB_UNITS = "m"             # glTF is metres by definition
+FBX_UNIT_SCALE = 100.0      # metres -> centimetres, baked into the exported vertex data
 
 WALL_MIN = 0.20          # metres, minimum wall thickness
 DOOR_MIN_W = 1.6         # door clear opening
@@ -1559,6 +1572,7 @@ class Piece:
             sockets.append(dict(
                 name=s["name"],
                 location=[round(c, 4) for c in s["loc"]],
+                location_cm=[round(c * FBX_UNIT_SCALE, 2) for c in s["loc"]],
                 rotation_euler_deg=[round(math.degrees(c), 3) for c in s["rot"]],
                 forward=[round(c, 4) for c in fwd],
             ))
@@ -1568,10 +1582,21 @@ class Piece:
             ob = self.objects.get(role)
             if ob is None:
                 continue
+            # Bounds in the object's OWN space, in centimetres: that is exactly the asset
+            # Unreal ends up with, because every part is imported in its own local space so
+            # that its pivot lands on its socket. Checking each part against this is what
+            # proves the unit change rather than assuming it.
+            olo = [min(v.co[i] for v in ob.data.vertices) for i in range(3)]
+            ohi = [max(v.co[i] for v in ob.data.vertices) for i in range(3)]
             objects.append(dict(
                 name=ob.name, role=role, triangles=tris[ob.name],
                 location=[round(c, 4) for c in ob.location],
+                location_cm=[round(c * FBX_UNIT_SCALE, 2) for c in ob.location],
                 rotation_euler_deg=[round(math.degrees(c), 3) for c in ob.rotation_euler],
+                bounds_local_cm=dict(
+                    min=[round(c * FBX_UNIT_SCALE, 2) for c in olo],
+                    max=[round(c * FBX_UNIT_SCALE, 2) for c in ohi],
+                    size=[round((ohi[i] - olo[i]) * FBX_UNIT_SCALE, 2) for i in range(3)]),
                 materials=[m.name for m in ob.data.materials],
             ))
 
@@ -1601,7 +1626,14 @@ class Piece:
             size_class=self.size_class,
             class_limits=dict(zip(("x", "y", "z"), self.limits)),
             front_axis=FRONT_AXIS,
+            # Every metre field above and below is the authored number; the _cm mirrors are
+            # what the FBX actually carries, and what Unreal must read back after import.
+            units=dict(authoring=AUTHOR_UNITS, fbx=FBX_UNITS, glb=GLB_UNITS,
+                       fbx_scale=FBX_UNIT_SCALE, engine="cm", engine_unit_scale=1.0),
             bounds=dict(min=lo, max=hi, size=size),
+            bounds_cm=dict(min=[round(c * FBX_UNIT_SCALE, 2) for c in lo],
+                           max=[round(c * FBX_UNIT_SCALE, 2) for c in hi],
+                           size=[round(c * FBX_UNIT_SCALE, 2) for c in size]),
             fits_slots=fits,
             triangles=sum(tris.values()),
             triangles_by_object=tris,
@@ -1649,21 +1681,35 @@ def _select(objects):
         bpy.context.view_layer.objects.active = objects[0]
 
 
+def _rescale_in_place(objects, sockets, factor):
+    """Multiply the *mesh data* and the object / empty positions by `factor`.
+
+    None of Blender's FBX scale options do this: `global_scale` and `apply_unit_scale` put the
+    factor on the exported node transform and leave the vertex data alone. Unreal imports each
+    part in its own local space (so a part's pivot lands on its socket) and in that mode it
+    throws the node transform away - FFbxImporter::ComputeTotalMatrix returns the geometric
+    transform only - so a scale that lives on the node never arrives. Baking it into the
+    vertex data is the only version of "export in centimetres" the engine actually reads.
+    """
+    m = Matrix.Scale(factor, 4)
+    done = set()
+    for ob in objects:
+        if ob.type == "MESH" and ob.data.name not in done:
+            ob.data.transform(m)
+            done.add(ob.data.name)
+        ob.location = tuple(c * factor for c in ob.location)
+    for ob in sockets:
+        ob.location = tuple(c * factor for c in ob.location)
+        ob.empty_display_size = ob.empty_display_size * factor
+
+
 def export_piece(meta, objects, sockets, out_dir):
     os.makedirs(out_dir, exist_ok=True)
     stem = "%s_%s" % (meta["id"], meta["version"])
     sel = list(objects) + list(sockets)
-    _select(sel)
 
-    fbx = os.path.join(out_dir, stem + ".fbx")
-    bpy.ops.export_scene.fbx(
-        filepath=fbx, use_selection=True, object_types={"MESH", "EMPTY"},
-        apply_unit_scale=True, global_scale=1.0, apply_scale_options="FBX_SCALE_NONE",
-        use_mesh_modifiers=True, mesh_smooth_type="FACE", use_triangles=False,
-        bake_space_transform=False, bake_anim=False, path_mode="AUTO",
-        embed_textures=False, use_custom_props=True,
-    )
-
+    # The GLB goes first, while the scene is still in metres: glTF defines its unit as the
+    # metre and the portal's preview assumes it.
     _select(sel)
     glb = os.path.join(out_dir, stem + ".glb")
     bpy.ops.export_scene.gltf(
@@ -1671,6 +1717,23 @@ def export_piece(meta, objects, sockets, out_dir):
         export_apply=True, export_cameras=False, export_lights=False,
         export_extras=True, export_yup=True, export_animations=False,
     )
+
+    # Then centimetres, for the FBX only, and back again afterwards so the previews and the
+    # .blend on disk stay in the units everything else in this file talks in.
+    _rescale_in_place(objects, sockets, FBX_UNIT_SCALE)
+    try:
+        _select(sel)
+        fbx = os.path.join(out_dir, stem + ".fbx")
+        bpy.ops.export_scene.fbx(
+            filepath=fbx, use_selection=True, object_types={"MESH", "EMPTY"},
+            apply_unit_scale=False, global_scale=1.0, apply_scale_options="FBX_SCALE_NONE",
+            use_mesh_modifiers=True, mesh_smooth_type="FACE", use_triangles=False,
+            bake_space_transform=False, bake_anim=False, path_mode="AUTO",
+            embed_textures=False, use_custom_props=True,
+        )
+    finally:
+        _rescale_in_place(objects, sockets, 1.0 / FBX_UNIT_SCALE)
+
     return fbx, glb
 
 

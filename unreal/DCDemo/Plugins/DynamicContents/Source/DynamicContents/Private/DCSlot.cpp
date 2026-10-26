@@ -33,6 +33,17 @@ FVector ADCSlot::GetClassLimits() const
 	}
 }
 
+FString ADCSlot::GetSizeClassName() const
+{
+	switch (SizeClass)
+	{
+	case EDCSizeClass::L: return TEXT("L");
+	case EDCSizeClass::T: return TEXT("T");
+	case EDCSizeClass::S:
+	default:              return TEXT("S");
+	}
+}
+
 FTransform ADCSlot::GetContentTransform() const
 {
 	FTransform Out = GetActorTransform();

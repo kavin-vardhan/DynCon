@@ -9,6 +9,14 @@
   "z": 9.0
  },
  "front_axis": "-Y",
+ "units": {
+  "authoring": "m",
+  "fbx": "cm",
+  "glb": "m",
+  "fbx_scale": 100.0,
+  "engine": "cm",
+  "engine_unit_scale": 1.0
+ },
  "bounds": {
   "min": [
    -6.24,
@@ -24,6 +32,23 @@
    12.48,
    11.32,
    7.12
+  ]
+ },
+ "bounds_cm": {
+  "min": [
+   -624.0,
+   -590.0,
+   0.0
+  ],
+  "max": [
+   624.0,
+   542.0,
+   712.0
+  ],
+  "size": [
+   1248.0,
+   1132.0,
+   712.0
   ]
  },
  "fits_slots": [
@@ -49,11 +74,33 @@
     0.0,
     0.0
    ],
+   "location_cm": [
+    0.0,
+    0.0,
+    0.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
     0.0
    ],
+   "bounds_local_cm": {
+    "min": [
+     -624.0,
+     -590.0,
+     0.0
+    ],
+    "max": [
+     624.0,
+     542.0,
+     712.0
+    ],
+    "size": [
+     1248.0,
+     1132.0,
+     712.0
+    ]
+   },
    "materials": [
     "M_Trim",
     "M_Floor",
@@ -76,11 +123,33 @@
     -4.85,
     0.14
    ],
+   "location_cm": [
+    -90.0,
+    -485.0,
+    14.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
     0.0
    ],
+   "bounds_local_cm": {
+    "min": [
+     2.0,
+     -11.0,
+     0.0
+    ],
+    "max": [
+     178.0,
+     11.0,
+     279.0
+    ],
+    "size": [
+     176.0,
+     22.0,
+     279.0
+    ]
+   },
    "materials": [
     "M_Door",
     "M_Wall",
@@ -96,11 +165,33 @@
     -4.7,
     1.2
    ],
+   "location_cm": [
+    105.0,
+    -470.0,
+    120.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
     180.0
    ],
+   "bounds_local_cm": {
+    "min": [
+     -7.5,
+     -3.6,
+     -10.5
+    ],
+    "max": [
+     7.5,
+     0.0,
+     10.5
+    ],
+    "size": [
+     15.0,
+     3.6,
+     21.0
+    ]
+   },
    "materials": [
     "M_Switch",
     "M_Trim"
@@ -115,11 +206,33 @@
     4.565,
     1.94
    ],
+   "location_cm": [
+    0.0,
+    456.5,
+    194.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
     0.0
    ],
+   "bounds_local_cm": {
+    "min": [
+     -200.0,
+     0.0,
+     -112.5
+    ],
+    "max": [
+     200.0,
+     0.0,
+     112.5
+    ],
+    "size": [
+     400.0,
+     0.0,
+     225.0
+    ]
+   },
    "materials": [
     "M_Screen"
    ]
@@ -133,11 +246,33 @@
     -5.125,
     5.0
    ],
+   "location_cm": [
+    0.0,
+    -512.5,
+    500.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
     0.0
    ],
+   "bounds_local_cm": {
+    "min": [
+     -150.0,
+     0.0,
+     -75.0
+    ],
+    "max": [
+     150.0,
+     0.0,
+     75.0
+    ],
+    "size": [
+     300.0,
+     0.0,
+     150.0
+    ]
+   },
    "materials": [
     "M_Sign"
    ]
@@ -337,6 +472,11 @@
     -4.85,
     0.14
    ],
+   "location_cm": [
+    -90.0,
+    -485.0,
+    14.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
@@ -354,6 +494,11 @@
     -1.36,
     -5.225,
     2.3
+   ],
+   "location_cm": [
+    -136.0,
+    -522.5,
+    230.0
    ],
    "rotation_euler_deg": [
     0.0,
@@ -373,6 +518,11 @@
     -5.225,
     2.3
    ],
+   "location_cm": [
+    136.0,
+    -522.5,
+    230.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
@@ -390,6 +540,11 @@
     0.0,
     -5.125,
     5.0
+   ],
+   "location_cm": [
+    0.0,
+    -512.5,
+    500.0
    ],
    "rotation_euler_deg": [
     0.0,
@@ -409,6 +564,11 @@
     -2.35,
     4.49
    ],
+   "location_cm": [
+    -282.37,
+    -235.0,
+    449.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
@@ -426,6 +586,11 @@
     -2.8237,
     0.0,
     4.49
+   ],
+   "location_cm": [
+    -282.37,
+    0.0,
+    449.0
    ],
    "rotation_euler_deg": [
     0.0,
@@ -445,6 +610,11 @@
     2.35,
     4.49
    ],
+   "location_cm": [
+    -282.37,
+    235.0,
+    449.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
@@ -462,6 +632,11 @@
     0.0,
     -2.35,
     4.49
+   ],
+   "location_cm": [
+    0.0,
+    -235.0,
+    449.0
    ],
    "rotation_euler_deg": [
     0.0,
@@ -481,6 +656,11 @@
     0.0,
     4.49
    ],
+   "location_cm": [
+    0.0,
+    0.0,
+    449.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
@@ -498,6 +678,11 @@
     0.0,
     2.35,
     4.49
+   ],
+   "location_cm": [
+    0.0,
+    235.0,
+    449.0
    ],
    "rotation_euler_deg": [
     0.0,
@@ -517,6 +702,11 @@
     -2.35,
     4.49
    ],
+   "location_cm": [
+    282.37,
+    -235.0,
+    449.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
@@ -534,6 +724,11 @@
     2.8237,
     0.0,
     4.49
+   ],
+   "location_cm": [
+    282.37,
+    0.0,
+    449.0
    ],
    "rotation_euler_deg": [
     0.0,
@@ -553,6 +748,11 @@
     2.35,
     4.49
    ],
+   "location_cm": [
+    282.37,
+    235.0,
+    449.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
@@ -570,6 +770,11 @@
     0.0,
     4.565,
     1.94
+   ],
+   "location_cm": [
+    0.0,
+    456.5,
+    194.0
    ],
    "rotation_euler_deg": [
     0.0,
@@ -589,6 +794,11 @@
     4.565,
     2.55
    ],
+   "location_cm": [
+    -255.0,
+    456.5,
+    255.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
@@ -606,6 +816,11 @@
     2.55,
     4.565,
     2.55
+   ],
+   "location_cm": [
+    255.0,
+    456.5,
+    255.0
    ],
    "rotation_euler_deg": [
     0.0,
@@ -625,6 +840,11 @@
     0.0,
     2.55
    ],
+   "location_cm": [
+    -542.24,
+    0.0,
+    255.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
@@ -642,6 +862,11 @@
     5.4224,
     0.0,
     2.55
+   ],
+   "location_cm": [
+    542.24,
+    0.0,
+    255.0
    ],
    "rotation_euler_deg": [
     0.0,
@@ -661,6 +886,11 @@
     -4.7,
     1.2
    ],
+   "location_cm": [
+    105.0,
+    -470.0,
+    120.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
@@ -678,6 +908,11 @@
     1.43,
     -4.7,
     1.2
+   ],
+   "location_cm": [
+    143.0,
+    -470.0,
+    120.0
    ],
    "rotation_euler_deg": [
     0.0,
@@ -697,6 +932,11 @@
     0.0,
     2.57
    ],
+   "location_cm": [
+    0.0,
+    0.0,
+    257.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
@@ -714,6 +954,11 @@
     0.0,
     -2.8,
     0.14
+   ],
+   "location_cm": [
+    0.0,
+    -280.0,
+    14.0
    ],
    "rotation_euler_deg": [
     0.0,
@@ -733,6 +978,11 @@
     -2.25,
     7.9
    ],
+   "location_cm": [
+    0.0,
+    -225.0,
+    790.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
@@ -750,6 +1000,11 @@
     0.0,
     -15.0,
     1.7
+   ],
+   "location_cm": [
+    0.0,
+    -1500.0,
+    170.0
    ],
    "rotation_euler_deg": [
     0.0,
@@ -823,7 +1078,7 @@
  "notes": [
   "The vault underside is the ceiling: there is no flat soffit, so the group-A fixtures hang on stems and VOLUME_Interior is the biggest box that fits under the arch, not the whole floor area."
  ],
- "build_seconds": 33.05,
+ "build_seconds": 0.51,
  "exports": {
   "fbx": "export/rival3_v1/rival3_v1.fbx",
   "glb": "export/rival3_v1/rival3_v1.glb"
@@ -841,10 +1096,10 @@
   "preview_emblem": "diamond"
  },
  "generator": {
-  "dc_kit_sha256": "88c5a3a84b66af88de7000fa8436c3694e71c8d9b3c04385d4c47461904811ad",
+  "dc_kit_sha256": "bb5a3473ce162fa2e6a00d5e1ebe7a22df324ed05eaf89d6de3aa7cd84bda4bc",
   "piece_script": "blender/pieces/rival3.py",
   "piece_sha256": "9642cc82119762f72d20bead8e462cf8e38f2162ac72bc33c3fcb92be926d589",
   "blender": "5.2.2 LTS",
-  "built_utc": "2026-10-25T22:56:24Z"
+  "built_utc": "2026-10-25T23:53:42Z"
  }
 }

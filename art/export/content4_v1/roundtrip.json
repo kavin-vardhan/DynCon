@@ -2,6 +2,7 @@
  "id": "content4",
  "version": "v1",
  "fbx": "export/content4_v1/content4_v1.fbx",
+ "units": "cm",
  "meshes": [
   "SM_content4_v1_Door",
   "SM_content4_v1_Screen",
@@ -28,16 +29,28 @@
   "SOCKET_Waypoint",
   "VOLUME_Interior"
  ],
- "imported_bounds": {
+ "imported_bounds_cm": {
   "min": [
-   -3.2565,
-   -3.13,
+   -325.65,
+   -313.0,
    -0.0
   ],
   "max": [
-   3.2565,
-   2.72,
-   4.9
+   325.65,
+   272.0,
+   490.0
+  ]
+ },
+ "manifest_bounds_cm": {
+  "min": [
+   -325.65,
+   -313.0,
+   0.0
+  ],
+  "max": [
+   325.65,
+   272.0,
+   490.0
   ]
  },
  "imported_triangles": 7300,

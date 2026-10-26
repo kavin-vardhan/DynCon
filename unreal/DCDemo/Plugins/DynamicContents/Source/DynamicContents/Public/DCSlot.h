@@ -68,6 +68,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "DC|Slot")
 	FVector GetClassLimits() const;
 
+	/** "S" / "L" / "T" - the name the art's manifests and the server use. */
+	UFUNCTION(BlueprintCallable, Category = "DC|Slot")
+	FString GetSizeClassName() const;
+
 	virtual void OnConstruction(const FTransform& Transform) override;
 
 protected:

@@ -1,4 +1,4 @@
-#include "DCPackMounter.h"
+﻿#include "DCPackMounter.h"
 
 #include "DynamicContents.h"
 
@@ -34,7 +34,7 @@ namespace
 			if (Logged < UDCPackMounter::LoggedPakEntries)
 			{
 				++Logged;
-				UE_LOG(LogDC, Log, TEXT("    pak entry: %s"), FilenameOrDirectory);
+				DC_LOG(Log, TEXT("    pak entry: %s"), FilenameOrDirectory);
 			}
 			return true;
 		}
@@ -52,7 +52,7 @@ FDCMountResult UDCPackMounter::MountPackDir(const FString& PackDir)
 	if (Paks.Num() != 1)
 	{
 		Result.Error = FString::Printf(TEXT("expected exactly one *.pak in '%s', found %d"), *Dir, Paks.Num());
-		UE_LOG(LogDC, Error, TEXT("MOUNT FAIL  %s"), *Result.Error);
+		DC_LOG(Error, TEXT("MOUNT FAIL  %s"), *Result.Error);
 		return Result;
 	}
 
@@ -75,11 +75,11 @@ FDCMountResult UDCPackMounter::Mount(const FString& InPakPath)
 	if (Result.PakBytes < 0)
 	{
 		Result.Error = FString::Printf(TEXT("no such pak: %s"), *Result.PakPath);
-		UE_LOG(LogDC, Error, TEXT("MOUNT FAIL  %s"), *Result.Error);
+		DC_LOG(Error, TEXT("MOUNT FAIL  %s"), *Result.Error);
 		return Result;
 	}
 
-	UE_LOG(LogDC, Log, TEXT("MOUNT begin  pak=%s (%lld B)  utoc=%lld B  ucas=%lld B"),
+	DC_LOG(Log, TEXT("MOUNT begin  pak=%s (%lld B)  utoc=%lld B  ucas=%lld B"),
 		*FPaths::GetCleanFilename(Result.PakPath), Result.PakBytes, Result.UtocBytes, Result.UcasBytes);
 
 	const double Start = FPlatformTime::Seconds();
@@ -99,7 +99,7 @@ FDCMountResult UDCPackMounter::Mount(const FString& InPakPath)
 	}
 	else
 	{
-		UE_LOG(LogDC, Warning, TEXT("MOUNT  FCoreDelegates::MountPak is not bound (no pak platform file?)"));
+		DC_LOG(Warning, TEXT("MOUNT  FCoreDelegates::MountPak is not bound (no pak platform file?)"));
 	}
 
 	// 2. Fallback: go straight at FPakPlatformFile. Same code underneath, but it works even
@@ -145,20 +145,20 @@ FDCMountResult UDCPackMounter::Mount(const FString& InPakPath)
 		Result.bShaderLibraryOpened = FShaderCodeLibrary::OpenLibrary(
 			FApp::GetProjectName(), FPaths::ProjectContentDir());
 		Result.ShaderLibraryMilliseconds = DCElapsedMs(ShaderStart);
-		UE_LOG(LogDC, Log, TEXT("SHADERS %s   library '%s' reopened in %.1f ms"),
+		DC_LOG(Log, TEXT("SHADERS %s   library '%s' reopened in %.1f ms"),
 			Result.bShaderLibraryOpened ? TEXT("ok") : TEXT("(no new components)"),
 			FApp::GetProjectName(), Result.ShaderLibraryMilliseconds);
 	}
 
 	if (Result.bMounted)
 	{
-		UE_LOG(LogDC, Log, TEXT("MOUNT ok     %s via %s in %.1f ms  mountpoint='%s'  pak index entries=%d  iostore=%s"),
+		DC_LOG(Log, TEXT("MOUNT ok     %s via %s in %.1f ms  mountpoint='%s'  pak index entries=%d  iostore=%s"),
 			*FPaths::GetCleanFilename(Result.PakPath), *Result.Api, Result.Milliseconds,
 			*Result.MountPoint, Result.PakFileCount, Result.bHasIoStoreContainer ? TEXT("yes") : TEXT("no"));
 	}
 	else
 	{
-		UE_LOG(LogDC, Error, TEXT("MOUNT FAIL   %s after %.1f ms: %s"),
+		DC_LOG(Error, TEXT("MOUNT FAIL   %s after %.1f ms: %s"),
 			*FPaths::GetCleanFilename(Result.PakPath), Result.Milliseconds, *Result.Error);
 	}
 
@@ -172,10 +172,10 @@ bool UDCPackMounter::Unmount(const FString& PakPath)
 	if (FCoreDelegates::OnUnmountPak.IsBound())
 	{
 		const bool bOk = FCoreDelegates::OnUnmountPak.Execute(Full);
-		UE_LOG(LogDC, Log, TEXT("UNMOUNT %s  %s"), bOk ? TEXT("ok") : TEXT("FAIL"), *FPaths::GetCleanFilename(Full));
+		DC_LOG(Log, TEXT("UNMOUNT %s  %s"), bOk ? TEXT("ok") : TEXT("FAIL"), *FPaths::GetCleanFilename(Full));
 		return bOk;
 	}
 
-	UE_LOG(LogDC, Warning, TEXT("UNMOUNT  no unmount delegate bound"));
+	DC_LOG(Warning, TEXT("UNMOUNT  no unmount delegate bound"));
 	return false;
 }

@@ -1,0 +1,37 @@
+{
+ "_comment": [
+  "The pack table. One row per piece-version; one row = one /Game/DCContent/<id>_<v>/ folder,",
+  "one PrimaryAssetLabel, one cook chunk, one pack in unreal\\_packs\\.",
+  "",
+  "chunk_id is FROZEN. A chunk id is baked into the file name the cook writes",
+  "(pakchunk<id>-Windows.pak), so changing one silently re-points every pack staged, signed or",
+  "referenced before the change. Add new pieces at the end; never renumber an existing row.",
+  "(The one renumber this table will ever have had is its own creation in brief 006, which",
+  "replaced the two ad-hoc ids brief 004 used for its two-piece spike.)",
+  "",
+  "brand_hex / emblem are the identity the spike run happens to dress each piece in. They are",
+  "runtime inputs - nothing brand-specific is baked into a pack - so the server will override",
+  "them per region. They live here only so one run produces a contact sheet on which every",
+  "piece wears a different brand, which is what makes the sign fix visible.",
+  "",
+  "Everything else about a piece (size class, bounds, sockets, door) comes from the art's own",
+  "manifest at art/export/<id>_<v>/manifest.json; it is deliberately not duplicated here."
+ ],
+ "frozen_since": "brief 006, 2026-10-26",
+ "chunk_id_base": 100,
+ "packs": [
+  { "id": "content1",   "version": "v1", "chunk_id": 100, "brand_hex": "#1F8FC6", "emblem": "hexagon"  },
+  { "id": "content1",   "version": "v2", "chunk_id": 101, "brand_hex": "#1F8FC6", "emblem": "hexagon"  },
+  { "id": "content2",   "version": "v1", "chunk_id": 102, "brand_hex": "#E0574B", "emblem": "square"   },
+  { "id": "content2",   "version": "v2", "chunk_id": 103, "brand_hex": "#E0574B", "emblem": "square"   },
+  { "id": "content3",   "version": "v1", "chunk_id": 104, "brand_hex": "#F2B134", "emblem": "star"     },
+  { "id": "content3",   "version": "v2", "chunk_id": 105, "brand_hex": "#F2B134", "emblem": "star"     },
+  { "id": "content4",   "version": "v1", "chunk_id": 106, "brand_hex": "#1FA39A", "emblem": "circle"   },
+  { "id": "content4",   "version": "v2", "chunk_id": 107, "brand_hex": "#1FA39A", "emblem": "circle"   },
+  { "id": "default",    "version": "v1", "chunk_id": 108, "brand_hex": "#8A9099", "emblem": "ring"     },
+  { "id": "rival1",     "version": "v1", "chunk_id": 109, "brand_hex": "#1FA39A", "emblem": "triangle" },
+  { "id": "rival2",     "version": "v1", "chunk_id": 110, "brand_hex": "#F28C28", "emblem": "ring"     },
+  { "id": "rival3",     "version": "v1", "chunk_id": 111, "brand_hex": "#7B5CD6", "emblem": "diamond"  },
+  { "id": "rivalsmall", "version": "v1", "chunk_id": 112, "brand_hex": "#1FA39A", "emblem": "triangle" }
+ ]
+}

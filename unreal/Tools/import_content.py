@@ -18,11 +18,20 @@ What it makes (unreal_spec_v1 sections 1 and 2):
                               BP_DC_<id>_<v> (a child of ADCContentActor with its meshes and
                               brand set), and PAL_<id>_<v>, the PrimaryAssetLabel that puts
                               the folder in its own cook chunk
-  /Game/Maps/Spike            the spike map: ground, lights, player start, two ADCSlots
+  /Game/Maps/Spike            the spike map: ground, lights, player start, one ADCSlot per
+                              size class (S / L / T)
 
-Everything it checked goes into unreal/_build/logs/import_report.json - bounds (so the metre
-to centimetre conversion is verified, not assumed), socket names as imported, material slot
-names, and a read-back of the Blueprint defaults.
+Which pieces, and what chunk each one gets, is unreal/Tools/chunk_ids.json - a frozen table,
+because a chunk id ends up in the pack's file name.
+
+Units: the art's FBX is written in centimetres (art/blender/dc_kit.py, FBX_UNIT_SCALE), so a
+piece imports at true size with the importer's uniform scale left at 1 and nothing scaling it
+at spawn. The report below checks the imported bounds against the manifest's bounds_cm rather
+than assuming it.
+
+Everything it checked goes into unreal/_build/logs/import_report.json - bounds in centimetres,
+socket names / locations / rotations as imported, material slot names, and a read-back of the
+Blueprint defaults.
 """
 
 import json
@@ -37,6 +46,7 @@ REPO = r"E:\DynamicContents"
 ART_EXPORT = os.path.join(REPO, "art", "export")
 ART_EMBLEMS = os.path.join(REPO, "art", "emblems")
 ART_SAMPLES = os.path.join(REPO, "art", "samples")
+CHUNK_TABLE = os.path.join(REPO, "unreal", "Tools", "chunk_ids.json")
 REPORT_PATH = os.path.join(REPO, "unreal", "_build", "logs", "import_report.json")
 
 CORE_MATERIALS = "/Game/DCCore/Materials"
@@ -47,26 +57,29 @@ MAP_PATH = "/Game/Maps/Spike"
 
 EMBLEM_SHAPES = ("circle", "triangle", "square", "diamond", "star", "ring", "chevron", "hexagon")
 
-# The pieces this brief imports, and the brand each one wears in the spike. Brand colour and
-# emblem are runtime inputs - these are just the values the spike run happens to use.
-PIECES = [
-    {
-        "id": "content4",
-        "version": "v1",
-        "chunk_id": 100,
-        "brand_srgb": (0.11, 0.69, 0.66),   # teal
-        "emblem": "circle",
-        "slot": "slot1",
-    },
-    {
-        "id": "content1",
-        "version": "v1",
-        "chunk_id": 101,
-        "brand_srgb": (0.92, 0.55, 0.11),   # amber
-        "emblem": "diamond",
-        "slot": "slot2",
-    },
-]
+def hex_to_srgb(text):
+    text = text.lstrip("#")
+    return tuple(int(text[i:i + 2], 16) / 255.0 for i in (0, 2, 4))
+
+
+def load_pieces():
+    """The frozen pack table: which pieces exist, and which cook chunk each one owns."""
+    with open(CHUNK_TABLE, "r", encoding="utf-8") as handle:
+        table = json.load(handle)
+    out = []
+    for row in table["packs"]:
+        out.append({
+            "id": row["id"],
+            "version": row["version"],
+            "chunk_id": int(row["chunk_id"]),
+            "brand_srgb": hex_to_srgb(row["brand_hex"]),
+            "brand_hex": row["brand_hex"],
+            "emblem": row["emblem"],
+        })
+    return out
+
+
+PIECES = load_pieces()
 
 # Which master material each of the 13 allowed material slots instances.
 MASTER_FOR_SLOT = {
@@ -79,13 +92,39 @@ DEFAULT_MASTER = "M_DC_Master"
 
 ROLES = ("Shell", "Door", "Switch", "Screen", "Sign")
 
-# The art is authored in metres and the FBX carries metre-scale vertex data, so a 6.5 m cabin
-# imports as 6.5 cm. The importer's own uniform scale cannot fix it here: the parts are
-# imported in their own local space (so each part's pivot lands on its socket), and in that
-# mode FFbxImporter::ComputeTotalMatrix returns the identity and throws the scene scale away.
-# The conversion is therefore done in the mesh build settings, with the shell's socket
-# positions scaled to match. The permanent fix belongs in the Blender export.
-MESH_SCALE = 100.0
+# The "nothing is booked here" placeholder is a shell and nothing else - no door, no sign, no
+# screen, no brand (content_assets_spec_v1 section 3).
+PLACEHOLDER_IDS = ("default",)
+
+# The FBX is in centimetres, so a 6.5 m cabin imports as 650 cm and nothing has to scale it.
+# (It has to be done that way round: the parts are imported in their own local space so that
+# each part's pivot lands on its socket, and in that mode FFbxImporter::ComputeTotalMatrix
+# returns the identity and throws the importer's own scene scale away - which is why brief 004
+# had to scale the shell at spawn instead. dc_kit.FBX_UNIT_SCALE is the fix.)
+UNIT_SCALE = 1.0
+
+# Blender's export leaves the sockets with a 90 degree roll: Blender writes the FBX in its
+# Y-up convention and UE's importer converts the mesh data back but not the socket rotations.
+# Left alone, every part hangs off its socket lying flat - the sign and the screen are then
+# edge-on (a bright hairline instead of a panel) and the door leaf lies on the floor. The
+# rotations are therefore rebuilt from the manifest, which is the authority anyway.
+#
+# Blender -> UE is a mirror in Y, so a rotation about Z changes sign and nothing else: every
+# socket in every manifest is a pure Z rotation, which keeps this to one line (and
+# check_socket_rotations below fails loudly if that ever stops being true).
+def ue_yaw_from_blender(rot_deg):
+    return -float(rot_deg[2])
+
+
+# Emissive strengths in the manifest are tuned for the Blender previews (Cycles + Filmic).
+# Unreal's tone mapper reaches white sooner, and a light fitting that reads as a warm glow in
+# a preview reads as a blown hole on a booth screen, so they come in at half strength.
+EMISSIVE_UE_SCALE = 0.5
+
+# The sign is lit like any other surface; the glow is only there so it still reads when the
+# facade is in shade. Brief 004 ran it at 1.0 (fully emissive) while chasing what turned out
+# to be the socket roll above, which made the plate a flat slab of colour.
+SIGN_GLOW = 0.45
 
 # --------------------------------------------------------------------------- small helpers
 
@@ -276,16 +315,32 @@ def build_sign(mat, default_emblem=None):
     emblem_colour = _vector_param(mat, "EmblemColor", unreal.LinearColor(1.0, 1.0, 1.0, 1.0), -900, -20)
     emblem = _texture_param(mat, "Emblem", default_emblem, -900, 140)
 
+    # The sign plate is a 2:1 quad with UVs 0-1, and the emblems are square, so sampling the
+    # emblem straight off the quad's UVs would stretch it to twice its width. Scaling U by 2
+    # and sliding it left puts a square emblem on the left half and leaves the right half
+    # plain brand colour - the same layout as the Blender previews. The emblem textures are
+    # imported with clamped addressing (see import_texture), so outside that half the
+    # texture's transparent border is what gets sampled and the lerp returns BrandColor.
+    uvs = MEL.create_material_expression(mat, unreal.MaterialExpressionTextureCoordinate, -1400, 140)
+    safe_set(uvs, "u_tiling", 2.0)
+    safe_set(uvs, "v_tiling", 1.0)
+    uv_shift = MEL.create_material_expression(mat, unreal.MaterialExpressionConstant2Vector, -1400, 280)
+    safe_set(uv_shift, "r", -0.12)
+    safe_set(uv_shift, "g", 0.0)
+    uv_add = MEL.create_material_expression(mat, unreal.MaterialExpressionAdd, -1150, 180)
+    connect_expr(uvs, "", uv_add, "A")
+    connect_expr(uv_shift, "", uv_add, "B")
+    connect_expr(uv_add, "", emblem, "UVs")
+
     lerp = MEL.create_material_expression(mat, unreal.MaterialExpressionLinearInterpolate, -500, -60)
     connect_expr(brand, "", lerp, "A")
     connect_expr(emblem_colour, "", lerp, "B")
     connect_expr(emblem, "A", lerp, "Alpha")
     connect_prop(lerp, "", unreal.MaterialProperty.MP_BASE_COLOR)
 
-    # Full-strength emissive, not a hint of glow: the sign has to read from 20 m, and the
-    # quad's normal does not survive the export reliably, so a lit-only sign can come out
-    # black when the normal ends up pointing into the building.
-    glow = _scalar_param(mat, "SignGlow", 1.0, -900, 420)
+    # A lift, not a light source: the plate is lit like any other surface, and the glow is
+    # only there so the sign still reads when the facade is in shade.
+    glow = _scalar_param(mat, "SignGlow", SIGN_GLOW, -900, 420)
     mul = MEL.create_material_expression(mat, unreal.MaterialExpressionMultiply, -250, 220)
     connect_expr(lerp, "", mul, "A")
     connect_expr(glow, "", mul, "B")
@@ -298,10 +353,12 @@ def build_sign(mat, default_emblem=None):
 # --------------------------------------------------------------------------- texture import
 
 
-def import_texture(filename, destination_path, asset_name):
+def import_texture(filename, destination_path, asset_name, clamp=False):
     path = "%s/%s" % (destination_path, asset_name)
     existing = load_asset(path)
     if existing is not None:
+        if clamp:
+            set_clamped(existing)
         return existing
 
     task = unreal.AssetImportTask()
@@ -324,8 +381,19 @@ def import_texture(filename, destination_path, asset_name):
 
     safe_set(tex, "compression_settings", unreal.TextureCompressionSettings.TC_DEFAULT)
     safe_set(tex, "srgb", True)
+    if clamp:
+        set_clamped(tex)
     save(tex)
     return tex
+
+
+def set_clamped(tex):
+    """Clamp, not wrap: the sign shifts the emblem's UVs to put it on the left half of the
+    plate, and with wrapping the right half would show a second copy instead of plain brand
+    colour."""
+    safe_set(tex, "address_x", unreal.TextureAddress.TA_CLAMP)
+    safe_set(tex, "address_y", unreal.TextureAddress.TA_CLAMP)
+    save(tex)
 
 
 # --------------------------------------------------------------------------- mesh import
@@ -369,42 +437,101 @@ def import_fbx(fbx_path, destination_path, uniform_scale):
     return [str(p) for p in task.get_editor_property("imported_object_paths")]
 
 
-def rename_imported_meshes(imported_paths, piece_name):
+def rename_imported_meshes(imported_paths, piece_name, manifest):
     """
     FbxFactory names a multi-mesh import <fbx base>_<node name>, so the shell arrives as
     content4_v1_SM_content4_v1_Shell. Put the names back to what the spec says the pack
     ships: SM_<id>_<v>_<Role>.
+
+    A one-mesh FBX (the placeholder piece) is the exception: with nothing to disambiguate,
+    the factory names the asset after the file and the node name is lost, so the manifest -
+    which knows the piece has exactly one object and what its role is - decides.
     """
+    roles_in_manifest = [o["role"] for o in manifest.get("objects", [])]
+
+    def rename_to_role(package, role):
+        folder, asset_name = package.rsplit("/", 1)
+        wanted = "SM_%s_%s" % (piece_name, role)
+        target = "%s/%s" % (folder, wanted)
+        if asset_name != wanted:
+            if unreal.EditorAssetLibrary.does_asset_exist(target):
+                unreal.EditorAssetLibrary.delete_asset(target)
+            if not unreal.EditorAssetLibrary.rename_asset(package, target):
+                warn("could not rename %s -> %s" % (package, target))
+        return load_asset(target)
+
     found = {}
+    unmatched = []
     for object_path in imported_paths:
         package = object_path.split(".")[0]
-        folder, asset_name = package.rsplit("/", 1)
-        for role in ROLES:
-            if not asset_name.endswith("_%s" % role):
-                continue
-            wanted = "SM_%s_%s" % (piece_name, role)
-            target = "%s/%s" % (folder, wanted)
-            if asset_name != wanted:
-                if unreal.EditorAssetLibrary.does_asset_exist(target):
-                    unreal.EditorAssetLibrary.delete_asset(target)
-                if not unreal.EditorAssetLibrary.rename_asset(package, target):
-                    warn("could not rename %s -> %s" % (package, target))
-            asset = load_asset(target)
-            if asset is not None:
-                found[role] = asset
-            break
+        asset_name = package.rsplit("/", 1)[1]
+        role = next((r for r in ROLES if asset_name.endswith("_%s" % r)), None)
+        if role is None:
+            unmatched.append(package)
+            continue
+        asset = rename_to_role(package, role)
+        if asset is not None:
+            found[role] = asset
+
+    if len(unmatched) == 1 and len(roles_in_manifest) == 1 and not found:
+        asset = rename_to_role(unmatched[0], roles_in_manifest[0])
+        if asset is not None:
+            found[roles_in_manifest[0]] = asset
+            log("%s: one-mesh import, named from the manifest as %s"
+                % (piece_name, roles_in_manifest[0]))
+    elif unmatched:
+        warn("%s: %d imported object(s) matched no role: %r" % (piece_name, len(unmatched), unmatched))
+
     return found
 
 
+def mesh_bounds_cm(mesh):
+    """(min, max) of the imported asset in its own space, centimetres."""
+    box = mesh.get_bounding_box()
+    return ([box.min.x, box.min.y, box.min.z], [box.max.x, box.max.y, box.max.z])
+
+
 def mesh_size_cm(mesh):
-    try:
-        box = mesh.get_bounding_box()
-        mn, mx = box.min, box.max
-        return (mx.x - mn.x, mx.y - mn.y, mx.z - mn.z)
-    except Exception:                                           # noqa: BLE001
-        bounds = mesh.get_bounds()
-        ext = bounds.box_extent
-        return (ext.x * 2.0, ext.y * 2.0, ext.z * 2.0)
+    lo, hi = mesh_bounds_cm(mesh)
+    return tuple(hi[i] - lo[i] for i in range(3))
+
+
+def check_mesh_units(meshes, manifest):
+    """
+    Every imported mesh against the bounds its manifest entry declares, in centimetres.
+
+    This is the proof that the art now exports at engine scale: each part is imported in its
+    own local space, so the asset's bounding box is the manifest's `bounds_local_cm` with Y
+    mirrored (Blender -Y is UE +Y). Nothing scales anything at spawn, so a mismatch here is a
+    mismatch in the game.
+    """
+    by_role = {o["role"]: o for o in manifest.get("objects", [])}
+    rows = {}
+    worst = 0.0
+    for role, mesh in sorted(meshes.items()):
+        entry = by_role.get(role)
+        if entry is None or "bounds_local_cm" not in entry:
+            rows[role] = {"checked": False, "why": "no bounds_local_cm in the manifest"}
+            continue
+        blo = entry["bounds_local_cm"]["min"]
+        bhi = entry["bounds_local_cm"]["max"]
+        want_min = [blo[0], -bhi[1], blo[2]]
+        want_max = [bhi[0], -blo[1], bhi[2]]
+        got_min, got_max = mesh_bounds_cm(mesh)
+        err = max([abs(got_min[i] - want_min[i]) for i in range(3)]
+                  + [abs(got_max[i] - want_max[i]) for i in range(3)])
+        worst = max(worst, err)
+        rows[role] = {
+            "checked": True,
+            "imported_min_cm": [round(c, 2) for c in got_min],
+            "imported_max_cm": [round(c, 2) for c in got_max],
+            "manifest_min_cm": [round(c, 2) for c in want_min],
+            "manifest_max_cm": [round(c, 2) for c in want_max],
+            "size_cm": [round(got_max[i] - got_min[i], 2) for i in range(3)],
+            "worst_error_cm": round(err, 3),
+        }
+    return {"per_mesh": rows, "worst_error_cm": round(worst, 3),
+            "ok": all(r.get("checked") for r in rows.values()) and worst <= 0.5}
 
 
 def resolve_socket(mesh, manifest_name):
@@ -426,32 +553,81 @@ def socket_table(mesh, manifest_names):
             out[name] = None
             continue
         loc = socket.get_editor_property("relative_location")
+        rot = socket.get_editor_property("relative_rotation")
         out[name] = {"imported_as": candidate,
-                     "loc_cm": [round(loc.x, 1), round(loc.y, 1), round(loc.z, 1)]}
+                     "loc_cm": [round(loc.x, 1), round(loc.y, 1), round(loc.z, 1)],
+                     "rot_pyr": [round(rot.pitch, 1), round(rot.yaw, 1), round(rot.roll, 1)]}
     return out
 
 
-def check_socket_scale(mesh, manifest, manifest_names):
-    """
-    The meshes stay in the units the FBX carries (metres) and ADCContentActor scales the shell
-    by MESH_SCALE, which takes the sockets and every attached part with it. Confirm here that
-    the sockets really are in metres and really do match the manifest, so the one assumption
-    the runtime makes is checked rather than believed.
-    """
+def fix_socket_rotations(mesh, manifest, manifest_names):
+    """Rebuild every socket's rotation from the manifest. See UNIT_SCALE / ue_yaw_from_blender
+    above for why the imported ones cannot be trusted; returns what was changed."""
     by_name = {s["name"]: s for s in manifest.get("sockets", [])}
-    worst = 0.0
-    checked = 0
+    fixed = []
+    odd = []
     for name in manifest_names:
         _, socket = resolve_socket(mesh, name)
         if socket is None:
             continue
+        want = by_name[name]["rotation_euler_deg"]
+        if abs(want[0]) > 1e-3 or abs(want[1]) > 1e-3:
+            # Only pure-Z socket rotations are authored, and only pure-Z ones convert this
+            # simply. Say so rather than silently writing the wrong thing.
+            odd.append({"socket": name, "rotation_euler_deg": want})
+            continue
+        before = socket.get_editor_property("relative_rotation")
+        after = unreal.Rotator(0.0, 0.0, ue_yaw_from_blender(want))
+        if (abs(before.pitch - after.pitch) > 1e-3 or abs(before.yaw - after.yaw) > 1e-3
+                or abs(before.roll - after.roll) > 1e-3):
+            safe_set(socket, "relative_rotation", after)
+            fixed.append({"socket": name,
+                          "was": [round(before.pitch, 2), round(before.yaw, 2), round(before.roll, 2)],
+                          "now": [round(after.pitch, 2), round(after.yaw, 2), round(after.roll, 2)]})
+    if odd:
+        warn("%s has %d socket(s) with a non-Z rotation, left as imported: %r"
+             % (mesh.get_name(), len(odd), odd))
+    save(mesh)
+    return {"rotations_rewritten": len(fixed), "detail": fixed, "unconverted": odd}
+
+
+def check_sockets(mesh, manifest, manifest_names):
+    """
+    Confirm that every socket landed where the manifest says, in centimetres, with the
+    rotation the manifest asks for. This is the one assumption the runtime makes about an
+    imported pack, so it is checked rather than believed.
+    """
+    by_name = {s["name"]: s for s in manifest.get("sockets", [])}
+    worst_pos = 0.0
+    worst_rot = 0.0
+    checked = 0
+    missing = []
+    # UE's FBX importer only turns empties named SOCKET_* into sockets. The manifest also
+    # carries markers that are not sockets at all (VOLUME_Interior, the dwell-measuring box),
+    # and those are not expected to arrive.
+    skipped = [n for n in manifest_names if not n.startswith("SOCKET_")]
+    for name in manifest_names:
+        if name in skipped:
+            continue
+        _, socket = resolve_socket(mesh, name)
+        if socket is None:
+            missing.append(name)
+            continue
         loc = socket.get_editor_property("relative_location")
-        want = by_name[name]["location"]
-        # Blender -Y is UE +Y: the FBX conversion mirrors Y, so compare |y|.
-        for got, expect in ((loc.x, want[0]), (abs(loc.y), abs(want[1])), (loc.z, want[2])):
-            worst = max(worst, abs(got - expect))
+        want = by_name[name]["location_cm"]
+        # Blender -Y is UE +Y: the FBX conversion mirrors Y, so Y is compared negated.
+        for got, expect in ((loc.x, want[0]), (loc.y, -want[1]), (loc.z, want[2])):
+            worst_pos = max(worst_pos, abs(got - expect))
+        rot = socket.get_editor_property("relative_rotation")
+        want_yaw = ue_yaw_from_blender(by_name[name]["rotation_euler_deg"])
+        delta = abs(((rot.yaw - want_yaw) + 180.0) % 360.0 - 180.0)
+        worst_rot = max(worst_rot, delta, abs(rot.pitch), abs(rot.roll))
         checked += 1
-    return {"sockets_checked": checked, "worst_axis_error_m": round(worst, 4)}
+    return {"sockets_checked": checked,
+            "missing": missing,
+            "not_sockets_in_ue": skipped,
+            "worst_axis_error_cm": round(worst_pos, 3),
+            "worst_angle_error_deg": round(worst_rot, 3)}
 
 
 def slot_names(mesh):
@@ -544,7 +720,8 @@ def make_material_instances(piece, manifest, pack_path, emblem_tex, screen_tex):
         if master_name == "M_DC_Emissive":
             MEL.set_material_instance_vector_parameter_value(mi, "EmissiveColor", colour)
             MEL.set_material_instance_scalar_parameter_value(
-                mi, "EmissiveStrength", float(entry.get("emissive_strength", 4.0)))
+                mi, "EmissiveStrength",
+                float(entry.get("emissive_strength", 4.0)) * EMISSIVE_UE_SCALE)
 
         save(mi)
         out[slot] = mi
@@ -578,13 +755,13 @@ def make_blueprint(piece, pack_path, meshes, manifest, emblem_tex, screen_tex):
     if cdo is None:
         return bp, {}
 
-    door = manifest.get("door", {})
+    door = manifest.get("door") or {}      # the placeholder piece has no door at all
     brand_linear = [srgb_to_linear(c) for c in piece["brand_srgb"]]
 
     safe_set(cdo, "content_id", piece["id"])
     safe_set(cdo, "content_version", piece["version"])
     safe_set(cdo, "state_schema_version", int(manifest.get("schema_version", 1)))
-    safe_set(cdo, "content_unit_scale", MESH_SCALE)
+    safe_set(cdo, "content_unit_scale", UNIT_SCALE)
     safe_set(cdo, "shell_mesh", meshes.get("Shell"))
     safe_set(cdo, "door_mesh", meshes.get("Door"))
     safe_set(cdo, "switch_mesh", meshes.get("Switch"))
@@ -594,7 +771,10 @@ def make_blueprint(piece, pack_path, meshes, manifest, emblem_tex, screen_tex):
     safe_set(cdo, "emblem_texture", emblem_tex)
     safe_set(cdo, "screen_image", screen_tex)
     safe_set(cdo, "door_open_degrees", float(door.get("open_degrees", 90)))
-    safe_set(cdo, "door_open_sign", int(door.get("open_sign", 1)))
+    # Negated on purpose: the manifest's open_sign is a Blender Z rotation and the Blender to
+    # UE conversion mirrors Y, so the same swing is the opposite yaw in the engine. A door
+    # that opened outwards through its own frame would be the giveaway.
+    safe_set(cdo, "door_open_sign", -int(door.get("open_sign", 1)))
 
     save(bp)
 
@@ -613,6 +793,15 @@ def make_blueprint(piece, pack_path, meshes, manifest, emblem_tex, screen_tex):
             "brand_color": str(rcdo.get_editor_property("brand_color")),
             "emblem": (rcdo.get_editor_property("emblem_texture").get_name()
                        if rcdo.get_editor_property("emblem_texture") else None),
+            "door_open_sign": int(rcdo.get_editor_property("door_open_sign")),
+            # UE's Python bindings drop the b prefix from a bool UPROPERTY.
+            "light_a_on": bool(rcdo.get_editor_property("light_a_on")),
+            "light_b_on": bool(rcdo.get_editor_property("light_b_on")),
+            "light_a_intensity": float(rcdo.get_editor_property("light_a_intensity")),
+            "light_b_intensity": float(rcdo.get_editor_property("light_b_intensity")),
+            "light_a_radius": float(rcdo.get_editor_property("light_a_radius")),
+            "light_b_radius": float(rcdo.get_editor_property("light_b_radius")),
+            "lights_cast_shadows": bool(rcdo.get_editor_property("lights_cast_shadows")),
         }
     except Exception as exc:                                    # noqa: BLE001
         warn("could not read the Blueprint defaults back (%s)" % exc)
@@ -668,34 +857,36 @@ def import_piece(piece, emblem_textures, screen_tex):
     pack_path = "%s/%s" % (CONTENT_ROOT, name)
     unreal.EditorAssetLibrary.make_directory(pack_path)
 
-    expected_cm = [v * 100.0 for v in manifest["bounds"]["size"]]
+    expected_cm = manifest["bounds_cm"]["size"]
     manifest_sockets = [s["name"] for s in manifest.get("sockets", [])]
+    record["units"] = manifest.get("units")
 
-    imported = import_fbx(fbx, pack_path, 1.0)
+    imported = import_fbx(fbx, pack_path, UNIT_SCALE)
     record["imported_object_paths"] = imported
-    meshes = rename_imported_meshes(imported, name)
+    meshes = rename_imported_meshes(imported, name, manifest)
 
     if "Shell" not in meshes:
         record["problems"].append("no shell mesh after import; imported=%r" % imported)
         fail(record["problems"][-1])
         return record
 
-    # The FBX is in metres, so the asset is too; ADCContentActor scales the shell by
-    # MESH_SCALE at spawn. Check the imported size against the manifest at that scale.
-    raw = mesh_size_cm(meshes["Shell"])
-    size = [v * MESH_SCALE for v in raw]
-    record["shell_size_as_imported"] = [round(v, 3) for v in raw]
-    record["shell_size_cm_at_unit_scale"] = [round(v, 1) for v in size]
-    record["shell_size_cm_expected"] = [round(v, 1) for v in expected_cm]
-    record["scale_ok"] = all(abs(size[i] - expected_cm[i]) < max(2.0, 0.02 * expected_cm[i])
-                             for i in range(3))
+    # The FBX is in centimetres, so the assets are too and nothing scales them: the read-back
+    # below is the proof of the unit change, not a formality. Every mesh is checked, not just
+    # the shell - a part that came in at the wrong scale would sit on its socket looking
+    # almost right.
+    size = mesh_size_cm(meshes["Shell"])
+    record["shell_size_cm_imported"] = [round(v, 2) for v in size]
+    record["piece_size_cm_expected"] = [round(v, 2) for v in expected_cm]
+    record["unit_scale_used"] = UNIT_SCALE
+    record["mesh_units"] = check_mesh_units(meshes, manifest)
+    record["scale_ok"] = record["mesh_units"]["ok"]
     if not record["scale_ok"]:
-        warn("%s is %.1f x %.1f x %.1f cm at unit scale %.0f, expected %.1f x %.1f x %.1f"
-             % (name, size[0], size[1], size[2], MESH_SCALE,
-                expected_cm[0], expected_cm[1], expected_cm[2]))
-    record["socket_check"] = check_socket_scale(meshes["Shell"], manifest, manifest_sockets)
+        warn("%s: worst mesh bounds error %.3f cm; detail %r"
+             % (name, record["mesh_units"]["worst_error_cm"], record["mesh_units"]["per_mesh"]))
 
-    record["missing_roles"] = [r for r in ROLES if r not in meshes]
+    record["socket_fix"] = fix_socket_rotations(meshes["Shell"], manifest, manifest_sockets)
+    record["socket_check"] = check_sockets(meshes["Shell"], manifest, manifest_sockets)
+
     record["sockets"] = socket_table(meshes["Shell"], manifest_sockets)
     record["material_slots"] = {role: slot_names(mesh) for role, mesh in meshes.items()}
 
@@ -721,13 +912,25 @@ def import_piece(piece, emblem_textures, screen_tex):
     record["materials_ok"] = (len(shell_assigned) > 0
                               and all(v.startswith("MI_") for v in shell_assigned.values()))
 
+    placeholder = manifest["id"] in PLACEHOLDER_IDS
+    needed_roles = ("Shell",) if placeholder else ROLES
+    record["missing_roles"] = [r for r in needed_roles if r not in meshes]
+
+    sc = record["socket_check"]
+    record["sockets_ok"] = (not sc["missing"]
+                            and sc["worst_axis_error_cm"] <= 1.0
+                            and sc["worst_angle_error_deg"] <= 0.5)
+
     record["ok"] = (blueprint is not None and label is not None and record["scale_ok"]
-                    and record["materials_ok"]
+                    and record["materials_ok"] and record["sockets_ok"]
                     and not record["missing_roles"] and bool(readback.get("shell_mesh")))
     found_sockets = sum(1 for v in record["sockets"].values() if v)
-    log("piece %s imported: ok=%s meshes=%d sockets found=%d/%d size=%.0fx%.0fx%.0f cm"
+    log("piece %-14s ok=%-5s meshes=%d sockets=%d/%d (%d rotations fixed) "
+        "size=%.0fx%.0fx%.0f cm err=%.2f cm / %.2f deg"
         % (name, record["ok"], len(meshes), found_sockets, len(manifest_sockets),
-           size[0], size[1], size[2]))
+           record["socket_fix"]["rotations_rewritten"],
+           size[0], size[1], size[2],
+           sc["worst_axis_error_cm"], sc["worst_angle_error_deg"]))
     return record
 
 
@@ -762,7 +965,9 @@ def build_spike_map(report):
     cube = load_asset("/Engine/BasicShapes/Cube")
     ground = actor_sub.spawn_actor_from_class(unreal.StaticMeshActor, unreal.Vector(0, 0, -25))
     ground.set_actor_label("Ground")
-    ground.set_actor_scale3d(unreal.Vector(90.0, 90.0, 0.25))
+    # 160 m square: big enough that the camera standing a long way back from the tall slot
+    # still has ground under the horizon.
+    ground.set_actor_scale3d(unreal.Vector(160.0, 160.0, 0.25))
     mesh_comp = ground.static_mesh_component
     mesh_comp.set_static_mesh(cube)
     if ground_mi is not None:
@@ -770,12 +975,20 @@ def build_spike_map(report):
     made.append("Ground")
 
     # Lighting: movable sun + real-time captured sky, so nothing needs baking.
+    #
+    # Mid-afternoon, not sunset, and coming over the camera's shoulder. Brief 004's sun sat
+    # 42 degrees up and behind the slots, which backlit every piece, pushed auto-exposure up
+    # and made the facades look blown even before the content's own lights were counted.
+    # The camera stands off along a slot's +X, so a yaw of 150 puts the sun in front of it.
+    # (unreal.Rotator is (roll, pitch, yaw) positionally - brief 004 passed -42 as the roll and
+    # left the pitch at zero, which is why its sun sat on the horizon. Keywords from now on.)
     sun = actor_sub.spawn_actor_from_class(
-        unreal.DirectionalLight, unreal.Vector(0, 0, 2000), unreal.Rotator(-42.0, 0.0, -35.0))
+        unreal.DirectionalLight, unreal.Vector(0, 0, 2000),
+        unreal.Rotator(roll=0.0, pitch=-48.0, yaw=150.0))
     sun.set_actor_label("Sun")
     sun_comp = sun.light_component
     safe_set(sun_comp, "mobility", unreal.ComponentMobility.MOVABLE)
-    safe_set(sun_comp, "intensity", 6.0)
+    safe_set(sun_comp, "intensity", 5.0)
     safe_set(sun_comp, "atmosphere_sun_light", True)
     made.append("Sun")
 
@@ -796,12 +1009,15 @@ def build_spike_map(report):
     start.set_actor_label("PlayerStart")
     made.append("PlayerStart")
 
-    # Two slots, both facing +X, far enough apart to photograph one at a time.
+    # One slot per size class, all facing +X, far enough apart that the camera lined up on one
+    # never catches another. The run picks the slot whose class matches the piece.
     slots = [
-        {"id": "slot1", "loc": unreal.Vector(0, -1800, 0), "class": unreal.DCSizeClass.S,
+        {"id": "slot_s", "loc": unreal.Vector(0, -3000, 0), "class": unreal.DCSizeClass.S,
          "order": 0, "view": 1500.0, "height": 380.0},
-        {"id": "slot2", "loc": unreal.Vector(0, 1800, 0), "class": unreal.DCSizeClass.L,
+        {"id": "slot_l", "loc": unreal.Vector(0, 0, 0), "class": unreal.DCSizeClass.L,
          "order": 1, "view": 2700.0, "height": 650.0},
+        {"id": "slot_t", "loc": unreal.Vector(0, 3400, 0), "class": unreal.DCSizeClass.T,
+         "order": 2, "view": 4200.0, "height": 1100.0},
     ]
     for spec in slots:
         slot = actor_sub.spawn_actor_from_class(unreal.DCSlot, spec["loc"], unreal.Rotator(0, 0, 0))
@@ -825,6 +1041,14 @@ def build_spike_map(report):
 def main():
     report = {"pieces": [], "problems": []}
 
+    # Start the content folder from scratch. A pack folder left over from an earlier import
+    # can carry an asset that no longer has a source - a mesh for a role a piece has dropped,
+    # or (the reason this is here) a shell still built at the old units - and it would be
+    # cooked into the pack regardless. The base game's /Game/DCCore is left alone.
+    if unreal.EditorAssetLibrary.does_directory_exist(CONTENT_ROOT):
+        log("clearing %s before importing" % CONTENT_ROOT)
+        unreal.EditorAssetLibrary.delete_directory(CONTENT_ROOT)
+
     for folder in (CORE_MATERIALS, CORE_EMBLEMS, CORE_SCREENS, CONTENT_ROOT, "/Game/Maps"):
         unreal.EditorAssetLibrary.make_directory(folder)
 
@@ -835,7 +1059,7 @@ def main():
         if not os.path.isfile(png):
             warn("no emblem art for %s" % shape)
             continue
-        tex = import_texture(png, CORE_EMBLEMS, "T_Emblem_%s" % shape)
+        tex = import_texture(png, CORE_EMBLEMS, "T_Emblem_%s" % shape, clamp=True)
         if tex is not None:
             emblem_textures[shape] = tex
     report["emblems"] = sorted(emblem_textures.keys())
@@ -871,14 +1095,39 @@ def main():
     unreal.EditorAssetLibrary.save_directory("/Game/DCContent", only_if_is_dirty=False, recursive=True)
 
     report["ok"] = all(p.get("ok") for p in report["pieces"]) and not report["problems"]
+    report["piece_count"] = len(report["pieces"])
+    report["failed_pieces"] = [p["piece"] for p in report["pieces"] if not p.get("ok")]
     report["log"] = LOG
 
     os.makedirs(os.path.dirname(REPORT_PATH), exist_ok=True)
     with open(REPORT_PATH, "w", encoding="utf-8") as handle:
         json.dump(report, handle, indent=1)
 
+    # The units proof, in one table: what the manifest says in centimetres against what came
+    # back off the imported asset.
+    log("---- units: imported asset vs manifest, centimetres ----")
+    log("%-14s %-7s %-24s %-10s %-10s %s"
+        % ("piece", "meshes", "shell size cm", "mesh err", "socket err", "socket angle err"))
+    for p in report["pieces"]:
+        got = p.get("shell_size_cm_imported")
+        mu = p.get("mesh_units") or {}
+        if not got:
+            log("%-14s (not imported)" % p["piece"])
+            continue
+        sc = p.get("socket_check", {})
+        log("%-14s %-7d %-24s %-10s %-10s %s"
+            % (p["piece"], len(mu.get("per_mesh", {})),
+               "%.1f x %.1f x %.1f" % tuple(got),
+               "%.3f" % mu.get("worst_error_cm", -1),
+               "%.3f" % sc.get("worst_axis_error_cm", -1),
+               "%.3f deg (%d sockets, %d fixed)"
+               % (sc.get("worst_angle_error_deg", -1), sc.get("sockets_checked", 0),
+                  (p.get("socket_fix") or {}).get("rotations_rewritten", 0))))
+
     log("wrote %s" % REPORT_PATH)
-    log("IMPORT_RESULT: %s" % ("OK" if report["ok"] else "FAIL"))
+    log("IMPORT_RESULT: %s  (%d/%d pieces ok)"
+        % ("OK" if report["ok"] else "FAIL",
+           report["piece_count"] - len(report["failed_pieces"]), report["piece_count"]))
 
 
 main()

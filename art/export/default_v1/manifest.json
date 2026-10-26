@@ -9,6 +9,14 @@
   "z": 5.0
  },
  "front_axis": "-Y",
+ "units": {
+  "authoring": "m",
+  "fbx": "cm",
+  "glb": "m",
+  "fbx_scale": 100.0,
+  "engine": "cm",
+  "engine_unit_scale": 1.0
+ },
  "bounds": {
   "min": [
    -3.2,
@@ -24,6 +32,23 @@
    6.4,
    6.4,
    4.02
+  ]
+ },
+ "bounds_cm": {
+  "min": [
+   -320.0,
+   -320.0,
+   0.0
+  ],
+  "max": [
+   320.0,
+   320.0,
+   402.0
+  ],
+  "size": [
+   640.0,
+   640.0,
+   402.0
   ]
  },
  "fits_slots": [
@@ -47,11 +72,33 @@
     0.0,
     0.0
    ],
+   "location_cm": [
+    0.0,
+    0.0,
+    0.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
     0.0
    ],
+   "bounds_local_cm": {
+    "min": [
+     -320.0,
+     -320.0,
+     0.0
+    ],
+    "max": [
+     320.0,
+     320.0,
+     402.0
+    ],
+    "size": [
+     640.0,
+     640.0,
+     402.0
+    ]
+   },
    "materials": [
     "M_Trim",
     "M_Floor",
@@ -143,6 +190,11 @@
     0.0,
     1.97
    ],
+   "location_cm": [
+    0.0,
+    0.0,
+    197.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
@@ -161,6 +213,11 @@
     -1.35,
     4.92
    ],
+   "location_cm": [
+    0.0,
+    -135.0,
+    492.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
@@ -178,6 +235,11 @@
     0.0,
     -11.0,
     1.7
+   ],
+   "location_cm": [
+    0.0,
+    -1100.0,
+    170.0
    ],
    "rotation_euler_deg": [
     0.0,
@@ -232,7 +294,7 @@
   "Placeholder: no door, switches, screen, sign or brand accent by design.",
   "Roof underside is 3.80 m (not ~3.6) so the canopy still clears 3.5 m above the deck."
  ],
- "build_seconds": 18.88,
+ "build_seconds": 0.32,
  "exports": {
   "fbx": "export/default_v1/default_v1.fbx",
   "glb": "export/default_v1/default_v1.glb"
@@ -250,10 +312,10 @@
   "preview_emblem": "hexagon"
  },
  "generator": {
-  "dc_kit_sha256": "88c5a3a84b66af88de7000fa8436c3694e71c8d9b3c04385d4c47461904811ad",
+  "dc_kit_sha256": "bb5a3473ce162fa2e6a00d5e1ebe7a22df324ed05eaf89d6de3aa7cd84bda4bc",
   "piece_script": "blender/pieces/default.py",
   "piece_sha256": "d40c92b9c4796fcb6daed888fad56459265584cabb703220c08e3c0fd6dc330f",
   "blender": "5.2.2 LTS",
-  "built_utc": "2026-10-25T23:01:13Z"
+  "built_utc": "2026-10-25T23:53:39Z"
  }
 }

@@ -71,11 +71,10 @@ public:
 	bool bAttachPartsAtSockets = true;
 
 	/**
-	 * Metres to centimetres. The art is authored in metres and its FBX carries metre-scale
-	 * vertex data; because the parts are imported in their own local space (each part's pivot
-	 * on its socket) the FBX importer's uniform scale is discarded, so the conversion happens
-	 * here instead - on the shell, which every part and light hangs off, so sockets, parts and
-	 * collision all scale together. Set back to 1 once the Blender export writes centimetres.
+	 * Always 1: the art's FBX is written in centimetres (dc_kit.FBX_UNIT_SCALE), so a piece
+	 * imports at true size and nothing scales it at spawn. Kept as a visible property, and
+	 * printed by DescribeBuild, because a pack built before that change would need 100 here -
+	 * and a piece that is suddenly 100x too small or too large is then one number to check.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DC|Meshes")
 	float ContentUnitScale = 1.0f;
@@ -93,11 +92,17 @@ public:
 
 	// ------------------------------------------------------------------ state (schema 1)
 
+	/** Group A is the ceiling fixtures: on by default, they are what lights the interior. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DC|State")
 	bool bLightAOn = true;
 
+	/**
+	 * Group B is the wall lamps - including the ones on the facade. Off by default: with them
+	 * on, a small building's own facade is the nearest surface to half a dozen lamps and
+	 * blows out. A visitor turning them on at the switches is the point of the group.
+	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DC|State")
-	bool bLightBOn = true;
+	bool bLightBOn = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DC|State")
 	bool bDoorOpen = false;
@@ -110,16 +115,37 @@ public:
 	int32 DoorOpenSign = 1;
 
 	// ------------------------------------------------------------------ lights
+	//
+	// These are room fixtures in a 6-14 m building, not stadium lights. The numbers below are
+	// lumens, the unit a real fitting is sold in: a bright domestic ceiling light is about
+	// 1200 lm and a wall lamp about 300. The attenuation radius is deliberately shorter than
+	// the building is wide, so a fixture lights its own corner and not the whole piece, and
+	// every fixture casts a shadow - without that the interior lights shine straight through
+	// the walls and wash the facade out.
 
-	/** Lumens (point lights use inverse-square falloff by default). */
+	/** Ceiling fixtures, lumens. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DC|Lights")
-	float LightAIntensity = 3000.0f;
+	float LightAIntensity = 1200.0f;
 
+	/** Wall lamps, lumens. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DC|Lights")
-	float LightBIntensity = 900.0f;
+	float LightBIntensity = 320.0f;
 
+	/** Attenuation radius of a group-A fixture, centimetres. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DC|Lights")
-	float LightRadius = 700.0f;
+	float LightARadius = 600.0f;
+
+	/** Attenuation radius of a group-B lamp, centimetres. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DC|Lights")
+	float LightBRadius = 320.0f;
+
+	/** Emitter size, centimetres: a little softness, and it keeps the falloff off a singularity. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DC|Lights")
+	float LightSourceRadius = 8.0f;
+
+	/** Shadows cost frames but are what keeps interior light inside the building. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DC|Lights")
+	bool bLightsCastShadows = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DC|Lights")
 	FLinearColor LightColor = FLinearColor(1.0f, 0.90f, 0.73f);
@@ -145,6 +171,17 @@ public:
 	/** World-space bounds of everything built, for the slot fit check. */
 	UFUNCTION(BlueprintCallable, Category = "DC")
 	FBox GetBuiltBounds() const;
+
+	/**
+	 * World transform of one of the shell's sockets, by base name ("Inside", "Sign", ...).
+	 * How the spike puts its camera inside a piece without knowing anything about the piece.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "DC")
+	bool GetSocketWorldTransform(const FString& SocketBaseName, FTransform& OutTransform) const;
+
+	/** World location of the screen, for something inside the piece to look at. NaN-free. */
+	UFUNCTION(BlueprintCallable, Category = "DC")
+	bool GetScreenWorldLocation(FVector& OutLocation) const;
 
 	virtual void BeginPlay() override;
 

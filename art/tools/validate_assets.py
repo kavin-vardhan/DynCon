@@ -27,6 +27,7 @@ DOOR_MIN_W, DOOR_MIN_H = 1.6, 2.6
 INTERIOR_MIN_H = 3.5
 FLOOR_TOP_MAX = 0.15
 SCHEMA_VERSION = 1
+FBX_SCALE = 100.0           # metres -> centimetres; dc_kit.FBX_UNIT_SCALE, restated here
 EPS = 1e-4
 
 WALKIN_OBJECTS = ("Shell", "Door", "Switch", "Screen", "Sign")
@@ -64,6 +65,29 @@ def check(path, m):
         fail("schema_version is %r, expected %d" % (m.get("schema_version"), SCHEMA_VERSION))
     if m.get("front_axis") != "-Y":
         fail("front_axis is %r, expected '-Y'" % m.get("front_axis"))
+
+    # --- units -------------------------------------------------------------------------
+    # Everything the spec talks about is in metres; the FBX ships centimetres so a piece
+    # lands at true size in the engine with nothing scaling it at spawn.
+    u = m.get("units") or {}
+    for key, want in (("authoring", "m"), ("fbx", "cm"), ("glb", "m"), ("engine", "cm")):
+        if u.get(key) != want:
+            fail("units.%s is %r, expected %r" % (key, u.get(key), want))
+    if abs(float(u.get("fbx_scale", 0)) - FBX_SCALE) > EPS:
+        fail("units.fbx_scale is %r, expected %.1f" % (u.get("fbx_scale"), FBX_SCALE))
+    if abs(float(u.get("engine_unit_scale", 0)) - 1.0) > EPS:
+        fail("units.engine_unit_scale is %r, expected 1.0 (no runtime scaling)"
+             % u.get("engine_unit_scale"))
+    for key in ("min", "max", "size"):
+        want_cm = [round(c * FBX_SCALE, 2) for c in m["bounds"][key]]
+        got_cm = (m.get("bounds_cm") or {}).get(key)
+        if got_cm is None or any(abs(got_cm[i] - want_cm[i]) > 0.01 for i in range(3)):
+            fail("bounds_cm.%s is %s, metre bounds say %s" % (key, got_cm, want_cm))
+    for s in m.get("sockets", []):
+        want_cm = [round(c * FBX_SCALE, 2) for c in s["location"]]
+        got_cm = s.get("location_cm")
+        if got_cm is None or any(abs(got_cm[i] - want_cm[i]) > 0.01 for i in range(3)):
+            fail("socket %s location_cm is %s, metres say %s" % (s["name"], got_cm, want_cm))
     if cls not in CLASS_LIMITS:
         fail("unknown size_class %r" % cls)
         return fails, warns

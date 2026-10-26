@@ -9,6 +9,14 @@
   "z": 20.0
  },
  "front_axis": "-Y",
+ "units": {
+  "authoring": "m",
+  "fbx": "cm",
+  "glb": "m",
+  "fbx_scale": 100.0,
+  "engine": "cm",
+  "engine_unit_scale": 1.0
+ },
  "bounds": {
   "min": [
    -5.8434,
@@ -24,6 +32,23 @@
    11.6868,
    11.6868,
    18.6
+  ]
+ },
+ "bounds_cm": {
+  "min": [
+   -584.34,
+   -584.34,
+   0.0
+  ],
+  "max": [
+   584.34,
+   584.34,
+   1860.0
+  ],
+  "size": [
+   1168.68,
+   1168.68,
+   1860.0
   ]
  },
  "fits_slots": [
@@ -47,11 +72,33 @@
     0.0,
     0.0
    ],
+   "location_cm": [
+    0.0,
+    0.0,
+    0.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
     0.0
    ],
+   "bounds_local_cm": {
+    "min": [
+     -584.34,
+     -584.34,
+     0.0
+    ],
+    "max": [
+     584.34,
+     584.34,
+     1860.0
+    ],
+    "size": [
+     1168.68,
+     1168.68,
+     1860.0
+    ]
+   },
    "materials": [
     "M_Trim",
     "M_Floor",
@@ -74,11 +121,33 @@
     -4.875,
     0.14
    ],
+   "location_cm": [
+    -90.0,
+    -487.5,
+    14.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
     0.0
    ],
+   "bounds_local_cm": {
+    "min": [
+     2.0,
+     -11.0,
+     0.0
+    ],
+    "max": [
+     178.0,
+     11.0,
+     269.0
+    ],
+    "size": [
+     176.0,
+     22.0,
+     269.0
+    ]
+   },
    "materials": [
     "M_Door",
     "M_Wall",
@@ -94,11 +163,33 @@
     -4.75,
     1.2
    ],
+   "location_cm": [
+    105.0,
+    -475.0,
+    120.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
     180.0
    ],
+   "bounds_local_cm": {
+    "min": [
+     -7.5,
+     -3.6,
+     -10.5
+    ],
+    "max": [
+     7.5,
+     0.0,
+     10.5
+    ],
+    "size": [
+     15.0,
+     3.6,
+     21.0
+    ]
+   },
    "materials": [
     "M_Switch",
     "M_Trim"
@@ -113,11 +204,33 @@
     4.615,
     1.94
    ],
+   "location_cm": [
+    0.0,
+    461.5,
+    194.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
     0.0
    ],
+   "bounds_local_cm": {
+    "min": [
+     -200.0,
+     0.0,
+     -112.5
+    ],
+    "max": [
+     200.0,
+     0.0,
+     112.5
+    ],
+    "size": [
+     400.0,
+     0.0,
+     225.0
+    ]
+   },
    "materials": [
     "M_Screen"
    ]
@@ -131,11 +244,33 @@
     -5.125,
     4.05
    ],
+   "location_cm": [
+    0.0,
+    -512.5,
+    405.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
     0.0
    ],
+   "bounds_local_cm": {
+    "min": [
+     -150.0,
+     0.0,
+     -75.0
+    ],
+    "max": [
+     150.0,
+     0.0,
+     75.0
+    ],
+    "size": [
+     300.0,
+     0.0,
+     150.0
+    ]
+   },
    "materials": [
     "M_Sign"
    ]
@@ -335,6 +470,11 @@
     -4.875,
     0.14
    ],
+   "location_cm": [
+    -90.0,
+    -487.5,
+    14.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
@@ -352,6 +492,11 @@
     -1.32,
     -5.225,
     2.25
+   ],
+   "location_cm": [
+    -132.0,
+    -522.5,
+    225.0
    ],
    "rotation_euler_deg": [
     0.0,
@@ -371,6 +516,11 @@
     -5.225,
     2.25
    ],
+   "location_cm": [
+    132.0,
+    -522.5,
+    225.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
@@ -388,6 +538,11 @@
     0.0,
     -5.125,
     4.05
+   ],
+   "location_cm": [
+    0.0,
+    -512.5,
+    405.0
    ],
    "rotation_euler_deg": [
     0.0,
@@ -407,6 +562,11 @@
     -1.5833,
     4.67
    ],
+   "location_cm": [
+    -237.5,
+    -158.33,
+    467.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
@@ -424,6 +584,11 @@
     -2.375,
     1.5833,
     4.67
+   ],
+   "location_cm": [
+    -237.5,
+    158.33,
+    467.0
    ],
    "rotation_euler_deg": [
     0.0,
@@ -443,6 +608,11 @@
     -1.5833,
     4.67
    ],
+   "location_cm": [
+    0.0,
+    -158.33,
+    467.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
@@ -460,6 +630,11 @@
     0.0,
     1.5833,
     4.67
+   ],
+   "location_cm": [
+    0.0,
+    158.33,
+    467.0
    ],
    "rotation_euler_deg": [
     0.0,
@@ -479,6 +654,11 @@
     -1.5833,
     4.67
    ],
+   "location_cm": [
+    237.5,
+    -158.33,
+    467.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
@@ -496,6 +676,11 @@
     2.375,
     1.5833,
     4.67
+   ],
+   "location_cm": [
+    237.5,
+    158.33,
+    467.0
    ],
    "rotation_euler_deg": [
     0.0,
@@ -515,6 +700,11 @@
     4.615,
     1.94
    ],
+   "location_cm": [
+    0.0,
+    461.5,
+    194.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
@@ -532,6 +722,11 @@
     -2.55,
     4.615,
     2.45
+   ],
+   "location_cm": [
+    -255.0,
+    461.5,
+    245.0
    ],
    "rotation_euler_deg": [
     0.0,
@@ -551,6 +746,11 @@
     4.615,
     2.45
    ],
+   "location_cm": [
+    255.0,
+    461.5,
+    245.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
@@ -568,6 +768,11 @@
     -4.525,
     0.0,
     2.45
+   ],
+   "location_cm": [
+    -452.5,
+    0.0,
+    245.0
    ],
    "rotation_euler_deg": [
     0.0,
@@ -587,6 +792,11 @@
     0.0,
     2.45
    ],
+   "location_cm": [
+    452.5,
+    0.0,
+    245.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
@@ -604,6 +814,11 @@
     1.05,
     -4.75,
     1.2
+   ],
+   "location_cm": [
+    105.0,
+    -475.0,
+    120.0
    ],
    "rotation_euler_deg": [
     0.0,
@@ -623,6 +838,11 @@
     -4.75,
     1.2
    ],
+   "location_cm": [
+    143.0,
+    -475.0,
+    120.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
@@ -640,6 +860,11 @@
     0.0,
     0.0,
     2.46
+   ],
+   "location_cm": [
+    0.0,
+    0.0,
+    246.0
    ],
    "rotation_euler_deg": [
     0.0,
@@ -659,6 +884,11 @@
     -2.85,
     0.14
    ],
+   "location_cm": [
+    0.0,
+    -285.0,
+    14.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
@@ -677,6 +907,11 @@
     -2.25,
     19.5
    ],
+   "location_cm": [
+    0.0,
+    -225.0,
+    1950.0
+   ],
    "rotation_euler_deg": [
     0.0,
     0.0,
@@ -694,6 +929,11 @@
     0.0,
     -20.0,
     1.7
+   ],
+   "location_cm": [
+    0.0,
+    -2000.0,
+    170.0
    ],
    "rotation_euler_deg": [
     0.0,
@@ -767,7 +1007,7 @@
  "notes": [
   "Same base hall and socket set as v1; the stacked volumes twist 20 and 47 degrees, fins replace the bands, and a stepped crown takes it to 18.6 m."
  ],
- "build_seconds": 47.83,
+ "build_seconds": 0.18,
  "exports": {
   "fbx": "export/content3_v2/content3_v2.fbx",
   "glb": "export/content3_v2/content3_v2.glb"
@@ -785,10 +1025,10 @@
   "preview_emblem": "hexagon"
  },
  "generator": {
-  "dc_kit_sha256": "989ecc470c5686b2e4ec013e395a8418ba72285de56bc57a56110e355e22a036",
+  "dc_kit_sha256": "bb5a3473ce162fa2e6a00d5e1ebe7a22df324ed05eaf89d6de3aa7cd84bda4bc",
   "piece_script": "blender/pieces/content3.py",
   "piece_sha256": "36c5ddeea74dbb747db6b2fd4c6bf83c23c3d6830e2cad0514417583a7e05943",
   "blender": "5.2.2 LTS",
-  "built_utc": "2026-10-25T22:50:46Z"
+  "built_utc": "2026-10-25T23:53:41Z"
  }
 }

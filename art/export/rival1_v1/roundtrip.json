@@ -2,6 +2,7 @@
  "id": "rival1",
  "version": "v1",
  "fbx": "export/rival1_v1/rival1_v1.fbx",
+ "units": "cm",
  "meshes": [
   "SM_rival1_v1_Door",
   "SM_rival1_v1_Screen",
@@ -35,16 +36,28 @@
   "SOCKET_Waypoint",
   "VOLUME_Interior"
  ],
- "imported_bounds": {
+ "imported_bounds_cm": {
   "min": [
-   -6.52,
-   -6.82,
+   -652.0,
+   -682.0,
    -0.0
   ],
   "max": [
-   6.52,
-   6.52,
-   6.61
+   652.0,
+   652.0,
+   661.0
+  ]
+ },
+ "manifest_bounds_cm": {
+  "min": [
+   -652.0,
+   -682.0,
+   0.0
+  ],
+  "max": [
+   652.0,
+   652.0,
+   661.0
   ]
  },
  "imported_triangles": 14854,

@@ -7,6 +7,10 @@ This is the step that catches unit, axis and scale surprises before UE ever sees
 a piece that is secretly 100x too big, or rotated, or that lost its sockets on the way out,
 fails here rather than in the engine. Writes art/export/<id>_<v>/roundtrip.json and prints a
 table; exits non-zero if anything fails.
+
+The FBX is written in centimetres (dc_kit.FBX_UNIT_SCALE) while the manifest's primary numbers
+are in metres, so everything here is compared in centimetres against the manifest's `_cm`
+mirrors - which is exactly the comparison Unreal makes after import.
 """
 
 from __future__ import annotations
@@ -19,7 +23,8 @@ import bpy
 from mathutils import Vector
 
 ART = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
-TOL_POS = 0.02          # metres
+TOL_POS_CM = 2.0        # centimetres
+EXPECT_FBX_UNITS = "cm"
 
 
 def args():
@@ -55,17 +60,29 @@ def check_one(manifest_path):
     if extra:
         fails.append("unexpected mesh objects: %s" % extra)
 
+    # --- units declared in the manifest -------------------------------------------------
+    units = m.get("units") or {}
+    if units.get("fbx") != EXPECT_FBX_UNITS:
+        fails.append("manifest units.fbx is %r, expected %r" % (units.get("fbx"), EXPECT_FBX_UNITS))
+    if abs(float(units.get("fbx_scale", 0)) - 100.0) > 1e-6:
+        fails.append("manifest units.fbx_scale is %r, expected 100.0" % units.get("fbx_scale"))
+    for key in ("min", "max", "size"):
+        want = [round(c * 100.0, 2) for c in m["bounds"][key]]
+        got = m.get("bounds_cm", {}).get(key)
+        if got is None or any(abs(got[i] - want[i]) > 0.01 for i in range(3)):
+            fails.append("bounds_cm.%s is %s, metres say %s" % (key, got, want))
+
     # --- sockets ----------------------------------------------------------------------
     want_sockets = {s["name"]: s for s in m["sockets"]}
     for name, s in want_sockets.items():
         if name not in empties:
             fails.append("missing socket %s" % name)
             continue
-        got = empties[name].matrix_world.translation
-        want = Vector(s["location"])
-        if (got - want).length > TOL_POS:
-            fails.append("socket %s at %s, manifest says %s"
-                         % (name, [round(c, 3) for c in got], s["location"]))
+        got = empties[name].matrix_world.translation      # centimetres, from the FBX
+        want = Vector(s["location_cm"])
+        if (got - want).length > TOL_POS_CM:
+            fails.append("socket %s at %s cm, manifest says %s cm"
+                         % (name, [round(c, 2) for c in got], s["location_cm"]))
     extra_s = [n for n in empties if n not in want_sockets]
     if extra_s:
         fails.append("unexpected empties: %s" % extra_s)
@@ -79,7 +96,7 @@ def check_one(manifest_path):
         if got != o["materials"]:
             fails.append("%s material slots %s, manifest says %s" % (o["name"], got, o["materials"]))
 
-    # --- bounds in metres -------------------------------------------------------------
+    # --- bounds in centimetres ---------------------------------------------------------
     lo = [1e9] * 3
     hi = [-1e9] * 3
     for ob in meshes.values():
@@ -88,10 +105,10 @@ def check_one(manifest_path):
             for i in range(3):
                 lo[i] = min(lo[i], w[i])
                 hi[i] = max(hi[i], w[i])
-    mlo, mhi = m["bounds"]["min"], m["bounds"]["max"]
+    mlo, mhi = m["bounds_cm"]["min"], m["bounds_cm"]["max"]
     for i, ax in enumerate("xyz"):
-        if abs(lo[i] - mlo[i]) > TOL_POS or abs(hi[i] - mhi[i]) > TOL_POS:
-            fails.append("bounds %s imported [%.3f, %.3f], manifest [%.3f, %.3f]"
+        if abs(lo[i] - mlo[i]) > TOL_POS_CM or abs(hi[i] - mhi[i]) > TOL_POS_CM:
+            fails.append("bounds %s imported [%.2f, %.2f] cm, manifest [%.2f, %.2f] cm"
                          % (ax, lo[i], hi[i], mlo[i], mhi[i]))
 
     tris = 0
@@ -102,8 +119,10 @@ def check_one(manifest_path):
 
     report = dict(
         id=m["id"], version=m["version"], fbx=m["exports"]["fbx"],
+        units="cm",
         meshes=sorted(meshes), sockets=sorted(empties),
-        imported_bounds=dict(min=[round(c, 4) for c in lo], max=[round(c, 4) for c in hi]),
+        imported_bounds_cm=dict(min=[round(c, 2) for c in lo], max=[round(c, 2) for c in hi]),
+        manifest_bounds_cm=dict(min=mlo, max=mhi),
         imported_triangles=tris, failures=fails, ok=not fails,
     )
     out = os.path.join(os.path.dirname(manifest_path), "roundtrip.json")

@@ -32,3 +32,9 @@ unreal/DCDemo/Build/Windows/FileOpenOrder/
 # build outputs and the packs cut out of them (rebuilt by the package run)
 unreal/_build/
 unreal/_packs/
+
+# a packaged run writes two ~1 MB screenshots per pack; only the contact sheet built from
+# them goes in git (unreal/spike/shots/004/ is brief 004's evidence and stays)
+unreal/spike/shots/*.png
+!unreal/spike/shots/engine_contact.png
+unreal/spike/shots/spike_result.txt

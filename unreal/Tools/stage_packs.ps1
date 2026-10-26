@@ -5,18 +5,30 @@
     piece-version next to the base game's pakchunk0 in the staged build. This script moves
     every chunk >= 100 out of the build into unreal\_packs\<id>_<v>\ and writes a small
     pack.json beside it (the ancestor of the server's .dcpack). After it runs, the build on
-    disk genuinely does not contain the content - which is the point of the spike.
+    disk genuinely does not contain the content - which is the point of the whole exercise.
+
+    Which chunk is which piece comes from unreal\Tools\chunk_ids.json, the frozen table the
+    importer also reads, so the two can never disagree. The rest of what a pack has to declare
+    (size class, bounds, door) is copied from the art's own manifest.
 
         powershell -ExecutionPolicy Bypass -File unreal\Tools\stage_packs.ps1
 #>
 param(
-    [string]$Archive = 'E:\DynamicContents\unreal\_build\archive\Windows',
-    [string]$Cooked  = 'E:\DynamicContents\unreal\DCDemo\Saved\Cooked\Windows\DCDemo',
-    [string]$Packs   = 'E:\DynamicContents\unreal\_packs',
-    [hashtable]$ChunkMap = @{ 100 = 'content4_v1'; 101 = 'content1_v1' }
+    [string]$Archive   = 'E:\DynamicContents\unreal\_build\archive\Windows',
+    [string]$Cooked    = 'E:\DynamicContents\unreal\DCDemo\Saved\Cooked\Windows\DCDemo',
+    [string]$Packs     = 'E:\DynamicContents\unreal\_packs',
+    [string]$ChunkIds  = 'E:\DynamicContents\unreal\Tools\chunk_ids.json',
+    [string]$ArtExport = 'E:\DynamicContents\art\export'
 )
 
 $ErrorActionPreference = 'Stop'
+
+$table = Get-Content $ChunkIds -Raw | ConvertFrom-Json
+$byChunk = @{}
+foreach ($row in $table.packs) { $byChunk[[int]$row.chunk_id] = $row }
+Write-Host ("chunk table: {0} packs, chunks {1}-{2}" -f $table.packs.Count,
+    ($table.packs | Measure-Object chunk_id -Minimum).Minimum,
+    ($table.packs | Measure-Object chunk_id -Maximum).Maximum)
 
 $paksDir = Join-Path $Archive 'DCDemo\Content\Paks'
 if (-not (Test-Path $paksDir)) { throw "no staged Paks folder at $paksDir" }
@@ -26,6 +38,7 @@ Get-ChildItem $paksDir -File | Sort-Object Name | ForEach-Object {
     "  {0,-34} {1,12:N0} B" -f $_.Name, $_.Length
 }
 
+if (Test-Path $Packs) { Remove-Item $Packs -Recurse -Force }
 New-Item -ItemType Directory -Force -Path $Packs | Out-Null
 $moved = @()
 
@@ -34,11 +47,12 @@ Get-ChildItem $paksDir -Filter 'pakchunk*.pak' -File | ForEach-Object {
     $chunk = [int]$Matches[1]
     if ($chunk -lt 100) { return }
 
-    $name = $ChunkMap[$chunk]
-    if (-not $name) {
-        Write-Warning "chunk $chunk has no name in ChunkMap, leaving it in the build"
+    $row = $byChunk[$chunk]
+    if (-not $row) {
+        Write-Warning "chunk $chunk is not in chunk_ids.json, leaving it in the build"
         return
     }
+    $name = "$($row.id)_$($row.version)"
 
     $dest = Join-Path $Packs $name
     New-Item -ItemType Directory -Force -Path $dest | Out-Null
@@ -56,20 +70,39 @@ Get-ChildItem $paksDir -Filter 'pakchunk*.pak' -File | ForEach-Object {
     }
 
     # What the cook decided belongs in this chunk - worth keeping as evidence.
-    $manifest = Join-Path $Cooked ("Metadata\ChunkManifest\pakchunk$chunk.txt")
+    $manifestPath = Join-Path $Cooked ("Metadata\ChunkManifest\pakchunk$chunk.txt")
     $packages = @()
-    if (Test-Path $manifest) {
+    if (Test-Path $manifestPath) {
         # [string] on purpose: Get-Content decorates its lines with note properties that
         # ConvertTo-Json would otherwise serialise instead of the text.
-        $packages = @(Get-Content $manifest | Where-Object { $_ -ne '' } | ForEach-Object { [string]$_ })
+        $packages = @(Get-Content $manifestPath | Where-Object { $_ -ne '' } | ForEach-Object { [string]$_ })
     }
 
-    $idParts = $name -split '_'
+    # What the piece is, straight from the art's manifest - the server will need exactly this
+    # to decide whether a piece fits a slot.
+    $art = Join-Path $ArtExport "$name\manifest.json"
+    $sizeClass = $null
+    $boundsCm = $null
+    $units = $null
+    if (Test-Path $art) {
+        $m = Get-Content $art -Raw | ConvertFrom-Json
+        $sizeClass = $m.size_class
+        $boundsCm = $m.bounds_cm.size
+        $units = $m.units
+    } else {
+        Write-Warning "no art manifest at $art"
+    }
+
     $json = [ordered]@{
-        id          = $idParts[0]
-        version     = $idParts[1]
+        id          = $row.id
+        version     = $row.version
         pack        = $name
         chunk_id    = $chunk
+        size_class  = $sizeClass
+        bounds_cm   = $boundsCm
+        units       = $units
+        brand_hex   = $row.brand_hex
+        emblem      = $row.emblem
         class_path  = "/Game/DCContent/$name/BP_DC_$name.BP_DC_${name}_C"
         files       = $files
         total_bytes = ($files | Measure-Object -Sum bytes).Sum
@@ -82,6 +115,7 @@ Get-ChildItem $paksDir -Filter 'pakchunk*.pak' -File | ForEach-Object {
     $moved += [pscustomobject]@{
         chunk = $chunk
         pack  = $name
+        class = $sizeClass
         bytes = $json.total_bytes
         files = ($files | ForEach-Object { "$($_.name)=$($_.bytes)" }) -join ' '
     }
@@ -90,6 +124,11 @@ Get-ChildItem $paksDir -Filter 'pakchunk*.pak' -File | ForEach-Object {
 Write-Host ''
 Write-Host 'packs staged out of the build:'
 $moved | Sort-Object chunk | Format-Table -AutoSize | Out-String | Write-Host
+
+$missing = @($table.packs | Where-Object { -not (Test-Path (Join-Path $Packs "$($_.id)_$($_.version)")) })
+if ($missing) {
+    Write-Warning ("no pack produced for: {0}" -f (($missing | ForEach-Object { "$($_.id)_$($_.version)" }) -join ', '))
+}
 
 Write-Host 'Paks folder left in the build:'
 Get-ChildItem $paksDir -File | Sort-Object Name | ForEach-Object {
@@ -101,4 +140,6 @@ if ($leftovers) { Write-Warning "content chunks still in the build: $($leftovers
 
 $total = (Get-ChildItem $Archive -Recurse -File | Measure-Object -Sum Length).Sum
 Write-Host ("packaged build after removal: {0:N1} MB" -f ($total / 1MB))
+Write-Host ("packs staged: {0}, {1:N1} MB" -f $moved.Count,
+    (((Get-ChildItem $Packs -Recurse -File | Measure-Object -Sum Length).Sum) / 1MB))
 Write-Host ("free on E:: {0:N1} GB" -f ((Get-PSDrive E).Free / 1GB))

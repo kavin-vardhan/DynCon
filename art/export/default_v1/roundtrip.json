@@ -2,6 +2,7 @@
  "id": "default",
  "version": "v1",
  "fbx": "export/default_v1/default_v1.fbx",
+ "units": "cm",
  "meshes": [
   "SM_default_v1_Shell"
  ],
@@ -10,16 +11,28 @@
   "SOCKET_Waypoint",
   "VOLUME_Interior"
  ],
- "imported_bounds": {
+ "imported_bounds_cm": {
   "min": [
-   -3.2,
-   -3.2,
+   -320.0,
+   -320.0,
    -0.0
   ],
   "max": [
-   3.2,
-   3.2,
-   4.02
+   320.0,
+   320.0,
+   402.0
+  ]
+ },
+ "manifest_bounds_cm": {
+  "min": [
+   -320.0,
+   -320.0,
+   0.0
+  ],
+  "max": [
+   320.0,
+   320.0,
+   402.0
   ]
  },
  "imported_triangles": 484,
