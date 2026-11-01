@@ -702,23 +702,44 @@ class SqliteRepo(Repo):
     def telemetry_for_allocations(self, allocations: list[dict[str, Any]]) -> dict[str, float]:
         """Everything the game reported while these allocations were the thing on screen.
 
-        Telemetry carries the slot, the region and a timestamp, so a campaign's numbers are
-        the events inside its own blocks — a minute of slack at the end covers a batch the
-        client posts just after the block rolls over.
+        **Each event counts in exactly one block**, by its timestamp against the allocation
+        that was live at that moment. Getting that wrong is what brief 016's report did: a
+        block's window ran to `end_at + 60 s` of slack (for a batch the client posts just
+        after the block rolls over), and when the visitor held the *next* block of the same
+        slot and region too, those sixty seconds were inside both windows and every event in
+        them was counted twice. 76 interactions came back as 118.
+
+        So the windows are built per slot and region, sorted, and each one is **half open**
+        and **clamped to the start of the next**: `[start, min(end + slack, next start))`.
+        The slack survives where it is needed - the last block of a slot, or a gap before the
+        next one - and cannot reach into a block that has its own claim on the events.
         """
-        out: dict[str, float] = {}
+        slack = timedelta(seconds=60)
+
+        # One list per slot+region, in time order, so "the next block" means something.
+        lanes: dict[tuple[str, str], list[dict[str, Any]]] = {}
         for row in allocations:
-            start = row["start_at"]
-            end = iso(parse_iso(row["end_at"]) + timedelta(seconds=60))
-            with self._lock:
-                counts = self.conn.execute(
-                    "SELECT type, COUNT(*) AS n, SUM(value) AS total FROM telemetry "
-                    "WHERE slot=? AND region=? AND ts>=? AND ts<=? GROUP BY type",
-                    (row["slot"], row["region"], start, end)).fetchall()
-            for count in counts:
-                out[count["type"]] = out.get(count["type"], 0) + int(count["n"])
-                key = f"{count['type']}_total"
-                out[key] = out.get(key, 0.0) + float(count["total"] or 0.0)
+            lanes.setdefault((row["slot"], row["region"]), []).append(row)
+
+        out: dict[str, float] = {}
+        for (slot, region), rows in lanes.items():
+            rows = sorted(rows, key=lambda r: parse_iso(r["start_at"]))
+            for i, row in enumerate(rows):
+                start = parse_iso(row["start_at"])
+                end = parse_iso(row["end_at"]) + slack
+                if i + 1 < len(rows):
+                    end = min(end, parse_iso(rows[i + 1]["start_at"]))
+                if end <= start:
+                    continue
+                with self._lock:
+                    counts = self.conn.execute(
+                        "SELECT type, COUNT(*) AS n, SUM(value) AS total FROM telemetry "
+                        "WHERE slot=? AND region=? AND ts>=? AND ts<? GROUP BY type",
+                        (slot, region, iso(start), iso(end))).fetchall()
+                for count in counts:
+                    out[count["type"]] = out.get(count["type"], 0) + int(count["n"])
+                    key = f"{count['type']}_total"
+                    out[key] = out.get(key, 0.0) + float(count["total"] or 0.0)
         return out
 
     def telemetry_counts(self, region: str | None = None) -> dict[str, float]:

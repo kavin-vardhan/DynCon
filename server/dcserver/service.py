@@ -434,14 +434,14 @@ class Service:
 
     def games(self) -> dict[str, Any]:
         rows = []
+        booth = self.booth_game()
         for game in self.config.games:
-            data = self.config.game(game)
             record = self.registry.record(game)
             rows.append({
                 "id": game, "label": self.config.game_label(game),
                 "slot_count": len(self.config.slots_of(game)),
                 "players_online": self.players_online(game),
-                "live_at_booth": bool(data.get("live_at_booth")),
+                "live_at_booth": game == booth,
                 "map_image_url": f"/games/{game}/map",
                 "registered": record is not None,
                 "registered_utc": (record or {}).get("registered_utc"),
@@ -489,10 +489,9 @@ class Service:
                 "showing": {region: self.describe(self.showing(game, slot.id, region))
                             for region in self.config.regions},
             })
-        data = self.config.game(game)
         return {
             "id": game, "label": self.config.game_label(game),
-            "live_at_booth": bool(data.get("live_at_booth")),
+            "live_at_booth": game == self.booth_game(),
             "players_online": self.players_online(game),
             "map_image_url": f"/games/{game}/map",
             "registered": registered is not None,
@@ -661,8 +660,7 @@ class Service:
         if row:
             return {"game": row["game"], "slot": row["slot"],
                     "reason": "the visitor's newest allocation"}
-        booth = next((g for g in self.config.games
-                      if self.config.game(g).get("live_at_booth")), self.config.games[0])
+        booth = self.booth_game()
         slots = sorted(self.config.slots_of(booth),
                        key=lambda s: -self.config.footfall(s.id, self.config.main_region))
         return {"game": booth, "slot": slots[0].id if slots else None,
@@ -740,11 +738,12 @@ class Service:
         if not self.config.has_region(region):
             raise ServiceError(404, f"There is no region {region}.")
 
-    def changes(self, game: str, region: str) -> dict[str, Any]:
+    def changes(self, game: str, region: str, preview: bool = False) -> dict[str, Any]:
         if game not in self.config.games:
             raise ServiceError(404, f"There is no game {game}.")
         if not self.config.has_region(region):
             raise ServiceError(404, f"There is no region {region}.")
+        self.note_booth_game(game, preview)
         now, demo = self.now(), self.demo()
         slots: dict[str, str] = {}
         for slot in self.config.slots_of(game):
@@ -757,12 +756,43 @@ class Service:
             "poll_interval_s": self.config.poll_interval_s,
             "block_ends_in_s": round((demo.block_end(k) - now).total_seconds(), 3),
             "reset_generation": int(self.repo.meta_get("reset_generation") or 0),
+            # Who asked for the last reset. The staff combo on pad 2 means "clear the booth
+            # down and start again", and the game drops to the attract loop; the portal's
+            # own 60-second idle timer means "the brand seat has gone quiet", and it must
+            # **not** kick a Player who is still playing at the other seat - the two seats
+            # can be two different visitors (plan v6 §2).
+            "reset_reason": self.repo.meta_get("reset_reason") or "staff",
             "purge_packs": list(self.repo.meta_get("purge_packs") or []),
             # The live flip rides on the poll every copy of the game already makes, rather
             # than on a second endpoint: it is a thing the game has to act on within a
             # second, and this is the request that happens within a second.
             "live_flip": self.live_flip(),
         }
+
+    def note_booth_game(self, game: str, preview: bool) -> None:
+        """Which game the booth's own screen is playing, from the poll it already makes.
+
+        The main copy of the game polls `/changes` every 1.5 s and says which game it is in,
+        so the platform knows without being told twice: switching game in the pause menu
+        moves the portal's "playing at this booth" badge within one poll. The **preview**
+        copy says `preview=1` and is ignored - it is a picture of somewhere else, and at the
+        booth it is usually playing the same map as a different region.
+        """
+        if preview:
+            return
+        if self.repo.meta_get("booth_game") != game:
+            self.repo.meta_set("booth_game", game)
+            log.info("the booth is playing game %s", game)
+
+    def booth_game(self) -> str:
+        """What the badge follows: the game that last polled, else the config's own pick."""
+        played = self.repo.meta_get("booth_game")
+        if played in self.config.games:
+            return str(played)
+        for game in self.config.games:
+            if self.config.game(game).get("live_at_booth"):
+                return game
+        return self.config.games[0]
 
     def resolve(self, game: str, slot: str, region: str) -> dict[str, Any]:
         """The signed manifest, as the **signed-payload envelope**.
@@ -806,13 +836,32 @@ class Service:
             },
             "pack": {"id": pack["id"], "total_bytes": int(pack["total_bytes"]), "files": files},
             "brand": showing.brand,
+            # `block` and `lot` are what the game's X-ray view prints under "lot / block":
+            # the thing being auctioned is one slot x one region x one time block, and a
+            # client that can say which one it is holding is a client that is doing more
+            # than downloading a file. `lot` is empty for a block nobody bid on - the
+            # attract rotation and the rival's "next block" are not sold.
             "showing": {"kind": showing.kind, "source": showing.source,
-                        "ends_at": iso(showing.ends_at), "reason": showing.reason},
+                        "ends_at": iso(showing.ends_at), "reason": showing.reason,
+                        "block": self.demo().block_index(now),
+                        "lot": self._lot_behind(game, slot, region, now)},
             "valid_until": iso(now + timedelta(seconds=ttl)),
             "server_time": iso(now),
             "signature_alg": "RS256-canonical-json-v1",
         }
         return payload
+
+    def _lot_behind(self, game: str, slot: str, region: str,
+                    now: datetime) -> str | None:
+        """The lot an allocation was won in, if it was won rather than written by hand.
+
+        `allocations.source` is `auction:<lot id>` when the auction engine wrote it and
+        `admin` when `/admin/allocate` did, so the lot is already recorded - this only
+        reads it back out.
+        """
+        active = self.repo.active_allocation(game, slot, region, now)
+        source = str((active or {}).get("source") or "")
+        return source.split(":", 1)[1] if source.startswith("auction:") else None
 
     # ------------------------------------------------------------------ allocations
 
@@ -923,7 +972,22 @@ class Service:
 
     # ------------------------------------------------------------------ admin
 
-    def reset(self) -> dict[str, Any]:
+    def reset(self, reason: str = "staff") -> dict[str, Any]:
+        """Clear the visitor's side of the booth down.
+
+        `reason` is the one thing the game needs that the portal cannot tell it directly:
+
+        * `staff` - the three-button combo on pad 2. The booth is being cleared between
+          visitors, so the game drops back to the attract loop as well.
+        * `idle` - the portal's own sixty-second timer on the **brand** seat. The two seats
+          can be two different visitors (plan v6 §2), so this one wipes the brand, the
+          bids and the allocations but **must not take the Player out of the game they are
+          still standing in**.
+
+        Everything else about the two is identical, which is why it is one endpoint with a
+        reason rather than two endpoints that would drift apart.
+        """
+        reason = reason if reason in ("staff", "idle") else "staff"
         result = self.repo.wipe_visitor_side()
         for pack_id in result["purge_packs"]:
             self.blobs.delete_pack(pack_id)
@@ -931,9 +995,11 @@ class Service:
         self.repo.meta_set("live_flip", None)
         generation = int(self.repo.meta_get("reset_generation") or 0) + 1
         self.repo.meta_set("reset_generation", generation)
+        self.repo.meta_set("reset_reason", reason)
         self.repo.meta_set("purge_packs", result["purge_packs"])
         self.repo.meta_set("sabotage", None)
-        return {"ok": True, "reset_generation": generation,
+        log.info("reset #%d (%s): %s", generation, reason, result["wiped"])
+        return {"ok": True, "reset_generation": generation, "reason": reason,
                 "purge_packs": result["purge_packs"], "wiped": result["wiped"],
                 "wallet": self.wallet(), "server_time": iso(self.now())}
 

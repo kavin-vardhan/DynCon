@@ -1,4 +1,4 @@
-﻿#include "DCSlotMapTool.h"
+#include "DCSlotMapTool.h"
 
 #include "DCContentActor.h"
 #include "DCSlot.h"
@@ -815,20 +815,48 @@ FDCSlotMapResult UDCSlotMapTool::RegisterCurrentLevel(const FDCSlotMapOptions& O
 					"does not contain it"), *Id, U, V));
 		}
 
-		// How far back to stand, worked out from the lens rather than from a round number
-		// times the footprint, so a 7 m slot and a 14 m one both come out framed: far
-		// enough that the class footprint fits across the frame with a little air round it.
+		// Where to stand so the **whole pad and its kerb band** are in the picture, with
+		// room above for what will be built on them.
 		//
-		// The camera then looks at a quarter of the way up the slot's volume, not at the
-		// middle of it. At eye level a flat pad is nearly edge-on, so aiming at the middle
-		// of a 9 m box tips the horizon down to the bottom of the frame and hands the
-		// portal a photograph of the sky. A low aim puts the ground - which is what is for
-		// sale - across two thirds of the picture, with room above it for what will stand
-		// there. A T slot's 20 m therefore does not all fit, and does not need to: the
-		// slot card says "20 m tall" in words.
-		const double ShowHeight = FMath::Min<double>(Limits.Z, 1000.0);
-		const double NeedAcross = FMath::Max(Limits.X, Limits.Y) * 0.5 * 1.15 / TanHalfH;
-		double Distance = FMath::Max(800.0, NeedAcross);
+		// Brief 013 worked the distance out from the lens so the class footprint fitted
+		// *across* the frame, and then aimed a quarter of the way up the volume. For A3
+		// and B2 - a 7 m pad - that is right. For A1, A2 and B1 - 14 m - it is not: from
+		// 11.5 m out at 1.7 m, aiming 3 m up tips the bottom of the frame to about 6.7 m
+		// away, and the near edge of the pad is at 4.5 m. The pad was *below the picture*,
+		// and all three large slots came back as a photograph of the buildings behind
+		// them with a brown stripe along the bottom.
+		//
+		// So the vertical is solved as well as the horizontal. Writing a_n for the angle
+		// below the horizon to the near edge of the pad and a_t for the angle above it to
+		// the top of what is being shown, the camera needs a_n + a_t to fit inside the
+		// vertical field of view, and its pitch is then whatever centres the two. If it
+		// does not fit, it steps back and up until it does.
+		//
+		// `ShowHeight` is six metres, not the slot's full height: a T slot is 20 m, and a
+		// thumbnail that fits all of it would have the pad as a postage stamp. The slot
+		// card says "20 m tall" in words, and the picture's job is the ground.
+		const double Half = FMath::Max(Limits.X, Limits.Y) * 0.5;
+		const double ShowHeight = FMath::Min<double>(Limits.Z, 600.0);
+		const double TanHalfV = FMath::Tan(FMath::Atan(TanHalfH * ThumbHeight / double(ThumbWidth)));
+
+		double Distance = FMath::Max(800.0, Half * 1.25 / TanHalfH);
+		double Eye = Options.EyeHeightM * CM_PER_M + Half * 0.22;
+		double Pitch = 0.0;
+		for (int32 Step = 0; Step < 14; ++Step)
+		{
+			const double Near = FMath::Max(Distance - Half, 100.0);
+			const double Far = Distance + Half;
+			const double AngleNear = FMath::Atan(Eye / Near);             // below the horizon
+			const double AngleTop = FMath::Atan((ShowHeight - Eye) / Far); // above it
+			Pitch = -FMath::RadiansToDegrees(AngleNear - AngleTop) * 0.5;
+			// 8 % of the frame kept as air, so nothing sits on an edge.
+			if (AngleNear + AngleTop <= FMath::Atan(TanHalfV) * 2.0 * 0.92)
+			{
+				break;
+			}
+			Distance *= 1.10;
+			Eye += 20.0;
+		}
 
 		// The camera stands where a visitor would: out along the slot's +X, which is the
 		// direction the content's door faces. If there is no ground a visitor could be
@@ -857,8 +885,11 @@ FDCSlotMapResult UDCSlotMapTool::RegisterCurrentLevel(const FDCSlotMapOptions& O
 		}
 
 		const FVector Stand = Where + Forward * Distance;
-		const FVector EyeLoc(Stand.X, Stand.Y, GroundZ + Options.EyeHeightM * CM_PER_M);
-		const FVector Aim(Where.X, Where.Y, Where.Z + ShowHeight * 0.25);
+		const FVector EyeLoc(Stand.X, Stand.Y, GroundZ + Eye);
+		// The aim point is the slot's own centre line at whatever height that pitch puts
+		// it: aiming at a fixed fraction of the volume is what went wrong before.
+		const FVector Aim(Where.X, Where.Y,
+			EyeLoc.Z + FMath::Tan(FMath::DegreesToRadians(Pitch)) * Distance);
 		const FRotator EyeRot = (Aim - EyeLoc).Rotation();
 
 		const FString ThumbFileName = FString::Printf(TEXT("%s_%s.png"), *Game, *Id);
@@ -893,7 +924,7 @@ FDCSlotMapResult UDCSlotMapTool::RegisterCurrentLevel(const FDCSlotMapOptions& O
 			*Id, *Slot->GetSizeClassName(), U, V,
 			Where.X / CM_PER_M, Where.Y / CM_PER_M, Where.Z / CM_PER_M,
 			*Slot->RatingRule.ToString(), Slot->PrefetchRadius / CM_PER_M,
-			Options.EyeHeightM, Distance / CM_PER_M));
+			Eye / CM_PER_M, Distance / CM_PER_M));
 
 		// ---- the JSON for this slot
 		TSharedRef<FJsonObject> J = MakeShared<FJsonObject>();
@@ -922,7 +953,8 @@ FDCSlotMapResult UDCSlotMapTool::RegisterCurrentLevel(const FDCSlotMapOptions& O
 		ThumbJson->SetNumberField(TEXT("width"), ThumbWidth);
 		ThumbJson->SetNumberField(TEXT("height"), ThumbHeight);
 		ThumbJson->SetNumberField(TEXT("fov_deg"), ThumbFov);
-		ThumbJson->SetNumberField(TEXT("eye_height_m"), Options.EyeHeightM);
+		ThumbJson->SetNumberField(TEXT("eye_height_m"), Eye / CM_PER_M);
+		ThumbJson->SetNumberField(TEXT("pitch_deg"), Pitch);
 		ThumbJson->SetNumberField(TEXT("stand_off_m"), Distance / CM_PER_M);
 		ThumbJson->SetObjectField(TEXT("camera_m"), Vec3Json(EyeLoc, CM_PER_M));
 		ThumbJson->SetObjectField(TEXT("aim_m"), Vec3Json(Aim, CM_PER_M));

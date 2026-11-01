@@ -63,9 +63,22 @@ export default {
     for (const game of answer.games || []) {
       const index = rows.findIndex((row) => row.id === game.id);
       if (index < 0) continue;
+      const was = rows[index];
       rows[index] = game;
       const stat = tiles[index].querySelectorAll('.foot .stat .value')[1];
       if (stat) stat.textContent = ui.num(game.players_online);
+
+      // The badge moves while this screen is open: the Player can switch game from their
+      // own pause menu at any moment, and the platform learns it from the poll the game
+      // already makes (server/README.md). Redrawn rather than left as it was found.
+      if (was.live_at_booth !== game.live_at_booth) {
+        const row = tiles[index].querySelector('.badge-row');
+        if (row) {
+          row.replaceChildren(game.live_at_booth
+            ? ui.el('span', { class: 'badge' }, ui.bi('games_badge_booth'))
+            : ui.el('span', { class: 'badge quiet' }, ui.bi('games_registered')));
+        }
+      }
     }
   },
 

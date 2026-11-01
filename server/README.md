@@ -142,8 +142,8 @@ client keeps the default up and retries — `tools/fake_client.py` is the worked
 
 ## Routes
 
-**Game client** — `/client-config` · `/changes?game=&region=` · `/resolve?game=&slot=&region=`
-· `/files/{pack}/{name}?exp=&sig=` · `POST /telemetry`
+**Game client** — `/client-config` · `/changes?game=&region=[&preview=1]` ·
+`/resolve?game=&slot=&region=` · `/files/{pack}/{name}?exp=&sig=` · `POST /telemetry`
 
 **Portal** — `/config/public` · `/clock` · `GET|POST /brand` · `/wallet` ·
 `/demo-files[?purpose=update]` · `/demo-files/{name}` · `POST /content` · `GET /content` ·
@@ -252,10 +252,38 @@ table still decides which slots exist, what class they are and what they cost.
   `credits_per_1000_views` the slot card quoted at that price the moment a block is won, and
   counted views only make it better. Visits, dwell and interactions are live only: they are
   real events with no simulated model to mix with.
+- **Each telemetry event counts in exactly one block.** A block's window runs from its
+  `start_at` to sixty seconds past its `end_at`, because the game batches telemetry and a
+  view earned half a second before a block ends can arrive after it. Where the visitor
+  holds the **next** block of the same slot and region too, that slack used to lie inside
+  both windows and everything in it was counted twice — brief 016's 76 interactions came
+  back as 118. The windows are now half open and clamped to the start of the next block of
+  the same slot and region, so the slack survives where there is nothing after it and
+  cannot reach into a block with its own claim (`tests/test_block_boundary.py`).
 - A reset wipes the visitor's brand, uploads, lots, bids, credits, allocations, telemetry and
   saved state, deletes their pack bytes, puts the preview window back to its default region,
   and returns a **purge list** that `/changes` repeats to every client, so the next visitor
   gets a real download. The rival and default packs, and the demo clock, carry on.
+- **`POST /admin/reset` carries a `reason`**, and `/changes` hands it on as `reset_reason`.
+  `"staff"` is the three-button combo on pad 2 — a human clearing the booth down between
+  visitors — and the game drops back to its attract loop as well. `"idle"` is the portal's
+  own sixty-second timer on the **brand** seat, and the game ignores it: the two seats can
+  be two different visitors (plan v6 §2), and an idle timer on one of them must not take
+  the game away from somebody still standing in it. Everything the server wipes is the same
+  either way, which is why it is one endpoint with a reason rather than two that would
+  drift apart. A bare `POST` with no body is read as `"staff"`, the cautious reading.
+- **Which game the booth is playing is learnt from the poll the game already makes.**
+  `live_at_booth` on `/games` and `/games/{id}` — plan v6 §4 step 3's badge — used to be a
+  flag in `demo.json`, written down once. A visitor can now switch game from the pause menu,
+  so it follows the last `GET /changes` that did **not** say `preview=1`: the second copy of
+  the game plays whatever map it was started on as another region and must not move the
+  badge. Nothing has polled on a fresh server, so `demo.json`'s own flag is still the answer
+  a clean checkout gives.
+- **The manifest names its lot and its block.** `showing.block` is the demo clock's block
+  index and `showing.lot` is the lot an allocation was won in, or `null` for a block nobody
+  bought (the attract rotation, and the rival's block after the visitor's). Both are inside
+  the signed payload. They are there for the game's X-ray view, whose whole job is to show
+  that what arrived is one slot × one region × one time block and not a file off a CDN.
 - `players_online` and the simulated half of footfall are functions of the demo clock, not
   random: two screens polling at the same moment agree, and footfall is labelled
   "simulated + live" with the counted views kept separate.

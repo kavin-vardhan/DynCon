@@ -26,7 +26,13 @@ param(
     [int]$ResX         = 1600,
     [int]$ResY         = 900,
     [switch]$NoServer,
-    [switch]$KeepServerData
+    [switch]$KeepServerData,
+    # Brief 018: the booth's own behaviour - boot into the attract loop, any button for the
+    # title menu, Start for the pause menu, View for the X-ray. It is off here by default
+    # because this runner passes -DCShotDir, and a run that photographs every change wants
+    # its own camera rather than the attract one; -Shell turns it on anyway.
+    [switch]$Shell,
+    [switch]$Xray
 )
 
 $ErrorActionPreference = 'Stop'
@@ -91,6 +97,8 @@ try {
         "-DCCacheDir=$CacheDir",
         "-DCQuitWhenFileExists=$quitFile", "-DCRunSeconds=$Seconds"
     )
+    if ($Shell) { $gameArgs += '-DCShell' }
+    if ($Xray)  { $gameArgs += '-DCXray' }
     Write-Host "running the game for $Seconds s"
     $started = Get-Date
     $proc = Start-Process -FilePath $Exe -ArgumentList $gameArgs -PassThru

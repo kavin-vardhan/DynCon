@@ -172,6 +172,12 @@ bool FDCManifest::FromJson(const TSharedPtr<FJsonObject>& Payload, FDCManifest& 
 		Out.ShowingSource = StringOr(*Showing, TEXT("source"));
 		Out.ShowingEndsAt = StringOr(*Showing, TEXT("ends_at"));
 		Out.ShowingReason = StringOr(*Showing, TEXT("reason"));
+		Out.ShowingLot = StringOr(*Showing, TEXT("lot"));
+		double Block = -1.0;
+		if ((*Showing)->TryGetNumberField(TEXT("block"), Block))
+		{
+			Out.ShowingBlock = static_cast<int32>(Block);
+		}
 	}
 
 	if (!Out.IsValid())

@@ -63,9 +63,12 @@ PLAN = [("A1", "content1_v1.real.dcpack"),
         ("A2", "content3_v1.real.dcpack"),
         ("A3", "content4_v1.real.dcpack")]
 
-# Plan v6 §11's pass line.
+# Plan v6 §11's pass line, and brief 018's budget for the solo run that it is measured
+# against. The solo average is the booth's own cost with nothing else running; the worst 1 %
+# with the preview alive is what decides whether the second copy of the game can stay.
 WORST_1_LIMIT_MS = 25.0
 AVERAGE_SLACK = 0.15
+SOLO_AVERAGE_LIMIT_MS = 15.0
 
 
 class FrameTimeTest:
@@ -282,10 +285,13 @@ class FrameTimeTest:
             worst_ok = withp["worst_1_percent"] < WORST_1_LIMIT_MS
             limit = solo["average"] * (1.0 + AVERAGE_SLACK)
             average_ok = withp["average"] <= limit
-            passed = worst_ok and average_ok
+            solo_ok = solo["average"] <= SOLO_AVERAGE_LIMIT_MS
+            passed = worst_ok and average_ok and solo_ok
             verdict = "PASS" if passed else "FAIL"
-            lines += ["", "## The pass line (plan v6 §11)", "",
-                      f"* worst 1 % under {WORST_1_LIMIT_MS:.0f} ms: "
+            lines += ["", "## The pass line (plan v6 §11, brief 018)", "",
+                      f"* solo average at or under {SOLO_AVERAGE_LIMIT_MS:.0f} ms: "
+                      f"**{solo['average']:.2f} ms** — {'pass' if solo_ok else 'FAIL'}",
+                      f"* worst 1 % with the preview under {WORST_1_LIMIT_MS:.0f} ms: "
                       f"**{withp['worst_1_percent']:.2f} ms** — "
                       f"{'pass' if worst_ok else 'FAIL'}",
                       f"* average within {AVERAGE_SLACK:.0%} of solo "

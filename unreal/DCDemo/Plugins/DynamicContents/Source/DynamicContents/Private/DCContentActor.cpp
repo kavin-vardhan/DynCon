@@ -10,6 +10,8 @@
 #include "Engine/Texture2D.h"
 #include "HAL/PlatformTime.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Parse.h"
 
 const TCHAR* DCInteractionName(EDCInteraction Kind)
 {
@@ -104,6 +106,93 @@ namespace
 	}
 }
 
+// ===================================================================== the lighting budget
+//
+// Brief 018 part 1. Brief 016 gave every piece a second group of lamps a visitor can switch
+// on, and the solo frame-time baseline of the ten-minute tour went 12.47 -> 17.82 ms. Three
+// pieces of content with group B on is 18 extra point lights, and under Lumen a local light
+// costs far more than its deferred shading pass: **every light whose indirect lighting scale
+// is above zero is also a light the Lumen surface cache has to be lit by**, once per card
+// page it touches, every frame it is on (`LumenSceneDirectLighting.cpp`:
+// `Proxy->GetIndirectLightingScale() > 0.0f`).
+//
+// So the knobs are here, every one of them readable from the command line, and the defaults
+// in DCContentActor.h are whatever the measurement said. `unreal\Tools\light_sweep.py` runs
+// the same scripted tour once per setting and prints the table; nothing else in the build
+// changes between those runs, which is the only way a frame-time comparison means anything.
+//
+//   -DCLightBOff                 do not build group B at all (the lower bound)
+//   -DCLightBShadow=0|1          group B casts shadows
+//   -DCLightBGi=0|1              group B lights the Lumen scene (indirect scale 1 or 0)
+//   -DCLightBRadius=<cm>  -DCLightBLumens=<lm>  -DCLightBEvery=<n>
+//   -DCLightAShadowMax=<n>       only the first n group-A fixtures cast shadows (-1 = all)
+//   -DCLightAGi=0|1  -DCLightARadius=<cm>  -DCLightALumens=<lm>  -DCLightAEvery=<n>
+//
+// `Every` keeps one lamp in n and brightens what is left by n, so "fewer but brighter" is a
+// number rather than a re-export of the art.
+namespace
+{
+	struct FDCLightTuning
+	{
+		bool bBuildB = true;
+		int32 ShadowB = -1;              // -1 = leave the actor's own flag alone
+		int32 GiB = -1;
+		float RadiusB = -1.0f;
+		float LumensB = -1.0f;
+		int32 EveryB = 1;
+
+		int32 ShadowAMax = -1;           // -1 = every group-A fixture casts
+		int32 GiA = -1;
+		float RadiusA = -1.0f;
+		float LumensA = -1.0f;
+		int32 EveryA = 1;
+
+		FString Describe() const
+		{
+			return FString::Printf(
+				TEXT("B %s shadow=%s gi=%s radius=%s lumens=%s every=%d | "
+					"A shadowmax=%s gi=%s radius=%s lumens=%s every=%d"),
+				bBuildB ? TEXT("on") : TEXT("NOT BUILT"),
+				ShadowB < 0 ? TEXT("-") : (ShadowB ? TEXT("1") : TEXT("0")),
+				GiB < 0 ? TEXT("-") : (GiB ? TEXT("1") : TEXT("0")),
+				RadiusB < 0.0f ? TEXT("-") : *FString::Printf(TEXT("%.0f"), RadiusB),
+				LumensB < 0.0f ? TEXT("-") : *FString::Printf(TEXT("%.0f"), LumensB),
+				EveryB,
+				ShadowAMax < 0 ? TEXT("all") : *FString::Printf(TEXT("%d"), ShadowAMax),
+				GiA < 0 ? TEXT("-") : (GiA ? TEXT("1") : TEXT("0")),
+				RadiusA < 0.0f ? TEXT("-") : *FString::Printf(TEXT("%.0f"), RadiusA),
+				LumensA < 0.0f ? TEXT("-") : *FString::Printf(TEXT("%.0f"), LumensA),
+				EveryA);
+		}
+	};
+
+	const FDCLightTuning& LightTuning()
+	{
+		static FDCLightTuning Tuning;
+		static bool bParsed = false;
+		if (!bParsed)
+		{
+			bParsed = true;
+			const TCHAR* Cmd = FCommandLine::Get();
+			Tuning.bBuildB = !FParse::Param(Cmd, TEXT("DCLightBOff"));
+			FParse::Value(Cmd, TEXT("DCLightBShadow="), Tuning.ShadowB);
+			FParse::Value(Cmd, TEXT("DCLightBGi="), Tuning.GiB);
+			FParse::Value(Cmd, TEXT("DCLightBRadius="), Tuning.RadiusB);
+			FParse::Value(Cmd, TEXT("DCLightBLumens="), Tuning.LumensB);
+			FParse::Value(Cmd, TEXT("DCLightBEvery="), Tuning.EveryB);
+			FParse::Value(Cmd, TEXT("DCLightAShadowMax="), Tuning.ShadowAMax);
+			FParse::Value(Cmd, TEXT("DCLightAGi="), Tuning.GiA);
+			FParse::Value(Cmd, TEXT("DCLightARadius="), Tuning.RadiusA);
+			FParse::Value(Cmd, TEXT("DCLightALumens="), Tuning.LumensA);
+			FParse::Value(Cmd, TEXT("DCLightAEvery="), Tuning.EveryA);
+			Tuning.EveryA = FMath::Max(Tuning.EveryA, 1);
+			Tuning.EveryB = FMath::Max(Tuning.EveryB, 1);
+			DC_LOG(Log, TEXT("LIGHTS tuning: %s"), *Tuning.Describe());
+		}
+		return Tuning;
+	}
+}
+
 ADCContentActor::ADCContentActor()
 {
 	// Ticking is off until the door is actually swinging: a slot full of content that nobody
@@ -183,9 +272,34 @@ void ADCContentActor::AddLights()
 		return;
 	}
 
+	const FDCLightTuning& Tuning = LightTuning();
+
 	TArray<FName> SocketNames = ShellComp->GetAllSocketNames();
 	SocketNames.Sort([](const FName& A, const FName& B) { return A.LexicalLess(B); });
 
+	// Count first, so "fewer but brighter" conserves the light in the room: keeping one
+	// socket in Every out of six is a sixfold brightening, not an Every-fold one, and the
+	// two only agree when Every happens to divide the count.
+	int32 TotalA = 0;
+	int32 TotalB = 0;
+	for (const FName& SocketName : SocketNames)
+	{
+		FString Name = SocketName.ToString();
+		Name.RemoveFromStart(TEXT("SOCKET_"), ESearchCase::CaseSensitive);
+		TotalA += Name.StartsWith(TEXT("LightA_"), ESearchCase::CaseSensitive) ? 1 : 0;
+		TotalB += Name.StartsWith(TEXT("LightB_"), ESearchCase::CaseSensitive) ? 1 : 0;
+	}
+	const int32 EveryA = Tuning.EveryA > 1 ? Tuning.EveryA : FMath::Max(LightAKeepEvery, 1);
+	const int32 EveryB = Tuning.EveryB > 1 ? Tuning.EveryB : FMath::Max(LightBKeepEvery, 1);
+	const int32 KeptA = FMath::Max((TotalA + EveryA - 1) / EveryA, 1);
+	const int32 KeptB = FMath::Max((TotalB + EveryB - 1) / EveryB, 1);
+	const float BoostA = TotalA > 0 ? float(TotalA) / float(KeptA) : 1.0f;
+	const float BoostB = TotalB > 0 ? float(TotalB) / float(KeptB) : 1.0f;
+	BuiltBoostA = BoostA;
+	BuiltBoostB = BoostB;
+
+	int32 SeenA = 0;
+	int32 SeenB = 0;
 	for (const FName& SocketName : SocketNames)
 	{
 		FString Name = SocketName.ToString();
@@ -197,20 +311,69 @@ void ADCContentActor::AddLights()
 		{
 			continue;
 		}
+		if (bGroupB && !Tuning.bBuildB)
+		{
+			continue;
+		}
+
+		const int32 Every = bGroupA ? EveryA : EveryB;
+		const int32 Index = bGroupA ? SeenA++ : SeenB++;
+		if (Every > 1 && (Index % Every) != 0)
+		{
+			continue;
+		}
+
+		const float Lumens = (bGroupA
+			? (Tuning.LumensA >= 0.0f ? Tuning.LumensA : LightAIntensity) * BoostA
+			: (Tuning.LumensB >= 0.0f ? Tuning.LumensB : LightBIntensity) * BoostB);
+		const float Radius = bGroupA
+			? (Tuning.RadiusA >= 0.0f ? Tuning.RadiusA : LightARadius)
+			: (Tuning.RadiusB >= 0.0f ? Tuning.RadiusB : LightBRadius);
+
+		// Group A casts unless the tuning caps how many of them do; group B follows its own
+		// flag. One shadow-caster per piece is a real option: it is the ceiling fixture that
+		// makes the room read as a room, and the others only add to the same answer.
+		bool bShadows = bGroupA ? bLightsCastShadows : bLightBCastsShadows;
+		if (bGroupA && Tuning.ShadowAMax >= 0)
+		{
+			bShadows = bShadows && LightsA.Num() < Tuning.ShadowAMax;
+		}
+		if (bGroupB && Tuning.ShadowB >= 0)
+		{
+			bShadows = Tuning.ShadowB != 0;
+		}
+		const bool bGi = bGroupA
+			? (Tuning.GiA >= 0 ? Tuning.GiA != 0 : bLightAAffectsGi)
+			: (Tuning.GiB >= 0 ? Tuning.GiB != 0 : bLightBAffectsGi);
 
 		UPointLightComponent* Light = NewObject<UPointLightComponent>(this, FName(*(FString(TEXT("PL_")) + Name)));
 		Light->SetMobility(EComponentMobility::Movable);
 		Light->SetupAttachment(ShellComp, SocketName);
+
+		// Plain bitfields on ULightComponentBase with no setter of their own, so they are set
+		// before the component is registered and the proxy is built from them.
+		Light->bAffectGlobalIllumination = bGi;
+		Light->bAffectReflection = bGi;
+		Light->bAffectTranslucentLighting = bGi;
+		Light->bCastVolumetricShadow = false;
+
 		Light->RegisterComponent();
 
 		// Lumens, not candelas: the defaults above are the numbers a real fitting is sold in,
 		// and UPointLightComponent's own default unit is candelas, so say so explicitly.
 		Light->SetIntensityUnits(ELightUnits::Lumens);
-		Light->SetIntensity(bGroupA ? LightAIntensity : LightBIntensity);
+		Light->SetIntensity(Lumens);
 		Light->SetLightColor(LightColor);
-		Light->SetAttenuationRadius(bGroupA ? LightARadius : LightBRadius);
+		Light->SetAttenuationRadius(Radius);
 		Light->SetSourceRadius(LightSourceRadius);
-		Light->SetCastShadows(bGroupA ? bLightsCastShadows : bLightBCastsShadows);
+		Light->SetCastShadows(bShadows);
+
+		// **This** is the Lumen switch, and it is a float rather than a flag: a local light
+		// with an indirect scale of zero is skipped by the Lumen scene's direct lighting pass
+		// altogether (LumenSceneDirectLighting.cpp), which is where most of the cost of a
+		// roomful of small lamps actually goes. Its direct contribution - the thing a visitor
+		// sees when they press the switch - is untouched.
+		Light->SetIndirectLightingIntensity(bGi ? 1.0f : 0.0f);
 		AddInstanceComponent(Light);
 
 		(bGroupA ? LightsA : LightsB).Add(Light);
@@ -628,7 +791,8 @@ FString ADCContentActor::DescribeBuild() const
 
 	return FString::Printf(
 		TEXT("%s_%s  shell=%s unit_scale=%.0f door=%d screen=%d sign=%d switches=%d ")
-		TEXT("lightsA=%d(%s %.0flm r%.0f) lightsB=%d(%s %.0flm r%.0f) shadowsA=%s shadowsB=%s sockets=%d ")
+		TEXT("lightsA=%d(%s %.0flm r%.0f) lightsB=%d(%s %.0flm r%.0f) shadowsA=%s shadowsB=%s ")
+		TEXT("giA=%s giB=%s sockets=%d ")
 		TEXT("bounds=%.0fx%.0fx%.0f cm door_local=(%.0f,%.0f,%.0f) door_open=%d screen_index=%d ")
 		TEXT("sign_local=(%.0f,%.0f,%.0f) sign_out=(%.2f,%.2f,%.2f) ")
 		TEXT("brand=(%.2f,%.2f,%.2f) emblem=%s screen_img=%s"),
@@ -636,10 +800,14 @@ FString ADCContentActor::DescribeBuild() const
 		ShellMesh ? *ShellMesh->GetName() : TEXT("none"), ContentUnitScale,
 		DoorComp ? 1 : 0, ScreenComp ? 1 : 0, SignComp ? 1 : 0,
 		SwitchComps.Num(),
-		LightsA.Num(), bLightAOn ? TEXT("on") : TEXT("off"), LightAIntensity, LightARadius,
-		LightsB.Num(), bLightBOn ? TEXT("on") : TEXT("off"), LightBIntensity, LightBRadius,
+		LightsA.Num(), bLightAOn ? TEXT("on") : TEXT("off"), LightAIntensity * BuiltBoostA,
+		LightARadius,
+		LightsB.Num(), bLightBOn ? TEXT("on") : TEXT("off"), LightBIntensity * BuiltBoostB,
+		LightBRadius,
 		bLightsCastShadows ? TEXT("yes") : TEXT("no"),
 		bLightBCastsShadows ? TEXT("yes") : TEXT("no"),
+		bLightAAffectsGi ? TEXT("yes") : TEXT("no"),
+		bLightBAffectsGi ? TEXT("yes") : TEXT("no"),
 		ShellComp ? ShellComp->GetAllSocketNames().Num() : 0,
 		Size.X, Size.Y, Size.Z,
 		DoorLocal.X, DoorLocal.Y, DoorLocal.Z, bDoorOpen ? 1 : 0, ScreenIndex,

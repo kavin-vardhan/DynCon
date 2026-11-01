@@ -32,11 +32,14 @@ Start with `README.md` (cold-reader overview of the system + Claude's read), the
 | `docs/handoffs/` | Cold-reader handoffs written by chat at the end of each session |
 | `_mailbox/` | The chat ↔ Code bridge. **Never read or write it.** |
 
-## Current position (2026-10-25)
+## Current position (2026-11-02)
 
-- Built so far (briefs 002–014): all 13 content pieces + the environment kit (Blender), every piece as a runtime pack, the
+- Built so far (briefs 002–018): all 13 content pieces + the environment kit (Blender), every piece as a runtime pack, the
   server (delivery, auctions, report, game registration), the UE runtime client (game ↔ server, slot lifecycle), Game A and
-  Game B maps with a Player, the slot-map tool, and portal part 1 + the pad helper. Shipping builds only (MSVC 14.44 missing).
+  Game B maps with a Player, the slot-map tool, the whole portal + the pad helper, interaction with state kept across a
+  swap, the region preview window, and — brief 018 — the lighting budget, the title menu and game switching, the attract
+  camera and the X-ray view. Shipping builds only (MSVC 14.44 missing).
+- Still FUTURE: the "press ✕ on the player pad" lock, the one-button start script and the watchdog (plan v6 §10 item 6).
 - Unreal is the launcher install at `E:\EpicGames\UE_5.7` (read-only).
 - Who does what: **Kavin** is the owner — he rules on product/scope and does playtests and human errands. **Chat Claude** makes the
   design/technical calls and writes your briefs. **You (Claude Code)** implement. You never talk to Kavin directly; chat does.

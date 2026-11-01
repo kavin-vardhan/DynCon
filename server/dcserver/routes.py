@@ -44,9 +44,16 @@ def client_config(svc: Service = Depends(get_svc)) -> dict[str, Any]:
 
 @client.get("/changes")
 def changes(game: str = Query(...), region: str = Query(...),
+            preview: int = Query(0),
             svc: Service = Depends(get_svc)) -> dict[str, Any]:
+    """`preview=1` says "I am the region preview window, not the booth's own screen".
+
+    The poll every copy of the game already makes is how the platform learns which game is
+    being played at the booth, so the portal's badge follows a switch within one interval -
+    but the second copy plays whatever map it was started on and must not move the badge.
+    """
     svc.tick()                       # the game's poll is what closes a due auction
-    return svc.changes(game, region)
+    return svc.changes(game, region, preview=bool(preview))
 
 
 @client.get("/resolve")
@@ -461,6 +468,14 @@ def post_live_flip(body: FlipIn, svc: Service = Depends(get_svc)) -> dict[str, A
 
 # =============================================================================== admin
 
+class ResetIn(BaseModel):
+    reason: str = Field(default="staff",
+                        description='"staff" (the pad combo, which also drops the game back '
+                                    'to its attract loop) or "idle" (the portal\'s own '
+                                    'timer, which must not kick a Player who is still '
+                                    'playing)')
+
+
 class SabotageIn(BaseModel):
     mode: str = Field(description="corrupt | freeze | none")
 
@@ -489,8 +504,9 @@ def health(svc: Service = Depends(get_svc)) -> dict[str, Any]:
 
 
 @admin.post("/reset", dependencies=[Depends(admin_guard)])
-def reset(svc: Service = Depends(get_svc)) -> dict[str, Any]:
-    return svc.reset()
+def reset(body: ResetIn | None = Body(default=None),
+          svc: Service = Depends(get_svc)) -> dict[str, Any]:
+    return svc.reset((body.reason if body else None) or "staff")
 
 
 @admin.post("/sabotage", dependencies=[Depends(admin_guard)])

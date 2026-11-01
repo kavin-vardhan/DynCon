@@ -1,0 +1,10 @@
+game A  /Game/Maps/GameA
+  capture 2048 x 1316 px of 201.9 x 129.7 m, camera 134 m up, 4 actor(s) tagged DCPlayableArea
+  A1  L   px 0.4257 0.5463  world 0.0 12.0 0.82 m  rating all  pre-fetch 60 m  thumb A_A1.png (eye 3.2 m, 12 m out)
+  A2  T   px 0.8418 0.4537  world 84.0 0.0 0.31 m  rating all  pre-fetch 60 m  thumb A_A2.png (eye 3.2 m, 12 m out)
+  A3  S   px 0.1681 0.7621  world -52.0 40.0 0.31 m  rating all  pre-fetch 60 m  thumb A_A3.png (eye 2.7 m, 9 m out)
+
+game B  /Game/Maps/GameB
+  capture 2048 x 1616 px of 96.8 x 76.4 m, camera 134 m up, 8 actor(s) tagged DCPlayableArea
+  B1  L   px 0.3761 0.6584  world -12.0 12.0 0.31 m  rating all  pre-fetch 60 m  thumb B_B1.png (eye 3.2 m, 12 m out)
+  B2  S   px 0.6653 0.1086  world 16.0 -30.0 0.34 m  rating all  pre-fetch 60 m  thumb B_B2.png (eye 2.7 m, 9 m out)

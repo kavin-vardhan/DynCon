@@ -3,9 +3,10 @@
 *Written 2026-10-26 (brief 004), rewritten the same day for brief 006, and extended
 2026-11-01 with the runtime client (brief 011), the two maps and the Player (brief 012), the
 slot-map tool (brief 013), the interaction, the state store and the waypoint marker
-(brief 016), and the region preview window (brief 017). Plain-words guide for a cold reader.
-Status of each item is marked **DONE / QUEUED / FUTURE**. The spec this implements is
-`specs/unreal_spec_v1.md`.*
+(brief 016), and the region preview window (brief 017); extended again 2026-11-02 with the
+lighting budget, the attract loop, the title menu, game switching and the X-ray view
+(brief 018). Plain-words guide for a cold reader. Status of each item is marked
+**DONE / QUEUED / FUTURE**. The spec this implements is `specs/unreal_spec_v1.md`.*
 
 ## What this folder is
 
@@ -41,6 +42,7 @@ round's screenshots showed was wrong.
 | `spike/shots/012/maps_contact.png` | the contact sheet of both maps' walk-and-photograph runs | DONE |
 | `spike/shots/013/` | the slot-map tool's evidence: both captures with the pins drawn on them, the five thumbnails, and the frame times before and after | DONE |
 | `spike/shots/016/state_contact.png` | the contact sheet of the state-across-a-swap exit test | DONE |
+| `spike/shots/018/` | brief 018's evidence: the lighting tables and before/after crops, the menu exit test's eight screenshots at 1600 × 900, the X-ray at 1080p, and the five re-captured slot thumbnails with the pins drawn on them | DONE |
 
 ## The five steps, in order
 
@@ -88,6 +90,13 @@ Two belong to the state exit test: **`state_exit_test.py`** (plan v6 §14 step 6
 the packaged game and ten rounds of step 9) and **`make_state_sheet.py`**. And
 **`core_extras.py`** is editor Python that both `import_content.py` and `make_maps.py` call,
 so the base game's screen-image set and the Player's input action are defined once.
+
+Two belong to the region preview window: **`run_preview.ps1`** (the second copy of the
+build) and **`preview_frametime_test.py`** (plan v6 §11's soak: the same ten-minute tour
+with and without it). And four to brief 018: **`light_sweep.py`** (what the lamps inside a
+piece cost, one setting at a time), **`light_shots.py`** (the before/after crops of each
+interior), **`menu_exit_test.py`** (the attract loop, the title menu, game switching and
+the X-ray, in one run) and **`make_menu_sheet.py`** (its two contact sheets).
 
 ## How a content pack works
 
@@ -232,14 +241,15 @@ checks it and puts it there, while it is running. Nothing is handed to it.
 | `UDCSubsystem` (GameInstanceSubsystem) | backend address and region from the command line; `GET /client-config` once; `GET /changes` every 1.5 s; `GET /resolve` and the signature check; the downloads, the SHA-256 of every file, the LRU pack cache, the mounting; telemetry batching; the status file | DONE |
 | `ADCSlot` | the slot lifecycle exactly as the figure — IDLE → RESOLVING → DOWNLOADING → VERIFYING → MOUNTING → ACTIVE, with SWAP PENDING while the Player is inside the bounds box and ERROR / FALLBACK with backoff | DONE |
 | `ADCRuntimeGameMode` | starts the client, draws the status strip, and (for a test) photographs every change | DONE |
-| `ADCStatusHud` | the status strip, the interaction prompt and the waypoint marker | DONE |
+| `ADCStatusHud` | the status strip, the interaction prompt, the waypoint marker and — brief 018 — the attract line, the title menu, the pause menu and the fade | DONE |
 | `FDCCrypto` | RS256 over the signed payload, SHA-256 per file | DONE |
 | `FDCPackCache` | one folder per pack under `Saved\DCPacks\`, least-recently-used eviction, purge on a booth reset | DONE |
 | `FDCManifest` | the parsed, verified manifest | DONE |
 | `UDCInteractor`, `UDCStateStore` | brief 016: the Player uses the content, and what they do survives a replacement | DONE |
 | `FDCPreviewWindow` | brief 017: the region preview window's borderless placement on the portal's monitor | DONE |
 | the live flip | brief 017: the fallback for tour step 7 — the **main** game plays as another region for twenty seconds | DONE |
-| X-ray view | plan v6 §11 | FUTURE |
+| `UDCShell`, `UDCShellInput` | brief 018: the attract loop, the title menu, the pause menu, game switching, and the pad and keyboard that drive them | DONE |
+| `FDCXray` | brief 018: the X-ray overlay — pre-fetch rings, the manifest, the cache, the lifecycle log and the frame-time graph | DONE |
 
 `ADCSpikeGameMode` is untouched apart from one guard (see "A Shipping build ignores the map"
 below), so `run_all_packs.ps1` still does exactly what brief 006 reported.
@@ -894,6 +904,19 @@ that shows the resolution engine is answering a *context*, not a question with o
 
 It is not a second program. It is **this build, started with `-DCPreview`**.
 
+**The preview window does not follow a focus into the other map, and that is FUTURE.**
+Brief 017 left it framing the first slot of the map it was started on when the visitor bids
+on the other game, and brief 018 asked whether a hidden level load could fix it now that
+the build can switch maps. It cannot, cheaply: `StartPreview` is a boot sequence that runs
+in `BeginPlay`, and a level load runs it again — which calls `FDCPreviewWindow::HideAtBoot`
+(a plain `ShowWindow(SW_HIDE)`) and then re-applies `-DCPreviewShown`, i.e. *hidden*. A
+switch in the middle of the region-check step would take the window off the portal's screen
+and leave it off. Making it safe means moving the window's shown/hidden state out of the
+command line and into the shell so `StartPreview` can be run twice, and that is a careful
+change to the one thing at the booth that must not break. It is not in the way of anything:
+the window already frames whatever the visitor bid on **within** its own map, which is the
+whole of tour step 7 as the plan writes it.
+
 | Flag | What it does |
 |---|---|
 | `-DCPreview` | the whole mode: see the list below |
@@ -1217,3 +1240,204 @@ the cache and costs nothing. One download, two slots, no race.
 - The shared `Characters` content pack (125 MB of mannequin) was deliberately **not** copied
   into the project, so the player pawn has no visible mesh yet. Nothing here needs one.
   **QUEUED**
+
+---
+
+# The booth's front end (brief 018): attract, title menu, game switching, X-ray
+
+Plan v6 §3, §4 step 0, §10 item 1 and §11. Four things, and one measurement that had to come
+first because everything else is measured against it.
+
+## The shell
+
+`UDCShell` is a **game instance subsystem**, and that is the whole trick. A level load
+destroys the world, the game mode, the HUD, the Player and every slot — and leaves the game
+instance alone. So the mode, the X-ray flag, the switch count, the uptime, the pack cache,
+the mounted packs and `UDCStateStore`'s record of what the Player did all live through a game
+switch without anything being saved or reloaded, and **A → B → A finds A1 exactly as it was
+left** as a property of where the state lives.
+
+| State | What is on screen |
+|---|---|
+| **Attract** | No Player at all. The camera drifts over the map and lingers on each slot in turn; the strip stays; one bilingual line says "press any button". Content keeps changing behind it as blocks roll over, and the camera is in front of whatever is standing there *now*. |
+| **Title** | Game A and Game B as two big cards, picked with the stick or d-pad and ✕. The card picture is the **plan view the slot-map tool captured and registered**, fetched back from the platform (`GET /games/<id>/map`); a game that was never registered draws a plain tinted panel instead. |
+| **Playing** | What briefs 011–016 already built. |
+| **Paused** | Resume · Switch to the other game · X-ray on/off. **The world keeps running** — see below. |
+
+Switching game is a level load, with a plain black fade and a bilingual "Loading Game B" on
+it, because plan v6 §3 says switching *games* may have one and switching *content* never may.
+The strip's two zeroes do not move: `restarts: 0` and `content loading screens: 0` are what
+the booth claims all day, and a game switch is neither. The count of switches is in the
+**X-ray**, not on the strip, so nothing invites the reading that it is one of the two.
+
+**The pause menu does not stop the world.** It takes the pad — the Player cannot walk, and the
+button that confirms a menu item cannot also open the door they are standing at — but the
+slots keep polling and a block can roll over behind the menu. Freezing the world would stall
+the one thing the left-hand screen exists to prove.
+
+In the attract loop there is **no pawn**, not a hidden one: `bStartPlayersAsSpectators` at
+boot and `RestartPlayer` when a game is picked. A pawn parked in the loop would be counted as
+a visitor by whatever slot it happened to be standing in.
+
+**The attract camera is brief 017's preview auto-pilot** — `TickAutoPilot`, with the slot
+chosen by a rota instead of by the server and an overview leg between laps. One camera, one
+set of rules for standing in front of a slot, and whatever is tuned on one is tuned on both.
+
+**Neither the attract camera nor the preview window is a Player**: no view, no visit, no
+dwell, no interaction. A mount *is* still posted from the attract loop, because that is a fact
+about the booth's own machine and it is the event the portal's push-update screen is right to
+believe. The check sits in `ADCSlot::UpdateViewSeconds` as well as in `QueueTelemetry`,
+because a slot that queued a view and had it dropped would still have marked it reported and
+never posted the one a real Player later earns.
+
+## The input
+
+```
+d-pad / left stick      move the cursor          arrows
+✕ / A                   choose                   Enter
+○ / B                   back                     —
+Start                   pause, or leave attract  Esc
+View / Back             X-ray on / off           F2
+any button              leave the attract loop
+```
+
+`UDCShellInput` is a component on the **player controller**, not on the pawn: on the title
+menu and in the attract loop there is no pawn and the menus still have to answer the pad. It
+is Enhanced Input for the reason in `DCInteractor.h` — a Shipping build with that plugin on
+processes no legacy key bindings at all — and it builds **both** its actions and its mapping
+context in code, because an input action with nothing on it but a name is not worth an asset.
+
+One press of ✕ fires two of its actions (*any button*, which leaves the attract loop, and
+*confirm*, which picks a card) and Enhanced Input does not promise which order they run in.
+So every change of screen arms a **0.22 s input lock**: without it, the one press meant to
+open the title menu could also choose a game off it. It doubles as the debounce a booth wants
+anyway.
+
+## The X-ray view
+
+Off by default, toggled from the pause menu and with View on the pad. It is the answer to
+"isn't this just ChunkDownloader?", and it is five things a download manager has not got:
+
+1. a **pre-fetch ring** on the ground round every slot, at the slot's real radius, coloured by
+   where that slot is in the lifecycle (idle · resolving · downloading · verifying · mounting
+   · active · swap pending · fallback), with the slot's id and state on a mast above it;
+2. the **manifest** of the nearest slot — content and version, the pack, its size, the SHA-256
+   of the container, whether the RS256 signature checked out *on this machine*, the region,
+   the **lot and block** it is showing under, the allocation key, and when it stops being
+   valid;
+3. the **cache**: the packs on disk with their size, what was in them, whether they are
+   mounted, in least-recently-used order — which is the order the next eviction takes them in;
+4. the **lifecycle log**: the last ten transitions with their milliseconds;
+5. a **frame-time graph** over the last ten seconds, with lines at 16.7 and 33 ms and a tick
+   at every mount, spawn and unload — so anybody can watch a swap happen and see that nothing
+   spikes.
+
+Every heading is bilingual. The values are not: a hash, a file name, a state name out of the
+lifecycle figure and a number of milliseconds are the same in both languages. It is drawn on
+the HUD canvas out of counters the subsystem already keeps — a graph of frame time that cost
+frame time would be a liar — and the graph reduces its ten seconds to 150 columns holding the
+**worst** frame in each slice, because a graph that is there to show "no spike" must not
+average one away.
+
+## The lighting budget
+
+Everything else in brief 018 is measured against the booth's own frame time, so this came
+first. The long version, both tables and the pictures are
+`spike/shots/018/lighting.md` and `spike/shots/018/lighting_before_after.png`; the short
+version is three findings.
+
+**The wall lamps are not where the frame time is.** The eighteen of them — six per piece,
+three pieces in Game A — cost **0.5 ms** of average frame time as brief 016 shipped them
+(15.15 ms with group B never built, 15.68 ms with it on). The drift the brief recorded
+against them is not something they do.
+
+**Of the things one lamp can be, only Lumen matters.** Under Lumen, every light whose
+indirect lighting scale is above zero is a light the **surface cache** has to be re-lit by,
+over every card page it reaches, every frame it is on — a cost per light that has nothing
+to do with how much of the screen the light covers (`LumenSceneDirectLighting.cpp` gates on
+`Proxy->GetIndirectLightingScale() > 0.0f`). The shadow is worth 0.1 ms of average but 1.8 ms
+of the *tail*; the reach and the count are worth about 0.15 ms each. So the change is
+`IndirectLightingIntensity = 0` on group B — `ADCContentActor::bLightBAffectsGi` — and
+nothing else. The lamps still light the surfaces in front of them, which is all a visitor
+ever sees them do, and the before/after crops of all three interiors are the same picture.
+
+**Two faster settings were measured and rejected by looking at them.** Taking group A out of
+the Lumen scene as well is another 0.3–2 ms, but the rooms lose the bounce off their own
+ceilings and go flat and grey — and the lamps-on / lamps-off contrast the brief asks to keep
+gets *weaker*. Half the ceiling fixtures at twice the lumens is the fastest row on the whole
+sheet, and `dc_kit.light_a_fixture` models a **fitting** at every group-A socket: half of
+them would be modelled and dead, which no eye-level shot happens to show and anybody
+standing in the room and looking up would.
+
+One number worth carrying forward: **run-to-run drift on this machine is about ±1 ms over
+ten minutes.** The same settings measured 13.25 ms in one batch and 15.01 ms twenty minutes
+later, and "no lamps at all" came out slower than thirty-two lamps. Nothing under about a
+millisecond separating two rows measured minutes apart means anything here.
+
+### And the ten-minute run it is all measured against
+
+Two ten-minute laps of the scripted tour at 1600 × 900, the same test brief 017 ran
+(`spike/shots/018/frametime.md`):
+
+| | average | median | worst 1 % | over 25 ms | brief 017 |
+|---|---|---|---|---|---|
+| solo | **16.00 ms** (62 fps) | 15.91 ms | **22.72 ms** | 108 / 37,475 | 17.82 ms avg, 25.45 ms worst 1 % |
+| with the preview | **18.80 ms** (53 fps) | 18.78 ms | **27.69 ms** | 1,178 / 31,961 | 26.39 ms worst 1 % |
+
+The tail is **2.7 ms better than brief 017's** and the solo average is 1.8 ms better, which
+is more than the lamps alone are worth and is partly the machine. Two things do not meet
+their line and both are honest:
+
+* brief 018's **solo average target of 15 ms is missed at 16.00 ms.** Everything measured
+  that would close the last millisecond changes the look, and the pictures are above.
+* plan v6 §11's **worst 1 % under 25 ms with the preview alive is still missed, at
+  27.69 ms** — the same verdict brief 017 came to, which is the condition the plan attaches
+  the live-flip fallback to. Both paths are built; which the booth uses is still a call for
+  the booth PC.
+
+## Running it
+
+```powershell
+# the booth's own behaviour, by hand
+powershell -ExecutionPolicy Bypass -File unreal\Tools\run_runtime.ps1 -Shell -Xray -Seconds 180
+
+# brief 018's exit test: attract -> title -> Game B -> X-ray -> switch -> state kept -> attract
+server\.venv\Scripts\python.exe unreal\Tools\menu_exit_test.py
+server\.venv\Scripts\python.exe unreal\Tools\menu_exit_test.py --xray-only --res 1920x1080
+
+# what the lamps cost, one setting at a time, and the before/after pictures
+server\.venv\Scripts\python.exe unreal\Tools\light_sweep.py --minutes 3
+server\.venv\Scripts\python.exe unreal\Tools\light_shots.py
+```
+
+New switches on the game:
+
+| Switch | What |
+|---|---|
+| `-DCShell` · `-DCNoShell` | force the shell on / off. It is **on by default** and off whenever a scripted run owns the camera (`-DCTour`, `-DCStateTest`, `-DCPreview`, `-DCShotDir` / `-DCAutoShot`), so every test written before brief 018 behaves exactly as it did |
+| `-DCStartIn=attract\|title\|game` | where a run begins (default attract) |
+| `-DCIdleAttract=<s>` | untouched player pad → attract (default 90; 0 never) |
+| `-DCAttractDwell=<s>` | how long the attract camera lingers on one slot (default 14) |
+| `-DCMapA=` · `-DCMapB=` | which package each game card loads |
+| `-DCXray` | start with the overlay on |
+| `-DCUiTest[=<path>]` | the scripted menu run, and where its report goes |
+| `-DCTourLightB=0` | the tour leaves the wall lamps off (the before/after crops) |
+| `-DCLightBOff` · `-DCLightBGi=` · `-DCLightBShadow=` · `-DCLightBRadius=` · `-DCLightBLumens=` · `-DCLightBEvery=` | the wall lamps, one knob at a time |
+| `-DCLightAGi=` · `-DCLightAShadowMax=` · `-DCLightARadius=` · `-DCLightALumens=` · `-DCLightAEvery=` | the ceiling fixtures, the same |
+
+## The scripted exit test, and what "the input path" means
+
+`unreal/Tools/menu_exit_test.py` drives one packaged run with no restart:
+
+> boot → **attract** → a button → the **title menu** → Game B → walk to B1 → pause →
+> **X-ray on** → resume → pause → switch to Game A (a picture of the loading line) → walk
+> into A1, open the door, wall lamps on, screen to image 3 → pause → switch to B → switch
+> back to A → walk back into A1: **everything as the Player left it** → the idle timeout →
+> attract.
+
+The steps come from `-DCUiTest`, a hook inside `UDCShell` that calls the same `AnyButton` /
+`NavHorizontal` / `Confirm` / `PauseButton` the pad's Enhanced Input bindings call — so what
+the script presses is what a visitor presses, one function in. **It is not a fake gamepad**:
+the XInput driver is not exercised here, and the "press ✕ on the player pad" lock of plan v6
+§11 is a later brief's. The Python side owns the server, the allocations, the check that the
+portal's "playing at this booth" badge follows a switch, and the contact sheet.

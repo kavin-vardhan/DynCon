@@ -3,6 +3,7 @@
 #include "DCContentActor.h"
 #include "DCInteractor.h"
 #include "DCPreview.h"
+#include "DCShell.h"
 #include "DCSlot.h"
 #include "DCStateStore.h"
 #include "DCStatusHud.h"
@@ -130,6 +131,37 @@ namespace
 	/** Seconds after BeginPlay before the window is restyled - see PlacePreviewWindow. */
 	constexpr float DCPreviewPlaceDelay = 2.0f;
 
+	// ---- the attract camera (brief 018, plan v6 §4 step 0) ------------------------------
+
+	/** One lap of the attract camera's drift round a slot. Slower than the preview's. */
+	constexpr float DCAttractDriftSeconds = 70.0f;
+	constexpr float DCAttractDriftDegrees = 26.0f;
+
+	/** The overview leg swings this far round the map over one dwell. */
+	constexpr float DCAttractOverviewDegrees = 22.0f;
+
+	/** The attract camera stands further back than the preview's: it is a loop somebody
+	 *  walks past, not a picture of one slot on a 960 x 540 window. */
+	constexpr float DCAttractStandBack = 1.45f;
+
+	/** …and never lower than this off the ground, whatever is standing in the slot: the
+	 *  plaza has 10 m trees in it and the avenue has two rows of them. */
+	constexpr float DCAttractMinHeight = 1100.0f;
+
+	/** How far in front of whatever it would otherwise be inside the camera stops. */
+	constexpr float DCAttractClearance = 300.0f;
+
+	/**
+	 * …and a change of leg further than this is a cut, not a flight.
+	 *
+	 * Much shorter than the preview window's 60 m, and for the opposite reason: the preview
+	 * moves between two framings of the *same* slot and wants the move to be smooth, while
+	 * every leg of the attract rota is tens of metres across a plaza. Flying it looks like
+	 * a camera that has come loose, and at the speed it has to go the motion blur is the
+	 * only thing in the picture.
+	 */
+	constexpr float DCAttractCutDistance = 1500.0f;
+
 	FString TwoDigits(int32 N)
 	{
 		return FString::Printf(TEXT("%02d"), N);
@@ -219,6 +251,21 @@ void ADCRuntimeGameMode::InitGame(const FString& MapName, const FString& Options
 		DC_LOG(Warning, TEXT("PLAYER %s would not load - keeping the default controller"),
 			*PlayerControllerClassPath.ToString());
 	}
+
+	// The shell has to be asked here rather than in BeginPlay, because whether a pawn is
+	// spawned at all is decided before BeginPlay: the booth boots into the attract loop,
+	// and the plan's "no Player on screen" has to mean there is no Player, not a Player
+	// hidden somewhere. MatchShellMode puts one in the moment a game is picked.
+	if (UDCShell* Shell = UDCShell::Get(this))
+	{
+		Shell->Start();
+		if (Shell->IsEnabled() && !Shell->IsPlayerWanted())
+		{
+			bStartPlayersAsSpectators = true;
+			DC_LOG(Log, TEXT("SHELL booting with no Player: %s"),
+				DCShellModeName(Shell->GetMode()));
+		}
+	}
 }
 
 void ADCRuntimeGameMode::BeginPlay()
@@ -256,6 +303,11 @@ void ADCRuntimeGameMode::BeginPlay()
 	if (FParse::Value(Cmd, TEXT("DCTourFor="), TourForSeconds) && TourForSeconds > 0.0f)
 	{
 		bTour = true;
+	}
+	int32 TourLightB = 1;
+	if (FParse::Value(Cmd, TEXT("DCTourLightB="), TourLightB))
+	{
+		bTourLightB = TourLightB != 0;
 	}
 	// Both scripted runs wait this long before they start, so the backend has filled every
 	// slot and the first picture is of a map that is already doing its job.
@@ -332,6 +384,23 @@ void ADCRuntimeGameMode::BeginPlay()
 	Subsystem->OnSlotFallback.AddUObject(this, &ADCRuntimeGameMode::OnSlotFallback);
 	Subsystem->Start();
 
+	// ---- the shell: the attract loop, the title menu, the pause menu, game switching ----
+	if (UDCShell* Shell = UDCShell::Get(this))
+	{
+		Shell->Start();
+		bShell = Shell->IsEnabled();
+		if (bShell)
+		{
+			// A scripted run that also wants the shell (the menu exit test) takes its own
+			// pictures, so the per-activation camera shot must not fight the attract camera.
+			bAutoShot = false;
+			Shell->OnShot.BindUObject(this, &ADCRuntimeGameMode::UiShot);
+			Shell->OnWalkToSlot.BindUObject(this, &ADCRuntimeGameMode::UiWalkTo);
+			Shell->OnUse.BindUObject(this, &ADCRuntimeGameMode::UiUse);
+			Shell->NotifyWorldReady(GetWorld()->GetMapName());
+		}
+	}
+
 	if (bPreview)
 	{
 		StartPreview();
@@ -359,7 +428,7 @@ void ADCRuntimeGameMode::BeginPlay()
 		WriteStateFile(TEXT("warming up"));
 	}
 
-	if (bAutoShot || bTour)
+	if (bAutoShot || bTour || bShell)
 	{
 		// One camera actor, moved from shot to shot, so every picture is framed the same way.
 		if (UWorld* World = GetWorld())
@@ -380,11 +449,23 @@ void ADCRuntimeGameMode::BeginPlay()
 					PC->SetViewTargetWithBlend(Cam, 0.0f);
 				}
 				// Nothing the human does moves anything during an automated run - but the
-				// tour needs move input, because that is how it drives the pawn.
+				// tour needs move input, because that is how it drives the pawn. The shell
+				// hands both back the moment somebody is playing (MatchShellMode).
 				PC->SetIgnoreLookInput(true);
 				PC->SetIgnoreMoveInput(!bTour);
 			}
 		}
+	}
+
+	// The menus answer the pad even when there is no pawn to put a component on, so the
+	// binding lives on the player controller rather than on the Player.
+	if (bShell)
+	{
+		if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
+		{
+			UDCShellInput::EnsureOn(PC);
+		}
+		MatchShellMode();
 	}
 
 	if (RunSeconds > 0.0f)
@@ -420,6 +501,15 @@ void ADCRuntimeGameMode::EndPlay(const EEndPlayReason::Type Reason)
 	{
 		Subsystem->OnSlotActive.RemoveAll(this);
 		Subsystem->OnSlotFallback.RemoveAll(this);
+	}
+	// The shell outlives this world (that is the whole point of it being on the game
+	// instance), so its three hooks into this game mode have to go with the game mode.
+	// The next map's BeginPlay binds them again.
+	if (UDCShell* Shell = UDCShell::Get(this))
+	{
+		Shell->OnShot.Unbind();
+		Shell->OnWalkToSlot.Unbind();
+		Shell->OnUse.Unbind();
 	}
 	Super::EndPlay(Reason);
 }
@@ -848,36 +938,111 @@ void ADCRuntimeGameMode::FramePreviewOn(const ADCSlot& Slot, float Drift, FVecto
 	OutLook = (Look - OutEye).Rotation();
 }
 
-void ADCRuntimeGameMode::TickPreview(float DeltaSeconds)
+void ADCRuntimeGameMode::FrameOverview(float Drift, FVector& OutEye, FRotator& OutLook) const
+{
+	// The same box PointCameraOverview uses - every slot the map has, with air round it -
+	// but the eye swings slowly round it instead of standing at one corner.
+	FBox Box(ForceInit);
+	if (const UDCSubsystem* Subsystem = UDCSubsystem::Get(this))
+	{
+		for (const ADCSlot* Slot : Subsystem->GetSlots())
+		{
+			Box += Slot->GetActorLocation();
+		}
+	}
+	if (!Box.IsValid)
+	{
+		Box = FBox(FVector(-3000.0f, -3000.0f, 0.0f), FVector(3000.0f, 3000.0f, 0.0f));
+	}
+	Box = Box.ExpandBy(FVector(1500.0f, 1500.0f, 0.0f));
+
+	const FVector Centre = Box.GetCenter();
+	const float Reach = FMath::Max(Box.GetSize().Size2D() * 0.46f, 4800.0f);
+	const FVector Out = FVector(-0.83f, -0.56f, 0.0f).GetSafeNormal()
+		.RotateAngleAxis(Drift, FVector::UpVector);
+	OutEye = Centre + Out * Reach + FVector(0.0f, 0.0f, Reach * 0.42f);
+	OutLook = (Centre - OutEye).Rotation();
+}
+
+void ADCRuntimeGameMode::TickAutoPilot(float DeltaSeconds, const ADCSlot* Focus, bool bOverview)
 {
 	ACameraActor* Cam = Camera.Get();
-	if (Cam == nullptr)
-	{
-		return;
-	}
-	// The camera is driven from the first tick, whether or not the window has been placed
-	// yet: the first frame the portal ever shows is then already framed.
-	const ADCSlot* Slot = PreviewFocusSlot();
-	if (Slot == nullptr)
+	if (Cam == nullptr || (Focus == nullptr && !bOverview))
 	{
 		return;
 	}
 
 	PreviewSeconds += DeltaSeconds;
-	const float Phase = static_cast<float>(PreviewSeconds) * 2.0f * PI / DCPreviewDriftSeconds;
-	const float Drift = PreviewDriftDegrees * FMath::Sin(Phase);
+	const float Lap = bOverview ? DCAttractDriftSeconds
+		: (bPreview ? DCPreviewDriftSeconds : DCAttractDriftSeconds);
+	const float Swing = bOverview ? DCAttractOverviewDegrees
+		: (bPreview ? PreviewDriftDegrees : DCAttractDriftDegrees);
+	const float Phase = static_cast<float>(PreviewSeconds) * 2.0f * PI / Lap;
+	const float Drift = Swing * FMath::Sin(Phase);
 
 	FVector Eye;
 	FRotator Look;
-	FramePreviewOn(*Slot, Drift, Eye, Look);
+	const FString Id = bOverview ? FString(TEXT("(the whole map)")) : Focus->SlotId.ToString();
+	if (bOverview)
+	{
+		FrameOverview(Drift, Eye, Look);
+	}
+	else
+	{
+		FramePreviewOn(*Focus, Drift, Eye, Look);
+		if (!bPreview)
+		{
+			// The attract camera stands further back than the preview window's, and it is
+			// **above** the map rather than at eye level. The preview is a 960 x 540 pane
+			// that wants one piece filling it, and its camera stands where a player would;
+			// this is a 1080p screen a visitor walks past, it has to read as a place rather
+			// than as a wall - and an eye-level camera drifting round a plaza full of trees
+			// spends half its lap inside one.
+			const FVector Centre = Focus->GetContentCentre();
+			const FBox Bounds = Focus->GetContentBounds();
+			const float Tall = Bounds.IsValid ? Bounds.GetSize().Z : 900.0f;
+			const float GroundZ = Focus->GetActorLocation().Z;
 
-	const FString Id = Slot->SlotId.ToString();
+			FVector Flat = Eye - Centre;
+			Flat.Z = 0.0f;
+			const float Out = Flat.Size() * DCAttractStandBack;
+			Eye = FVector(Centre.X, Centre.Y, GroundZ)
+				+ Flat.GetSafeNormal() * Out
+				+ FVector(0.0f, 0.0f, FMath::Max(Tall * 1.1f, DCAttractMinHeight));
+			Look = (Centre - Eye).Rotation();
+
+			// …and if something solid is between it and what it is framing, it comes in to
+			// just in front of that. A plaza has arcades and an avenue has trees.
+			if (UWorld* World = GetWorld())
+			{
+				FHitResult Hit;
+				FCollisionQueryParams Params(FName(TEXT("DCAttract")), /*bTraceComplex=*/false);
+				if (AActor* Content = Focus->GetContentActor())
+				{
+					Params.AddIgnoredActor(Content);
+				}
+				if (World->LineTraceSingleByChannel(Hit, Centre, Eye, ECC_Visibility, Params))
+				{
+					const FVector Pulled = Hit.ImpactPoint
+						+ (Centre - Eye).GetSafeNormal() * DCAttractClearance;
+					if (FVector::Dist(Centre, Pulled) > DCAttractClearance)
+					{
+						Eye = Pulled;
+						Look = (Centre - Eye).Rotation();
+					}
+				}
+			}
+		}
+	}
+
 	const bool bNewSlot = Id != PreviewFocusId;
 	if (bNewSlot)
 	{
-		DC_LOG(Log, TEXT("PREVIEW framing slot %s (%s): %s"), *Id,
-			*Slot->GetSizeClassName(),
-			*Slot->DescribeShowing());
+		DC_LOG(Log, TEXT("%s framing %s%s"), bPreview ? TEXT("PREVIEW") : TEXT("ATTRACT"), *Id,
+			(Focus != nullptr)
+				? *FString::Printf(TEXT(" (%s): %s"), *Focus->GetSizeClassName(),
+					*Focus->DescribeShowing())
+				: TEXT(""));
 		PreviewFocusId = Id;
 	}
 
@@ -885,7 +1050,7 @@ void ADCRuntimeGameMode::TickPreview(float DeltaSeconds)
 	// through a wall is not what "the same slot, another region" is meant to look like -
 	// and a smooth catch-up otherwise, which is what carries the drift.
 	const float Jump = FVector::Dist(Cam->GetActorLocation(), Eye);
-	if (bNewSlot && Jump > DCPreviewCutDistance)
+	if (bNewSlot && Jump > (bPreview ? DCPreviewCutDistance : DCAttractCutDistance))
 	{
 		Cam->SetActorLocationAndRotation(Eye, Look);
 		return;
@@ -895,6 +1060,204 @@ void ADCRuntimeGameMode::TickPreview(float DeltaSeconds)
 	Cam->SetActorLocation(FMath::Lerp(Cam->GetActorLocation(), Eye, Alpha));
 	Cam->SetActorRotation(FMath::RInterpTo(Cam->GetActorRotation(), Look, DeltaSeconds,
 		1.0f / FMath::Max(DCPreviewSmoothing, 0.01f)));
+}
+
+void ADCRuntimeGameMode::TickPreview(float DeltaSeconds)
+{
+	// The camera is driven from the first tick, whether or not the window has been placed
+	// yet: the first frame the portal ever shows is then already framed.
+	TickAutoPilot(DeltaSeconds, PreviewFocusSlot(), /*bOverview=*/false);
+}
+
+// ================================================================ the shell (brief 018)
+
+void ADCRuntimeGameMode::MatchShellMode()
+{
+	UDCShell* Shell = UDCShell::Get(this);
+	UWorld* World = GetWorld();
+	APlayerController* PC = World ? World->GetFirstPlayerController() : nullptr;
+	if (Shell == nullptr || !bShell || PC == nullptr)
+	{
+		return;
+	}
+
+	const bool bWantPawn = Shell->IsPlayerWanted();
+	APawn* Pawn = PC->GetPawn();
+
+	if (bWantPawn && Pawn == nullptr)
+	{
+		// Picking a game is what puts somebody in the world. RestartPlayer is the engine's
+		// own "spawn this controller's pawn at a player start", which is exactly right: the
+		// Player always arrives where the map says a Player arrives.
+		bStartPlayersAsSpectators = false;
+		RestartPlayer(PC);
+		Pawn = PC->GetPawn();
+		if (Pawn != nullptr)
+		{
+			PC->SetViewTargetWithBlend(Pawn, 0.0f);
+			PC->SetIgnoreLookInput(false);
+			PC->SetIgnoreMoveInput(false);
+			Interactor = UDCInteractor::EnsureOn(Pawn);
+			SetSpringArm(DCArmOutside);
+			DC_LOG(Log, TEXT("SHELL the Player is in, at %s"),
+				*Pawn->GetActorLocation().ToCompactString());
+		}
+		else
+		{
+			DC_LOG(Warning, TEXT("SHELL RestartPlayer did not produce a pawn"));
+		}
+	}
+	else if (!bWantPawn && Pawn != nullptr)
+	{
+		// Plan v6 §4 step 0: "no Player on screen". Not hidden - gone. A pawn standing in
+		// the attract loop would also be counted as a visitor by every slot it is inside.
+		DC_LOG(Log, TEXT("SHELL taking the Player out: %s"), DCShellModeName(Shell->GetMode()));
+		PC->UnPossess();
+		Pawn->Destroy();
+		bStartPlayersAsSpectators = true;
+		if (ACameraActor* Cam = Camera.Get())
+		{
+			PC->SetViewTargetWithBlend(Cam, 0.0f);
+		}
+		PC->SetIgnoreLookInput(true);
+		PC->SetIgnoreMoveInput(true);
+	}
+
+	// A menu takes the pad: the Player must not walk while the pause menu is up, and the
+	// same button that confirms a menu item is the one that opens a door.
+	if (Pawn != nullptr)
+	{
+		const bool bMenu = Shell->IsMenuUp();
+		PC->SetIgnoreMoveInput(bMenu);
+		PC->SetIgnoreLookInput(bMenu);
+	}
+
+	// **The shell owns the view target**, every tick, not only on the frame a pawn is made
+	// or destroyed. After a game switch the new map's pawn is spawned by the engine before
+	// BeginPlay runs, so the "a pawn was just created" branch above never fires - and
+	// without this the Player would keep watching the attract camera, which is parked at
+	// the world origin. (It is: brief 018's first menu run came back with two screenshots
+	// of the inside of the ground.) A scripted tour or state test drives the view target
+	// itself and is left alone.
+	if (!bTour && !bStateTest)
+	{
+		AActor* Want = (bWantPawn && Pawn != nullptr)
+			? static_cast<AActor*>(Pawn) : static_cast<AActor*>(Camera.Get());
+		if (Want != nullptr && PC->GetViewTarget() != Want)
+		{
+			PC->SetViewTargetWithBlend(Want, 0.0f);
+			DC_LOG(Log, TEXT("SHELL view target -> %s"), *Want->GetName());
+		}
+	}
+
+	bAttractCamera = Shell->GetMode() == EDCShellMode::Attract;
+}
+
+bool ADCRuntimeGameMode::UiShot(const FString& Label)
+{
+	if (ShotDir.IsEmpty())
+	{
+		return true;                         // nothing to write to; the step still counts
+	}
+	TourShot(Label);
+	return true;
+}
+
+bool ADCRuntimeGameMode::UiWalkTo(const FString& Target)
+{
+	if (Target != UiWalkTarget)
+	{
+		UiWalkTarget = Target;
+
+		FString SlotId = Target;
+		FString Where = TEXT("door");
+		Target.Split(TEXT(":"), &SlotId, &Where);
+
+		ADCSlot* Slot = FindSlot(SlotId);
+		if (Slot == nullptr)
+		{
+			DC_LOG(Warning, TEXT("UITEST there is no slot %s in this map"), *SlotId);
+			return true;
+		}
+		int32 Index = 0;
+		if (const UDCSubsystem* Subsystem = UDCSubsystem::Get(this))
+		{
+			Index = FMath::Max(0, Subsystem->GetSlots().IndexOfByKey(Slot));
+		}
+
+		TArray<FVector> Targets;
+		if (Where == TEXT("screen"))
+		{
+			// Where a Player stands to use the screen - the far wall of the room, out of
+			// the interactor's reach from the doorway on purpose (DCInteractor.h).
+			SetSpringArm(DCArmInside);
+			FVector Stand;
+			if (UDCInteractor::GetStandPoint(Slot, EDCInteraction::Screen, Stand))
+			{
+				Targets.Add(Stand);
+			}
+			else
+			{
+				Targets.Add(Slot->GetActorLocation());
+			}
+		}
+		else if (Where == TEXT("inside"))
+		{
+			SetSpringArm(DCArmInside);
+			FTransform Inside;
+			if (const ADCContentActor* Built = Cast<ADCContentActor>(Slot->GetContentActor()))
+			{
+				if (Built->GetSocketWorldTransform(TEXT("Inside"), Inside))
+				{
+					Targets.Add(Inside.GetLocation());
+				}
+			}
+			if (Targets.Num() == 0)
+			{
+				Targets.Add(Slot->GetActorLocation());
+			}
+		}
+		else
+		{
+			SetSpringArm(DCArmOutside);
+			Targets = Slot->ApproachPath;
+			Targets.Add(Slot->GetFrontStandPoint(DCStateFrontClearance));
+		}
+		StartWalk(Index, Targets, Target);
+		return false;
+	}
+	if (WalkTarget < 0)
+	{
+		return true;
+	}
+	return TickWalk(LastDeltaSeconds);
+}
+
+bool ADCRuntimeGameMode::UiUse(int32 Kind)
+{
+	if (!Interactor.IsValid())
+	{
+		return false;
+	}
+	const EDCInteraction What = static_cast<EDCInteraction>(Kind);
+
+	// Turn and look at it first, the way a Player does: the prompt picks the thing being
+	// looked at when two are in reach, and UDCInteractor counts how often it had already
+	// picked the right one. Facing is the only part of that a script can honestly supply.
+	if (const UDCSubsystem* Subsystem = UDCSubsystem::Get(this))
+	{
+		FDCInteractionPoint Point;
+		for (const ADCSlot* Slot : Subsystem->GetSlots())
+		{
+			const ADCContentActor* Built = Cast<ADCContentActor>(Slot->GetContentActor());
+			if (Built != nullptr && Built->GetInteractionPoint(What, Point))
+			{
+				FaceTowards(Point.Location);
+				break;
+			}
+		}
+	}
+	return Interactor->TryUseKind(What);
 }
 
 // ===================================================================== the scripted tour
@@ -1224,8 +1587,13 @@ void ADCRuntimeGameMode::TickTour(float DeltaSeconds)
 				// The demo's interaction will do this from the pad; for the tour the point is
 				// only that a closed door really is closed - it blocks - and an open one is
 				// walked through.
+				//
+				// The tour also turns the wall lamps on, because that is the heavier of the
+				// two states and the frame-time run has to measure the heavier one.
+				// -DCTourLightB=0 leaves them off, which is how brief 018's before/after
+				// crops of each interior are taken from the same build.
 				Built->bDoorOpen = true;
-				Built->bLightBOn = true;
+				Built->bLightBOn = bTourLightB;
 				Built->ApplyState();
 				DC_LOG(Log, TEXT("TOUR  opened the door of %s"), *Built->GetName());
 			}
@@ -1997,6 +2365,7 @@ void ADCRuntimeGameMode::Tick(float DeltaSeconds)
 		return;
 	}
 
+	LastDeltaSeconds = FMath::Max(DeltaSeconds, 0.0001f);
 	const double Now = FPlatformTime::Seconds();
 	if (!bCollectFrames && Now - StartSeconds > 4.0)
 	{
@@ -2031,6 +2400,32 @@ void ADCRuntimeGameMode::Tick(float DeltaSeconds)
 			if (APawn* Pawn = PC->GetPawn())
 			{
 				Interactor = UDCInteractor::EnsureOn(Pawn);
+			}
+		}
+	}
+
+	// ---- the shell: the idle clock, the fade, the menus and the scripted menu run ----
+	if (bShell)
+	{
+		if (UDCShell* Shell = UDCShell::Get(this))
+		{
+			if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
+			{
+				UDCShellInput::EnsureOn(PC);
+			}
+			Shell->TickShell(DeltaSeconds);
+			MatchShellMode();
+
+			// Plan v6 §4 step 0: "a slow camera that drifts over the current map and lingers
+			// on each slot in turn". It is brief 017's auto-pilot with the slot chosen by a
+			// rota rather than by the server, so there is one camera and one set of rules.
+			if (bAttractCamera)
+			{
+				const UDCSubsystem* Subsystem = UDCSubsystem::Get(this);
+				const TArray<ADCSlot*> Slots = Subsystem ? Subsystem->GetSlots()
+					: TArray<ADCSlot*>();
+				ADCSlot* Focus = Shell->AttractFocusSlot(Slots);
+				TickAutoPilot(DeltaSeconds, Focus, Shell->IsAttractOverview());
 			}
 		}
 	}

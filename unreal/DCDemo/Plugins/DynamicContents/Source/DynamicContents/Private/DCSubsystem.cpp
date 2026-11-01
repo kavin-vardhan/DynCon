@@ -4,6 +4,7 @@
 #include "DCCrypto.h"
 #include "DCInteractor.h"
 #include "DCPackMounter.h"
+#include "DCShell.h"
 #include "DCSlot.h"
 #include "DCStateStore.h"
 #include "DynamicContents.h"
@@ -14,6 +15,8 @@
 #include "Engine/GameInstance.h"
 #include "Engine/Texture2D.h"
 #include "Engine/World.h"
+#include "GameFramework/Pawn.h"
+#include "GameFramework/PlayerController.h"
 #include "HAL/FileManager.h"
 #include "HAL/PlatformProcess.h"
 #include "HAL/PlatformTime.h"
@@ -44,6 +47,11 @@ namespace
 	/** Keep the status file's history bounded; a booth day is a long run. */
 	constexpr int32 DCMaxActivations = 400;
 	constexpr int32 DCMaxFallbacks = 200;
+
+	/** The X-ray's lifecycle log and frame-time graph (brief 018). */
+	constexpr int32 DCMaxLifecycle = 24;
+	constexpr float DCGraphSeconds = 10.0f;
+	constexpr int32 DCMaxGraphSamples = 2400;     // 10 s at 240 fps, with room to spare
 
 	FString UtcNowIso()
 	{
@@ -515,7 +523,12 @@ void UDCSubsystem::Poll()
 	bPollInFlight = true;
 	++PollCount;
 
-	const FString Path = FString::Printf(TEXT("/changes?game=%s&region=%s"), *Game, *Region);
+	// `preview=1` keeps the second copy of the game out of the platform's idea of which
+	// game the booth is playing: it is a picture of somewhere else, usually of the same
+	// map as another region, and the portal's "playing at this booth" badge follows the
+	// screen a visitor is actually standing in front of.
+	const FString Path = FString::Printf(TEXT("/changes?game=%s&region=%s%s"), *Game, *Region,
+		bPreview ? TEXT("&preview=1") : TEXT(""));
 	FHttpRequestRef Request = MakeRequest(Path, TEXT("GET"));
 	TWeakObjectPtr<UDCSubsystem> Weak(this);
 	Request->OnProcessRequestComplete().BindLambda(
@@ -553,7 +566,10 @@ void UDCSubsystem::OnChanges(FHttpResponsePtr Response, bool bOk)
 	Root->TryGetNumberField(TEXT("reset_generation"), Generation);
 	if (static_cast<int32>(Generation) != ResetGeneration)
 	{
+		const bool bFirstPoll = ResetGeneration < 0;
 		ResetGeneration = static_cast<int32>(Generation);
+		FString Reason;
+		Root->TryGetStringField(TEXT("reset_reason"), Reason);
 		TArray<FString> Purge;
 		const TArray<TSharedPtr<FJsonValue>>* List = nullptr;
 		if (Root->TryGetArrayField(TEXT("purge_packs"), List) && List)
@@ -567,8 +583,8 @@ void UDCSubsystem::OnChanges(FHttpResponsePtr Response, bool bOk)
 				}
 			}
 		}
-		DC_LOG(Log, TEXT("RESET generation %d: purging %d visitor pack(s) from the cache"),
-			ResetGeneration, Purge.Num());
+		DC_LOG(Log, TEXT("RESET generation %d (%s): purging %d visitor pack(s) from the cache"),
+			ResetGeneration, Reason.IsEmpty() ? TEXT("?") : *Reason, Purge.Num());
 		// Never delete the bytes of a pack that is mounted; the LRU gets those later.
 		Purge.RemoveAll([this](const FString& PackId) { return MountedPackIds.Contains(PackId); });
 		Cache.Purge(Purge);
@@ -581,6 +597,20 @@ void UDCSubsystem::OnChanges(FHttpResponsePtr Response, bool bOk)
 		for (ADCSlot* Slot : GetSlots())
 		{
 			Slot->SetWantedAllocKey(FString());
+		}
+
+		// Only the **staff** reset clears the booth's own screen down. The portal's
+		// sixty-second idle timer fires when the *brand* seat has gone quiet, and the two
+		// seats can be two different visitors (plan v6 §2): an idle reset that dropped the
+		// Player into the attract loop would take the game away from somebody who is still
+		// playing it. The first poll of a run is not a reset at all - it is only this copy
+		// learning what the generation already is.
+		if (!bFirstPoll && !bPreview && Reason != TEXT("idle"))
+		{
+			if (UDCShell* Shell = UDCShell::Get(this))
+			{
+				Shell->EnterAttract(TEXT("the staff reset combo"));
+			}
 		}
 	}
 
@@ -914,6 +944,10 @@ void UDCSubsystem::OnResolved(TSharedPtr<FDCSlotJob> Job, FHttpResponsePtr Respo
 		*Job->SlotId, *Job->Manifest.Describe(), *Algorithm, SignatureMs, Job->ResolveMs,
 		*Job->Manifest.PackId, Job->Manifest.TotalFileBytes(), Job->Manifest.Files.Num(),
 		*Job->Manifest.ClassPath, *Job->Manifest.ShowingSource);
+	Job->Manifest.bSignatureVerified = true;
+	NoteLifecycle(Job->SlotId, TEXT("resolve"), static_cast<float>(Job->ResolveMs),
+		FString::Printf(TEXT("%s %s, signature ok"), *Job->Manifest.Piece,
+			*Job->Manifest.Version));
 
 	StartDownloads(Job);
 }
@@ -1014,6 +1048,8 @@ void UDCSubsystem::NextFile(TSharedPtr<FDCSlotJob> Job)
 		"(%d file(s) already cached, %d range request(s), %d resume(s))"),
 		*Job->SlotId, Job->NetworkBytes, Job->DownloadMs, Job->CachedFiles,
 		Job->RangeRequests, Job->Resumes);
+	NoteLifecycle(Job->SlotId, TEXT("download"), static_cast<float>(Job->DownloadMs),
+		FString::Printf(TEXT("%lld B, %d cached"), Job->NetworkBytes, Job->CachedFiles));
 
 	VerifyPack(Job);
 }
@@ -1149,6 +1185,8 @@ void UDCSubsystem::VerifyPack(TSharedPtr<FDCSlotJob> Job)
 
 	DC_LOG(Log, TEXT("VERIFY ok  slot %s  %d file(s), SHA-256 each, in %.1f ms"),
 		*Job->SlotId, Job->Manifest.Files.Num(), Job->VerifyMs);
+	NoteLifecycle(Job->SlotId, TEXT("verify"), static_cast<float>(Job->VerifyMs),
+		FString::Printf(TEXT("%d file(s) hashed"), Job->Manifest.Files.Num()));
 
 	MountAndSpawn(Job);
 }
@@ -1213,6 +1251,8 @@ void UDCSubsystem::MountAndSpawn(TSharedPtr<FDCSlotJob> Job)
 
 	DC_LOG(Log, TEXT("MOUNT ok   slot %s  pack %s in %.1f ms, class loaded in %.1f ms"),
 		*Job->SlotId, *Job->Manifest.PackId, Job->MountMs, Job->LoadMs);
+	NoteLifecycle(Job->SlotId, TEXT("mount"),
+		static_cast<float>(Job->MountMs + Job->LoadMs), Job->Manifest.PackId);
 
 	const bool bOnScreen = Slot->ApplyOrHold(ContentClass, Job->Manifest, Error);
 	if (!bOnScreen && !Error.IsEmpty())
@@ -1257,6 +1297,9 @@ void UDCSubsystem::MountAndSpawn(TSharedPtr<FDCSlotJob> Job)
 			Record.DownloadMs, Record.VerifyMs, Record.MountMs, Record.LoadMs, Record.SpawnMs,
 			Record.TotalMs);
 
+		NoteLifecycle(Job->SlotId, TEXT("spawn"), static_cast<float>(Record.SpawnMs),
+			FString::Printf(TEXT("%s %s"), *Job->Manifest.Piece, *Job->Manifest.Version));
+
 		QueueTelemetry(TEXT("mount"), Job->SlotId, Job->Manifest.AllocKey, 1.0);
 
 		// Keep the cache down to its limit, but never touch a pack that is on screen.
@@ -1293,6 +1336,7 @@ void UDCSubsystem::FailJob(TSharedPtr<FDCSlotJob> Job, const FString& Reason)
 	{
 		Fallbacks.RemoveAt(0, Fallbacks.Num() - DCMaxFallbacks);
 	}
+	NoteLifecycle(Job->SlotId, TEXT("fallback"), 0.0f, Reason);
 
 	if (Slot != nullptr)
 	{
@@ -1316,6 +1360,17 @@ void UDCSubsystem::QueueTelemetry(const FString& Type, const FString& SlotId,
 		return;
 	}
 
+	// The attract camera is not a player either, and it is parked in front of a piece of
+	// content for a quarter of a minute at a time - so every slot it lingers on would post
+	// a `view` nobody saw. Same rule as the preview window, one difference: a **mount** is
+	// still posted, because this machine really is the booth's game and the portal's
+	// push-update screen is right to believe it.
+	if (Type != TEXT("mount") && !IsPlayerPresent())
+	{
+		++TelemetryDropped;
+		return;
+	}
+
 	FDCTelemetryEvent Event;
 	Event.Type = Type;
 	Event.SlotId = SlotId;
@@ -1333,11 +1388,126 @@ void UDCSubsystem::QueueTelemetry(const FString& Type, const FString& SlotId,
 	}
 }
 
+float UDCSubsystem::GetFrameGraphSeconds()
+{
+	return DCGraphSeconds;
+}
+
+void UDCSubsystem::NoteLifecycle(const FString& SlotId, const TCHAR* Phase, float Ms,
+	const FString& Note)
+{
+	const double Now = FPlatformTime::Seconds();
+
+	FDCLifecycleNote Entry;
+	Entry.Seconds = Now;
+	Entry.SlotId = SlotId;
+	Entry.Phase = Phase;
+	Entry.Ms = Ms;
+	Entry.Note = Note;
+	Lifecycle.Add(Entry);
+	while (Lifecycle.Num() > DCMaxLifecycle)
+	{
+		Lifecycle.RemoveAt(0, 1, EAllowShrinking::No);
+	}
+
+	// Only the three that change what is on screen get a tick on the graph: those are the
+	// moments somebody watching is being invited to look for a spike.
+	const FString Which(Phase);
+	if (Which == TEXT("mount") || Which == TEXT("spawn") || Which == TEXT("unload"))
+	{
+		FDCFrameMark Mark;
+		Mark.Seconds = Now;
+		Mark.Phase = Which;
+		Mark.SlotId = SlotId;
+		GraphMarks.Add(Mark);
+	}
+}
+
+bool UDCSubsystem::GetViewerLocation(FVector& Out) const
+{
+	const UGameInstance* Instance = GetGameInstance();
+	const UWorld* World = Instance ? Instance->GetWorld() : nullptr;
+	const APlayerController* PC = World ? World->GetFirstPlayerController() : nullptr;
+	if (PC == nullptr)
+	{
+		return false;
+	}
+	if (const APawn* Pawn = PC->GetPawn())
+	{
+		Out = Pawn->GetActorLocation();
+		return true;
+	}
+	// No pawn: the attract camera, or the preview window. Both of them are an eye in the
+	// world, and the pre-fetch rings are drawn from wherever that eye is.
+	FVector Eye;
+	FRotator Look;
+	PC->GetPlayerViewPoint(Eye, Look);
+	Out = Eye;
+	return true;
+}
+
+bool UDCSubsystem::IsPlayerPresent() const
+{
+	if (bPreview)
+	{
+		return false;
+	}
+	const UGameInstance* Instance = GetGameInstance();
+	const UWorld* World = Instance ? Instance->GetWorld() : nullptr;
+	const APlayerController* PC = World ? World->GetFirstPlayerController() : nullptr;
+	return PC != nullptr && PC->GetPawn() != nullptr;
+}
+
+void UDCSubsystem::SetGame(const FString& NewGame, const FString& Why)
+{
+	if (NewGame.IsEmpty() || NewGame == Game)
+	{
+		return;
+	}
+	DC_LOG(Log, TEXT("GAME  %s -> %s   (%s)"), *Game, *NewGame, *Why);
+	Game = NewGame;
+	for (ADCSlot* Slot : GetSlots())
+	{
+		Slot->SetWantedAllocKey(FString());
+		Slot->ClearRetry();
+	}
+	LastPollSeconds = 0.0;
+}
+
 void UDCSubsystem::NoteFrame(float Ms)
 {
 	if (Ms <= 0.0f)
 	{
 		return;
+	}
+
+	// The rolling window the X-ray's graph draws. Trimmed from the front, never sorted.
+	const double Now = FPlatformTime::Seconds();
+	FDCFrameSample Sample;
+	Sample.Seconds = Now;
+	Sample.Ms = Ms;
+	Graph.Add(Sample);
+	int32 Drop = 0;
+	while (Drop < Graph.Num() && Now - Graph[Drop].Seconds > DCGraphSeconds)
+	{
+		++Drop;
+	}
+	if (Drop > 0)
+	{
+		Graph.RemoveAt(0, Drop, EAllowShrinking::No);
+	}
+	if (Graph.Num() > DCMaxGraphSamples)
+	{
+		Graph.RemoveAt(0, Graph.Num() - DCMaxGraphSamples, EAllowShrinking::No);
+	}
+	Drop = 0;
+	while (Drop < GraphMarks.Num() && Now - GraphMarks[Drop].Seconds > DCGraphSeconds)
+	{
+		++Drop;
+	}
+	if (Drop > 0)
+	{
+		GraphMarks.RemoveAt(0, Drop, EAllowShrinking::No);
 	}
 	++Frames.Frames;
 	Frames.SumMs += Ms;

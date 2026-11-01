@@ -44,7 +44,7 @@ restarting.** Steps:
 Report: what mounted, how (which API), timings (mount, load, spawn), pack sizes per piece, any engine warnings, and the
 screenshots' paths.
 
-## 3. Runtime plugin (DONE except the X-ray view and the preview mode)
+## 3. Runtime plugin (DONE)
 
 | Class | Job | Status |
 |---|---|---|
@@ -53,10 +53,13 @@ screenshots' paths.
 | `ADCContentActor` | Builds the interactables from sockets; state = lights A / B, door, screen index (schema 1); brand colour / emblem params | DONE (006, 016) |
 | `UDCStateStore` | Saves state on unload keyed by slot + content + schema; restores on spawn; mismatched schema → discard, never crash | DONE (brief 016) |
 | `UDCInteractor` | Prompted use of door / switches / screen; each use = an interaction event | DONE (brief 016) |
-| UI | Status strip (build · uptime · restarts: 0 · content loading screens: 0 + per-slot state), neutral waypoint marker | DONE (011, 016) |
-| UI | X-ray view (pre-fetch ring, manifest, cache list), title menu Game A / Game B, pause menu | FUTURE |
-| Telemetry | view (on screen ≥ 1 s within 30 m, line check), visit (enters slot bounds), dwell, interaction | DONE (011, 013, 016) |
-| Preview mode | `-DCPreview -DCRegion=r2`: no input, no audio, auto-pilot to `SOCKET_Inside` of the slot just auctioned, 30 fps cap, half resolution, lowest settings, below-normal priority, own cache folder | FUTURE (plan §14 step 5) |
+| UI | Status strip (build · uptime · restarts: 0 · content loading screens: 0 + per-slot state), neutral waypoint marker | DONE (011, 016, clamp 018) |
+| `UDCShell` (GameInstanceSubsystem) | Attract loop · title menu (Game A / Game B as two cards) · pause menu (Resume / Switch game / X-ray) · the level load that switches game, with uptime, restarts, the pack cache, the mounted packs and the saved state carried across it · the 90 s idle timeout · the staff-vs-idle reset rule | DONE (brief 018) |
+| `UDCShellInput` | The pad and the emergency keyboard, bound to the shell on the **player controller** (there is no pawn in the attract loop or on the title menu) | DONE (brief 018) |
+| UI | X-ray view: pre-fetch ring per slot coloured by lifecycle state, the nearest slot's manifest (content, pack, size, SHA-256, signature, region, lot / block, valid until), the cache list in LRU order, the lifecycle log with its milliseconds, and a rolling 10 s frame-time graph ticked at every mount / spawn / unload | DONE (brief 018) |
+| Telemetry | view (on screen ≥ 1 s within 30 m, line check), visit (enters slot bounds), dwell, interaction. **None of the four from the attract camera or the preview window** — neither is a Player | DONE (011, 013, 016, 018) |
+| Preview mode | `-DCPreview -DCRegion=r2`: no input, no audio, auto-pilot to the slot just auctioned, 30 fps cap, lowest settings, below-normal priority, own cache folder. The attract camera shares the same auto-pilot | DONE (brief 017) |
+| Lighting budget | Group B (the wall lamps) and group A (the ceiling fixtures) are kept **out of the Lumen scene** (`IndirectLightingIntensity = 0`), which is where most of the cost of a roomful of small lights goes; both still light the surfaces in front of them and group A still casts shadows | DONE (brief 018) |
 
 The interaction is **Enhanced Input**, bound by the plugin itself: a Shipping build with the
 Enhanced Input plugin on processes no legacy key bindings at all, so `UDCInteractor` pushes its
@@ -64,6 +67,13 @@ own `UEnhancedInputComponent` onto the player controller's input stack and adds 
 context. The keys live in C++ and only the `UInputAction` is an asset — `FKey`'s `KeyName` is a
 private UPROPERTY, so the editor's Python cannot build a key at all. `unreal/README.md` has the
 long version, and plan v6 §14 step 6's exit test is `unreal/Tools/state_exit_test.py`.
+
+The menus are the same machinery one step further: `UDCShellInput` builds **both** its actions
+and its mapping context in code, because an input action with nothing on it but a name is not
+worth an asset. It binds the d-pad and the left stick, the bottom and right face buttons, Start
+and View, and — for the emergency keyboard under the table — the arrows, Enter, Esc and F2.
+Brief 018's exit test is `unreal/Tools/menu_exit_test.py`, driven by `-DCUiTest`, a hook that
+calls the very handlers those bindings call.
 
 Day-1 checks from plan §11 (pad 1 only, background pad 2 untouched, two copies side by side, keeps running unfocused) are the
 first acceptance tests once the plugin exists.

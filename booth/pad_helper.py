@@ -462,7 +462,11 @@ class PadHelper:
     # ---------------------------------------------------------------- staff combos
 
     COMBOS = {
-        "reset":         ({"LB", "RB", "BACK"}, "/admin/reset", {}),
+        # reason="staff": a human is clearing the booth down between visitors, so the game
+        # drops back to its attract loop as well. The portal's own 60 s idle timer posts
+        # the same endpoint with reason="idle" and must not kick a Player who is still
+        # playing at the other seat (plan v6 §2 - two seats, possibly two visitors).
+        "reset":         ({"LB", "RB", "BACK"}, "/admin/reset", {"reason": "staff"}),
         "close-auction": ({"LB", "RB", "X"}, "/admin/close-auction", {"lot_id": "all"}),
         "corrupt":       ({"LB", "RB", "Y"}, "/admin/sabotage", {"mode": "corrupt"}),
         "freeze":        ({"LB", "RB", "B"}, "/admin/sabotage", {"mode": "freeze"}),

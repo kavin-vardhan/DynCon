@@ -53,6 +53,39 @@ struct FDCFrameStats
 	float Worst1PercentMs = 0.0f;
 };
 
+/**
+ * One step of one slot's lifecycle, with what it cost. The X-ray's lifecycle log.
+ *
+ * It is a ring of the last few, not a history: the point on screen is "watch a swap happen
+ * and see where the milliseconds went", and a booth day is eight hours long.
+ */
+struct FDCLifecycleNote
+{
+	/** FPlatformTime::Seconds() when it happened - the graph lines the marks up on this. */
+	double Seconds = 0.0;
+	FString SlotId;
+
+	/** resolve · download · verify · mount · spawn · unload · fallback */
+	FString Phase;
+	float Ms = 0.0f;
+	FString Note;
+};
+
+/** One sample of the rolling frame-time graph. */
+struct FDCFrameSample
+{
+	double Seconds = 0.0;
+	float Ms = 0.0f;
+};
+
+/** A tick on that graph: a mount, a spawn or an unload, so a swap is visible on it. */
+struct FDCFrameMark
+{
+	double Seconds = 0.0;
+	FString Phase;
+	FString SlotId;
+};
+
 /** One queued telemetry event. Batched: the booth never needs a request per event. */
 struct FDCTelemetryEvent
 {
@@ -125,6 +158,33 @@ public:
 	const FString& GetGame() const { return Game; }
 
 	/**
+	 * The Player switched game (brief 018). Every slot of the old map is gone or about to
+	 * be, so this only has to point the poll at the other game before the new map's slots
+	 * register - otherwise the first `GET /changes` of the new world asks about the old
+	 * game's slots and nothing matches.
+	 */
+	void SetGame(const FString& NewGame, const FString& Why);
+
+	/** The cache, for the X-ray's list of what is on disk. */
+	const FDCPackCache& GetCache() const { return Cache; }
+	bool IsPackMounted(const FString& PackId) const { return MountedPackIds.Contains(PackId); }
+
+	/** Where the eye is: the Player's pawn when there is one, else the camera. What the
+	 *  X-ray measures the pre-fetch rings from. */
+	bool GetViewerLocation(FVector& Out) const;
+
+	/**
+	 * Is there a **Player** here, as plan v6 §9 means the word?
+	 *
+	 * False in the region preview window and false in the attract loop, where the camera
+	 * stands in front of a piece of content for a quarter of a minute at a time and would
+	 * otherwise post a `view` nobody saw. It is asked before a view is counted as well as
+	 * inside QueueTelemetry, because a slot that queued a view and had it dropped would
+	 * still have marked it reported and never post the real one.
+	 */
+	bool IsPlayerPresent() const;
+
+	/**
 	 * This copy is the region preview window (`-DCPreview`): no input, no audio, no
 	 * telemetry, and it auto-pilots its camera to whatever slot the server says the visitor
 	 * has just been bidding on.
@@ -191,6 +251,23 @@ public:
 	 */
 	void NoteFrame(float Ms);
 	FDCFrameStats GetFrameStats();
+
+	/**
+	 * One step of a slot's lifecycle, for the X-ray's log and for the tick on its graph.
+	 *
+	 * The numbers are the same ones the activation record already carries; this is where
+	 * they are kept in the order they happened, which is what somebody watching a swap
+	 * wants to read.
+	 */
+	void NoteLifecycle(const FString& SlotId, const TCHAR* Phase, float Ms, const FString& Note);
+	const TArray<FDCLifecycleNote>& GetLifecycle() const { return Lifecycle; }
+
+	/** The rolling ~10 s of frame times and the marks on it, newest last. */
+	const TArray<FDCFrameSample>& GetFrameGraph() const { return Graph; }
+	const TArray<FDCFrameMark>& GetFrameMarks() const { return GraphMarks; }
+
+	/** How many seconds of samples the graph keeps. */
+	static float GetFrameGraphSeconds();
 
 	// ---------------------------------------------------------------- hooks for the game mode
 
@@ -352,6 +429,18 @@ private:
 	FDCFrameStats Frames;
 	double LastPercentileSeconds = 0.0;
 	int32 PercentileFrames = 0;
+
+	/**
+	 * The last ten seconds of them, with a timestamp, for the X-ray's graph; and the mounts,
+	 * spawns and unloads that happened inside that window.
+	 *
+	 * Appended to on every frame and trimmed from the front, so drawing it costs no sorting
+	 * and no allocation - the graph is there to show that a swap does not cost frame time,
+	 * and a graph that cost frame time would be a liar.
+	 */
+	TArray<FDCFrameSample> Graph;
+	TArray<FDCFrameMark> GraphMarks;
+	TArray<FDCLifecycleNote> Lifecycle;
 
 	TArray<FActivation> Activations;
 	TArray<FFallbackNote> Fallbacks;

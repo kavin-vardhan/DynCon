@@ -75,8 +75,18 @@ struct DYNAMICCONTENTS_API FDCManifest
 	FString ShowingEndsAt;
 	FString ShowingReason;
 
+	/** Which demo time block this is, and the lot it was won in (empty when nobody bid). */
+	int32 ShowingBlock = -1;
+	FString ShowingLot;
+
 	FString ServerTime;
 	FString ValidUntil;
+
+	/**
+	 * The RS256 over these exact bytes checked out. Set by UDCSubsystem the moment it does,
+	 * so the X-ray can say "signature OK" and mean it rather than mean "the server said so".
+	 */
+	bool bSignatureVerified = false;
 
 	/** Enough to act on: a slot, a key, a class path and at least one file. */
 	bool IsValid() const;

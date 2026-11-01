@@ -44,6 +44,18 @@ unreal/spike/shots/*.png
 !unreal/spike/shots/engine_contact.png
 unreal/spike/shots/spike_result.txt
 
+# brief 018's exit test: 22 screenshots at 1600x900 and 1080p is 36 MB a run, and
+# `unreal\Tools\make_menu_sheet.py` rebuilds both sheets out of them. Same rule as the
+# art previews and the portal's exit test - the sheets go in git, the shots do not.
+unreal/spike/shots/018/menu_1600x900/*.png
+unreal/spike/shots/018/xray_1920x1080/*.png
+# the five thumbnails and the two pinned maps are already committed, full size, in
+# server/config/maps/ and summed up in slotmap_contact.png
+unreal/spike/shots/018/A_A*.png
+unreal/spike/shots/018/B_B*.png
+unreal/spike/shots/018/A_map_pins.png
+unreal/spike/shots/018/B_map_pins.png
+
 # the demo server: the venv, everything it generates (keys, sqlite, stored packs, client
 # caches) and the generated .dcpack files. The generator is committed, the packs are not.
 server/.venv/

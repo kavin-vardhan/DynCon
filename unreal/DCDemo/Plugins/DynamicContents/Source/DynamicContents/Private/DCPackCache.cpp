@@ -126,6 +126,43 @@ int32 FDCPackCache::CountPacks() const
 	return Dirs.Num();
 }
 
+TArray<FDCCachedPack> FDCPackCache::List() const
+{
+	TArray<FDCCacheEntry> Entries;
+	CollectPacks(Root, Entries);
+
+	TArray<FDCCachedPack> Out;
+	Out.Reserve(Entries.Num());
+	for (const FDCCacheEntry& Entry : Entries)
+	{
+		FDCCachedPack Pack;
+		Pack.PackId = Entry.PackId;
+		Pack.Used = Entry.Used;
+
+		TArray<FString> Files;
+		IFileManager::Get().FindFilesRecursive(Files, *(Root / Entry.PackId), TEXT("*"),
+			true, false);
+		for (const FString& File : Files)
+		{
+			if (FPaths::GetCleanFilename(File) == StampName())
+			{
+				continue;                     // the LRU stamp is not part of the pack
+			}
+			const int64 Size = IFileManager::Get().FileSize(*File);
+			if (Size > 0)
+			{
+				Pack.Bytes += Size;
+			}
+			++Pack.Files;
+		}
+		Out.Add(MoveTemp(Pack));
+	}
+
+	// Most recently used first: the other end of this list is what Evict drops next.
+	Out.Sort([](const FDCCachedPack& A, const FDCCachedPack& B) { return A.Used > B.Used; });
+	return Out;
+}
+
 int64 FDCPackCache::TotalBytes() const
 {
 	TArray<FString> Files;

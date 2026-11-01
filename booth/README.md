@@ -54,7 +54,7 @@ chatter). A held direction repeats after 380 ms, then every 110 ms.
 
 | Combo | What it calls |
 |---|---|
-| LB + RB + Back | `POST /admin/reset` |
+| LB + RB + Back | `POST /admin/reset {"reason": "staff"}` |
 | LB + RB + X | `POST /admin/close-auction {"lot_id": "all"}` |
 | LB + RB + Y | `POST /admin/sabotage {"mode": "corrupt"}` |
 | LB + RB + B | `POST /admin/sabotage {"mode": "freeze"}` |
@@ -62,6 +62,14 @@ chatter). A held direction repeats after 380 ms, then every 110 ms.
 While LB and RB are both held, nothing else is relayed to the portal, so a combo can never leak
 into the screen as a stray press. The portal shows a small toast when a combo fires, and goes
 back to the attract screen on a reset.
+
+**`reason: "staff"` is not decoration** (brief 018). Both this combo and the portal's own
+sixty-second idle timer post `/admin/reset`, and the server hands the reason on to every copy
+of the game through `/changes`. The staff one means a human is clearing the booth down between
+visitors, so the game drops back to its attract loop as well; the idle one means the *brand*
+seat has gone quiet, and the game ignores it — the two seats can be two different visitors
+(plan v6 §2), and the brand seat going idle must not take the game away from somebody who is
+still playing at the player seat.
 
 **`--simulate`** is a fake pad: no XInput, the same event path. Lines come from `--script FILE`,
 from `--stdin`, or both:
@@ -200,3 +208,14 @@ on its own — into `booth/_shots/017/`, with `result.md` next to them. The boot
 monitors; this PC has one, so the main game is parked in the bottom-left where it cannot
 cover the preview's rectangle, and the two kinds of shot together say what one screen
 cannot.
+
+**Its four focus checks fail in an unattended run, and that is the machine, not the build**
+(found in brief 018). The test starts the main game **last** precisely so Windows leaves it
+focused — but Windows will not hand the foreground to a process while nobody has touched
+the keyboard, so whatever already had it keeps it. Run twice back to back the foreground
+was held by two different programs, neither of them one the demo starts: the kiosk browser
+once, and the headless session's own console the other time with no browser running at all.
+Everything else passed both times, including the check plan v6 §11 actually leans on — the
+main game kept running and drawing while it was in the background, at 82 and 87 fps. Run it
+from a desk with a hand on the mouse and the focus checks pass; at the booth it is the
+one-button start script (FUTURE) that has to end with the game foreground.

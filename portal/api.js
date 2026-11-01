@@ -46,7 +46,11 @@ export const api = {
     return get(`/lots${query.toString() ? `?${query}` : ''}`);
   },
   liveStatus: () => get('/status/live'),
-  reset: () => post('/admin/reset'),
+  // `reason` is how the game tells the booth being cleared down between visitors (the
+  // staff combo on pad 2) from this seat simply going quiet. An idle reset wipes the
+  // brand, the bids and the allocations but must not take a Player out of the game they
+  // are still standing in - the two seats can be two different visitors.
+  reset: (reason = 'idle') => post('/admin/reset', { reason }),
 
   // ---- the auction, the report and the preview window --------------------------------
   lot: (id) => get(`/lots/${encodeURIComponent(id)}`),

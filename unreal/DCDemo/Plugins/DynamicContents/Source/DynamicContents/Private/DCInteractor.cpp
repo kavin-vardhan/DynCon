@@ -1,5 +1,6 @@
 #include "DCInteractor.h"
 
+#include "DCShell.h"
 #include "DCSlot.h"
 #include "DCSubsystem.h"
 #include "DynamicContents.h"
@@ -203,6 +204,17 @@ void UDCInteractor::UpdateTarget()
 	if (!bEnabled)
 	{
 		return;
+	}
+
+	// The title and pause menus answer the same button this does (✕ / A), so while one of
+	// them is up there is nothing in reach: a visitor choosing "switch game" must not also
+	// open the door they happen to be standing at.
+	if (const UDCShell* Shell = UDCShell::Get(this))
+	{
+		if (Shell->IsMenuUp())
+		{
+			return;
+		}
 	}
 
 	const APawn* Pawn = Cast<APawn>(GetOwner());

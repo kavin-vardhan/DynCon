@@ -198,6 +198,15 @@ void ADCSlot::EndPlay(const EEndPlayReason::Type Reason)
 {
 	// A run that ends with the Player standing inside still counts the seconds they were in.
 	EndDwell(TEXT("the run ended"));
+
+	// **This is what makes A -> B -> A work** (brief 018). A game switch tears the whole
+	// world down without anybody calling DespawnContent, so what the Player did inside A1
+	// would go with it. UDCStateStore is on the game instance and lives through the load, so
+	// the one thing that has to happen here is that the record is taken off the piece before
+	// the piece is destroyed - the same UNLOAD & PRESERVE as a content swap, for the same
+	// reason: once it is gone there is nothing left to ask.
+	SaveContentState();
+
 	if (UDCSubsystem* Subsystem = UDCSubsystem::Get(this))
 	{
 		Subsystem->UnregisterSlot(this);
@@ -432,6 +441,8 @@ void ADCSlot::DespawnContent()
 {
 	if (AActor* Actor = Content.Get())
 	{
+		const double Start = FPlatformTime::Seconds();
+
 		// UNLOAD & PRESERVE, in that order: what the Player did is taken off the piece before
 		// the piece goes, because once it is destroyed there is nothing left to ask.
 		SaveContentState();
@@ -440,6 +451,13 @@ void ADCSlot::DespawnContent()
 		// is how a swap turns into a crash, and a mounted pack costs nothing but a file
 		// handle. The cache's LRU is what eventually gets rid of the bytes.
 		Actor->Destroy();
+
+		if (UDCSubsystem* Subsystem = UDCSubsystem::Get(this))
+		{
+			Subsystem->NoteLifecycle(SlotId.ToString(), TEXT("unload"), DCElapsedMs(Start),
+				ActiveManifest.Piece.IsEmpty()
+					? FString(TEXT("state kept")) : ActiveManifest.Piece + TEXT(", state kept"));
+		}
 	}
 	Content = nullptr;
 }
@@ -570,6 +588,18 @@ void ADCSlot::UpdateViewSeconds(float DeltaSeconds)
 		return;
 	}
 
+	// A view is a **Player** seeing content (plan v6 §9). The attract camera and the
+	// preview window are both an eye in front of a piece for minutes at a time and
+	// neither is one - and this has to be asked here, not only in QueueTelemetry: a slot
+	// that queued a view and had it dropped there would still mark it reported and never
+	// post the one a real Player later earns.
+	const UDCSubsystem* Subsystem = UDCSubsystem::Get(this);
+	if (Subsystem == nullptr || !Subsystem->IsPlayerPresent())
+	{
+		ViewSeconds = 0.0f;
+		return;
+	}
+
 	FVector Eye;
 	FRotator Look;
 	PC->GetPlayerViewPoint(Eye, Look);
@@ -621,9 +651,9 @@ void ADCSlot::UpdateViewSeconds(float DeltaSeconds)
 	ViewSeconds += DeltaSeconds;
 	if (ViewSeconds >= DCViewMinSeconds)
 	{
-		if (UDCSubsystem* Subsystem = UDCSubsystem::Get(this))
+		if (UDCSubsystem* Queue = UDCSubsystem::Get(this))
 		{
-			Subsystem->QueueTelemetry(TEXT("view"), SlotId.ToString(), ActiveAllocKey, 1.0);
+			Queue->QueueTelemetry(TEXT("view"), SlotId.ToString(), ActiveAllocKey, 1.0);
 		}
 		bViewReported = true;
 	}

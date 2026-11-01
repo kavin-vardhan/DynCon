@@ -216,6 +216,45 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DC|Lights")
 	bool bLightBCastsShadows = false;
 
+	/**
+	 * Does a group-A fixture light the **Lumen scene** as well as the surfaces in front of it?
+	 *
+	 * Yes: these are the lights that make the inside of a piece read as a lit room, and almost
+	 * all of what the eye reads as "the room is lit" is the bounce off the far wall rather
+	 * than the direct cone. A piece has two to nine of them and only the ones nearest the
+	 * camera are ever on screen.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DC|Lights")
+	bool bLightAAffectsGi = true;
+
+	/**
+	 * Group B does not - brief 018's lighting budget, and the one change that paid for itself.
+	 *
+	 * Under Lumen every light with an indirect scale above zero is a light the **surface
+	 * cache** has to be re-lit by, every frame, over every card page it reaches; that is a
+	 * cost per light that has nothing to do with how much of the screen the light covers. Six
+	 * wall lamps per piece and three pieces in a map is eighteen of them, and they were
+	 * costing more in the Lumen scene than they were worth in the picture: with the bounce
+	 * off, the before/after crops of all three interiors are the same picture to the eye, and
+	 * switching them on is still unmistakable because the direct light is untouched.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DC|Lights")
+	bool bLightBAffectsGi = false;
+
+	/**
+	 * Build one fixture in this many of the sockets the art gives, and multiply what is
+	 * left so the room keeps the same light in it. 1 = all of them.
+	 *
+	 * "Fewer but brighter" is the other lever brief 018's sweep measured, and it is kept as
+	 * a number rather than as a re-export of the art so the next person can try it in one
+	 * run (`-DCLightAEvery=` / `-DCLightBEvery=`).
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DC|Lights")
+	int32 LightAKeepEvery = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DC|Lights")
+	int32 LightBKeepEvery = 1;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DC|Lights")
 	FLinearColor LightColor = FLinearColor(1.0f, 0.90f, 0.73f);
 
@@ -338,4 +377,9 @@ private:
 
 	/** The screen image this piece last put up, so ApplyState does not re-set it every call. */
 	int32 AppliedScreenIndex = -1;
+
+	/** What the lamps that were built were brightened by, so DescribeBuild prints the
+	 *  lumens the room actually got rather than the number in the property. */
+	float BuiltBoostA = 1.0f;
+	float BuiltBoostB = 1.0f;
 };

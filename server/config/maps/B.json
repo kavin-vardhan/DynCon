@@ -1,7 +1,7 @@
 {
  "schema_version": 1,
  "game": "B",
- "registered_utc": "2026-11-01T14:58:19.022452Z",
+ "registered_utc": "2026-11-01T19:31:28.206714Z",
  "image": "B.png",
  "image_px": {
   "w": 2048,
@@ -41,17 +41,18 @@
     "width": 960,
     "height": 540,
     "fov_deg": 70,
-    "eye_height_m": 1.7000000476837158,
-    "stand_off_m": 11.49659152448345,
+    "eye_height_m": 3.240000047683716,
+    "pitch_deg": -11.230641982363862,
+    "stand_off_m": 12.4962951353081,
     "camera_m": {
      "x": -12.000000000000002,
-     "y": 0.5034084755165487,
-     "z": 1.8500000572204567
+     "y": -0.496295135308103,
+     "z": 3.390000057220457
     },
     "aim_m": {
      "x": -12,
      "y": 12,
-     "z": 2.56
+     "z": 0.9087211748756886
     },
     "content_hidden": true
    }
@@ -85,17 +86,18 @@
     "width": 960,
     "height": 540,
     "fov_deg": 70,
-    "eye_height_m": 1.7000000476837158,
-    "stand_off_m": 8,
+    "eye_height_m": 2.670000047683716,
+    "pitch_deg": -8.005633207618231,
+    "stand_off_m": 8.8,
     "camera_m": {
      "x": 16.000000000000004,
-     "y": -22,
-     "z": 1.8700000476837157
+     "y": -21.199999999999996,
+     "z": 2.840000047683716
     },
     "aim_m": {
      "x": 16,
      "y": -30,
-     "z": 1.59
+     "z": 1.6023584023636082
     },
     "content_hidden": true
    }
@@ -103,7 +105,7 @@
  },
  "source": {
   "map": "/Game/Maps/GameB",
-  "captured_utc": "2026-11-01T14:58:18.995Z",
+  "captured_utc": "2026-11-01T19:31:28.175Z",
   "engine_version": "5.7.4-51494982+++UE5+Release-5.7",
   "tool": "DynamicContentsEditor.DCSlotMapTool",
   "world": {

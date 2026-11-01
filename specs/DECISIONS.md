@@ -328,6 +328,89 @@ decisions. Each line: date · decision · why. Kavin can overturn any of these; 
   pack, so two downloads wrote over each other and both failed their SHA-256. Live since
   brief 011; found by brief 017's live flip, and the attract rotation would have found it
   at the booth.
+- 2026-11-02 · The booth's front end (attract loop, title menu, pause menu, game switching)
+  is a **game instance subsystem**, `UDCShell`, and the menus are drawn on the same HUD
+  canvas as the status strip. · A level load destroys the world, the game mode, the HUD,
+  the Player and every slot and leaves the game instance alone, so the mode, the X-ray
+  flag, the switch count, the uptime, the pack cache, the mounted packs and
+  `UDCStateStore`'s record of what the Player did all live through a switch for free - and
+  "A → B → A finds A1 as it was left" is then a property of where the state lives rather
+  than something that has to be saved and reloaded. The canvas, because that is where the
+  strip, the prompt, the marker and the preview caption already are: no .uasset, no UMG, it
+  survives a Shipping build and it lands in a screenshot.
+- 2026-11-02 · The shell is **on by default and off whenever a scripted run owns the
+  camera** (`-DCTour`, `-DCStateTest`, `-DCPreview`, `-DCShotDir` / `-DCAutoShot`);
+  `-DCShell` and `-DCNoShell` force it either way. · Every test written before brief 018
+  passes one of those, so every one of them behaves exactly as it did, and the booth's
+  start script passes none of them and gets the booth's behaviour without a new flag.
+- 2026-11-02 · The pause menu **does not stop the world**. · It takes the pad - the Player
+  cannot walk, and the button that confirms a menu item cannot also open a door - but the
+  slots keep polling, a block can roll over behind the menu and the uptime keeps counting.
+  Freezing the world would stall the one thing the booth's screen is there to prove, and
+  the plan never asks for it.
+- 2026-11-02 · In the attract loop there is **no pawn at all**, not a hidden one
+  (`bStartPlayersAsSpectators` at boot, `RestartPlayer` when a game is picked). · Plan v6
+  §4 step 0 says "no Player on screen"; a pawn parked in the attract loop would also be
+  counted as a visitor by whatever slot it happened to be standing in.
+- 2026-11-02 · **The attract camera posts no view, visit, dwell or interaction** - the same
+  rule as the preview window - but it **does** post `mount`. · A camera parked in front of
+  a piece for a quarter of a minute is not a player seeing it; a mount is a fact about the
+  booth's own machine, and it is the event the portal's push-update screen is right to
+  believe. The check is in `ADCSlot::UpdateViewSeconds` as well as in `QueueTelemetry`,
+  because a slot that queued a view and had it dropped would still have marked it reported
+  and never posted the real one.
+- 2026-11-02 · The attract camera **is brief 017's preview auto-pilot**, with the slot
+  chosen by a rota instead of by the server and an overview leg between laps. · One camera
+  and one set of rules for framing a slot; the brief asked for it and it is also the only
+  way the two stay in step when either is tuned.
+- 2026-11-02 · The title menu's card art is the **plan view the developer's own slot-map
+  tool captured and registered**, fetched back from the platform (`GET /games/<id>/map`)
+  and decoded with `FImageUtils::ImportBufferAsTexture2D`. · It is the same picture the
+  portal's slot map draws, so nothing was authored twice; a game that was never registered
+  draws a plain tinted panel instead and the menu still works.
+- 2026-11-02 · `POST /admin/reset` carries a **reason** (`staff` | `idle`) and `/changes`
+  hands it on. The staff combo on pad 2 drops the game back to its attract loop; the
+  portal's sixty-second idle timer does not. · The two seats can be two different visitors
+  (plan v6 §2), so the brand seat going quiet must not take the game away from somebody
+  still standing in it. One endpoint with a reason rather than two that would drift apart;
+  a bare POST with no body reads as `staff`, the cautious answer.
+- 2026-11-02 · Which game the booth is playing is learnt from **the poll the game already
+  makes** (`GET /changes`), and the preview copy excludes itself with `preview=1`. ·
+  `live_at_booth` used to be a flag in `demo.json` written down once; a visitor can now
+  switch game mid-visit, and the badge on "Pick a game" has to follow within a poll. The
+  preview plays whatever map it was started on as another region and is not the booth's
+  screen.
+- 2026-11-02 · The lighting budget: **group B is taken out of the Lumen scene**
+  (`IndirectLightingIntensity = 0`) and nothing else changes. · Two faster settings were
+  measured and rejected by looking at the pictures: taking group A out as well makes the
+  rooms flat and grey *and weakens* the lamps-on/off contrast the brief asks to keep, and
+  half the ceiling fixtures at twice the lumens is the fastest row on the sheet but
+  `dc_kit.light_a_fixture` models a fitting at every socket, so half of them would be
+  modelled and dead. `unreal/spike/shots/018/lighting.md` has both tables.
+- 2026-11-02 · The ten-minute run after the lighting budget: **solo 16.00 ms average /
+  22.72 ms worst 1 %, with the preview 18.80 / 27.69.** Brief 018's solo target of 15 ms
+  is **missed by 1 ms**, and plan v6 §11's "worst 1 % under 25 ms with the preview" is
+  **still missed**, as in brief 017. · The tail is 2.7 ms better than 017's and the solo
+  average 1.8 ms better, but nothing left on the table closes the last millisecond without
+  changing the look. 017's ruling stands: both the preview window and the live flip are
+  built and the booth PC settles which is used.
+- 2026-11-02 · The brief's premise that brief 016's wall lamps cost 5 ms is **wrong**: they
+  cost **0.5 ms**, and run-to-run drift on this machine is about **±1 ms over ten
+  minutes**. · Measured both ways round: the same settings came out 13.25 ms in one batch
+  and 15.01 ms twenty minutes later, and "no lamps at all" measured *slower* than
+  thirty-two lamps. Nothing under a millisecond separating two rows measured minutes apart
+  is a finding.
+- 2026-11-02 · The slot-map tool's thumbnail camera solves the **vertical** as well as the
+  horizontal: it steps back and up until the near edge of the pad and the top of six
+  metres of volume both fit the frame, and its pitch is whatever centres the two. · Brief
+  013 fitted the width and then aimed a quarter of the way up the volume, which for a 14 m
+  slot put the bottom of the frame past the near edge of the pad - A1, A2 and B1 came back
+  as photographs of the buildings behind them with a brown stripe along the bottom.
+- 2026-11-02 · Each telemetry event counts in **exactly one** block: the window is half
+  open and clamped to the start of the next block of the same slot and region. · The sixty
+  seconds of slack that catch a late batch used to lie inside the next block's own window
+  too, so everything in them was counted twice - brief 016's 76 interactions were reported
+  as 118.
 - 2026-11-01 · The game's status file carries **cumulative frame counters** (frames, summed
   ms, and the count of frames over 16 / 25 / 33 ms) as well as whole-run percentiles, and the
   percentiles are recomputed at most once every five seconds. · A test differences two

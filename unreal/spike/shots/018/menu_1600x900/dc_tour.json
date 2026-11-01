@@ -1,0 +1,64 @@
+{
+	"map": "GameA",
+	"build": "Shipping",
+	"tour": false,
+	"rounds": 1,
+	"shots": 2,
+	"seconds": 29.947833299636841,
+	"region": "r1",
+	"frame_ms":
+	{
+		"frames": 1704,
+		"average": 14.6531,
+		"median": 14.423,
+		"worst_1_percent": 20.2113,
+		"worst": 21.6602,
+		"average_fps": 68.2449,
+		"over_16ms": 426,
+		"over_25ms": 0,
+		"over_33ms": 0
+	},
+	"walks": [
+		{
+			"slot": "A1",
+			"leg": "A1:inside",
+			"arrived": true,
+			"seconds": 6.14729,
+			"metres": 30.0994,
+			"final_gap_cm": 105.063,
+			"note": ""
+		}
+	],
+	"slots": [
+		{
+			"slot": "A1",
+			"size_class": "L",
+			"state": "ACTIVE",
+			"piece": "content1",
+			"version": "v1",
+			"brand": "#E23D3D",
+			"emblem": "star",
+			"kind": "visitor"
+		},
+		{
+			"slot": "A2",
+			"size_class": "T",
+			"state": "ACTIVE",
+			"piece": "content3",
+			"version": "v1",
+			"brand": "#E23D3D",
+			"emblem": "star",
+			"kind": "visitor"
+		},
+		{
+			"slot": "A3",
+			"size_class": "S",
+			"state": "ACTIVE",
+			"piece": "content4",
+			"version": "v1",
+			"brand": "#E23D3D",
+			"emblem": "star",
+			"kind": "visitor"
+		}
+	]
+}

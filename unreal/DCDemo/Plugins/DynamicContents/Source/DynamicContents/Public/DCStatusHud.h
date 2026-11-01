@@ -69,6 +69,28 @@ private:
 	/** The preview window's corner caption: which region this copy is playing as. */
 	void DrawPreviewCaption();
 
+	// ---------------------------------------------------------------- brief 018
+	//
+	// The shell's three screens, and the black that covers a game switch. All bilingual:
+	// every line a visitor reads is Japanese over English, like the portal and like the
+	// preview window's caption.
+
+	/** "Press any button to start", and nothing else: the attract loop is the map. */
+	void DrawAttract();
+
+	/** Game A / Game B as two big cards, the map's own plan view as the picture. */
+	void DrawTitle();
+
+	/** Resume · Switch game · X-ray. */
+	void DrawPause();
+
+	/** The fade and the "Loading Game B" line over it. Drawn last, over everything. */
+	void DrawFade();
+
+	/** One bilingual line, Japanese over English, centred on X. Returns its height. */
+	float DrawBilingual(float CentreX, float Y, const FString& Jp, const FString& En,
+		const FLinearColor& Colour, float Scale);
+
 	/** A filled box with a border, the one shape all three of these are built out of. */
 	void DrawPanel(float X, float Y, float W, float H, const FLinearColor& Fill);
 
@@ -81,4 +103,17 @@ private:
 	bool bStrip = true;
 	bool bMarker = true;
 	bool bPreview = false;
+
+	/**
+	 * The bottom of the status strip, in pixels, measured as it is drawn.
+	 *
+	 * Two things hang off it: the X-ray's panels start under it, and the waypoint marker is
+	 * never clamped into it. Brief 016 left a marker that could sit on top of the strip and
+	 * hide the one line of instrumentation the whole demo turns on.
+	 */
+	float StripBottom = 0.0f;
+	float StripRight = 0.0f;
+
+	/** The clamp above has fired at least once this run, and said so in the log. */
+	mutable bool bLoggedStripClamp = false;
 };

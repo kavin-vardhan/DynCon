@@ -10,6 +10,17 @@
 
 #include "CoreMinimal.h"
 
+/** One pack folder on disk, as the X-ray's cache list reads it. */
+struct DYNAMICCONTENTS_API FDCCachedPack
+{
+	FString PackId;
+	int64 Bytes = 0;
+	int32 Files = 0;
+
+	/** The `.used` stamp the LRU sorts on. */
+	FDateTime Used = FDateTime::MinValue();
+};
+
 class DYNAMICCONTENTS_API FDCPackCache
 {
 public:
@@ -40,6 +51,10 @@ public:
 
 	/** Total bytes in the cache. */
 	int64 TotalBytes() const;
+
+	/** What is on disk, most recently used first - the X-ray's cache list, and the same
+	 *  order Evict drops them in, so what it shows is what will go. */
+	TArray<FDCCachedPack> List() const;
 
 private:
 	FString Root;

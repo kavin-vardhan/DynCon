@@ -22,6 +22,8 @@
 //                                      round again when it ends: how the ten-minute frame
 //                                      time run of plan v6 §11 is driven. Only the first
 //                                      round photographs anything.
+//   -DCTourLightB=0                    the tour leaves the wall lamps off (brief 018's
+//                                      before/after crops of the lighting budget).
 //   -DCPreview                         this copy is the REGION PREVIEW WINDOW (plan v6 §7):
 //                                      no input, no audio, no telemetry, no status strip and
 //                                      no waypoint marker; a 30 fps cap and the lowest
@@ -272,6 +274,30 @@ private:
 	void FramePreviewOn(const ADCSlot& Slot, float Drift, FVector& OutEye,
 		FRotator& OutLook) const;
 
+	/** Where to put a camera that is drifting over the whole map, `Drift` degrees round. */
+	void FrameOverview(float Drift, FVector& OutEye, FRotator& OutLook) const;
+
+	/**
+	 * The auto-pilot, which the region preview window and the attract camera share.
+	 *
+	 * Brief 017 built it for the preview: stand in front of a slot at eye level, drift a few
+	 * degrees either side of the front, cut rather than fly when the slot changes and the
+	 * two are far apart. The attract loop of plan v6 §4 step 0 is the same camera with a
+	 * different idea of which slot to look at and an overview leg between laps, so it is the
+	 * same function with the slot passed in instead of asked for.
+	 */
+	void TickAutoPilot(float DeltaSeconds, const ADCSlot* Focus, bool bOverview);
+
+	// ---------------------------------------------------------------- the shell (brief 018)
+
+	/** Puts the Player in, or takes them out, to match what the shell says the booth is doing. */
+	void MatchShellMode();
+
+	/** The three things the shell's scripted run asks the game mode to do. */
+	bool UiShot(const FString& Label);
+	bool UiWalkTo(const FString& Target);
+	bool UiUse(int32 Kind);
+
 	void Finish();
 	void WriteResultFile();
 	void WriteTourFile();
@@ -302,6 +328,9 @@ private:
 	/** -DCTourFor: keep going round until the run is this old. 0 = one round. */
 	float TourForSeconds = 0.0f;
 	int32 TourRound = 0;
+
+	/** -DCTourLightB=0: leave the wall lamps off, for the lighting budget's "before" crops. */
+	bool bTourLightB = true;
 
 	// preview state
 	bool bPreview = false;
@@ -352,6 +381,12 @@ private:
 	// frame times, for the report
 	TArray<float> FrameMs;
 	bool bCollectFrames = false;
+
+	// the shell
+	bool bShell = false;
+	bool bAttractCamera = false;
+	float LastDeltaSeconds = 1.0f / 60.0f;
+	FString UiWalkTarget;
 
 	TWeakObjectPtr<UDCInteractor> Interactor;
 

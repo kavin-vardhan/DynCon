@@ -86,7 +86,10 @@ to `booth/_shots/017/`, because it is two copies of the game as well as the port
    time (package · rating · fit · sign) → Approved, or Rejected with the server's own sentence →
    My content, with the slots each piece fits. One file in the list is built to fail.
 3. **Pick a game** — two games, slot count, players online, and the badge on the one being
-   played at the booth. The same piece of content works in either.
+   played at the booth. The same piece of content works in either. Since brief 018 the
+   badge **follows a switch**: the Player can change game from their own pause menu, the
+   platform learns which one from the poll the game already makes, and this screen's
+   two-second refresh moves the badge without being reopened.
 4. **Slot map** — the map image the developer's own editor tool captured and registered, a pin
    per slot coloured by footfall, D-pad hops pin to pin. The side card is the slot contract: the
    eye-level photograph of the empty spot, what fits in plain words, footfall per region, the
