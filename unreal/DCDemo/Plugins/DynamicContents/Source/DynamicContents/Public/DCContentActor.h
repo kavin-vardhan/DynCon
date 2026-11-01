@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "DCStateStore.h"
 #include "GameFramework/Actor.h"
 
 #include "DCContentActor.generated.h"
@@ -11,6 +12,43 @@ class UPointLightComponent;
 class UStaticMesh;
 class UStaticMeshComponent;
 class UTexture2D;
+
+/** The things a Player can use inside a piece. Schema 1, i.e. all of them. */
+UENUM(BlueprintType)
+enum class EDCInteraction : uint8
+{
+	None,
+	/** The door leaf: open / close, swinging inward on its hinge. */
+	Door,
+	/** Switch A: the ceiling fixtures. */
+	LightA,
+	/** Switch B: the wall lamps. */
+	LightB,
+	/** The display screen: the next image in the base game's set. */
+	Screen
+};
+
+DYNAMICCONTENTS_API const TCHAR* DCInteractionName(EDCInteraction Kind);
+
+/**
+ * One thing to use, where it is, and the words that go next to it.
+ *
+ * Deliberately not a USTRUCT: nothing in the demo needs it in Blueprint, and keeping it plain
+ * keeps the prompt text out of any asset.
+ */
+struct DYNAMICCONTENTS_API FDCInteractionPoint
+{
+	EDCInteraction Kind = EDCInteraction::None;
+
+	/** Where the prompt is drawn, in the world. */
+	FVector Location = FVector::ZeroVector;
+
+	/** "Open the door" / "Lights A - off" - plain, neutral words. Never a brand or a price. */
+	FString Prompt;
+
+	/** Where a Player has to stand to use it (the scripted tests walk to this). */
+	FVector StandPoint = FVector::ZeroVector;
+};
 
 /**
  * One piece of walk-in content.
@@ -107,12 +145,32 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DC|State")
 	bool bDoorOpen = false;
 
+	/**
+	 * Which image is on the screen, 1-based, into the base game's set
+	 * (`UDCSubsystem::GetScreenImage`). 0 or a number the set does not have leaves the pack's
+	 * own default image alone, which is what the spike's runs and any pack built before the
+	 * set existed get.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DC|State")
+	int32 ScreenIndex = 1;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DC|Door")
 	float DoorOpenDegrees = 90.0f;
 
-	/** +1 or -1: which way the leaf swings about the hinge (from the piece's manifest). */
+	/**
+	 * +1 or -1: which way the leaf swings about the hinge (from the piece's manifest).
+	 *
+	 * Every piece in this demo declares `"swings": "inward"` with `open_sign` +1 in Blender,
+	 * and `import_content.py` negates it on the way into the engine because Blender -> UE is a
+	 * mirror in Y. So the leaf really does swing into the room - which is what makes it safe
+	 * to stand in front of a door and open it.
+	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DC|Door")
 	int32 DoorOpenSign = 1;
+
+	/** Degrees a second the leaf swings. 90 degrees in about half a second. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DC|Door")
+	float DoorSwingSpeed = 190.0f;
 
 	// ------------------------------------------------------------------ lights
 	//
@@ -171,9 +229,40 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "DC")
 	void ApplyBrand();
 
-	/** Pushes bLightAOn / bLightBOn / bDoorOpen onto the components. */
+	/** Pushes bLightAOn / bLightBOn / bDoorOpen / ScreenIndex onto the components, at once. */
 	UFUNCTION(BlueprintCallable, Category = "DC")
 	void ApplyState();
+
+	// ------------------------------------------------------------------ interaction
+
+	/**
+	 * Everything a Player can use on this piece, with where the prompt goes and where to
+	 * stand. Empty for a piece with no door, no switches and no screen - the developer's
+	 * default placeholder is exactly that, and nothing may assume otherwise.
+	 */
+	void GetInteractionPoints(TArray<FDCInteractionPoint>& Out) const;
+
+	/** One of them by kind, or false when this piece does not have it. */
+	bool GetInteractionPoint(EDCInteraction Kind, FDCInteractionPoint& Out) const;
+
+	/**
+	 * Use it: the door swings, a switch toggles its group, the screen moves to the next
+	 * image. Returns false when the piece has no such thing.
+	 *
+	 * This is the *only* way any of them changes at runtime - the key press, the pad button
+	 * and the scripted exit test all come through here, so what a visitor does at the booth
+	 * is what the test did.
+	 */
+	bool Interact(EDCInteraction Kind);
+
+	/** The four things schema 1 keeps. */
+	FDCContentState GetContentState() const;
+
+	/** Put a kept record back. `bInstant` skips the door's swing (it is a restore, not a use). */
+	void ApplyContentState(const FDCContentState& State, bool bInstant = true);
+
+	/** True while the door is still swinging. */
+	bool IsDoorMoving() const;
 
 	/** One line for the log: what got built. */
 	UFUNCTION(BlueprintCallable, Category = "DC")
@@ -195,6 +284,7 @@ public:
 	bool GetScreenWorldLocation(FVector& OutLocation) const;
 
 	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaSeconds) override;
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DC")
@@ -229,5 +319,23 @@ private:
 
 	void AddLights();
 
+	/** The yaw the leaf should be at for the current bDoorOpen. */
+	float WantedDoorYaw() const;
+
+	/** Pushes DoorYaw onto the leaf. */
+	void ApplyDoorYaw();
+
+	/** Puts the set's image for ScreenIndex on the screen, if the base game has one. */
+	void ApplyScreenImage();
+
+	/** Where a Player stands to use something: Extra centimetres out from the piece's middle. */
+	FVector StandPointFor(const FVector& Where, float Extra, bool bOutward) const;
+
 	bool bBuilt = false;
+
+	/** Where the leaf actually is, which is not where it is going while it swings. */
+	float DoorYaw = 0.0f;
+
+	/** The screen image this piece last put up, so ApplyState does not re-set it every call. */
+	int32 AppliedScreenIndex = -1;
 };

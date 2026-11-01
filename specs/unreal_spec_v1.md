@@ -1,7 +1,7 @@
 # Unreal side — spec v1 (game build, plugin, content packs)
 
 *Written 2026-10-26 by chat Claude for Claude Code. Derived from demo plan v6 §3, §6, §10–§11, the six figures (runtime sequence,
-slot lifecycle) and `server_spec_v1.md` / `content_assets_spec_v1.md`. Status: DONE (spec); §2 spike QUEUED; the rest FUTURE.*
+slot lifecycle) and `server_spec_v1.md` / `content_assets_spec_v1.md`. Status: DONE (spec); §2–§5 all built, briefs 004–016.*
 
 ## 1. Shape
 
@@ -44,18 +44,26 @@ restarting.** Steps:
 Report: what mounted, how (which API), timings (mount, load, spawn), pack sizes per piece, any engine warnings, and the
 screenshots' paths.
 
-## 3. Runtime plugin (FUTURE — after the spike)
+## 3. Runtime plugin (DONE except the X-ray view and the preview mode)
 
-| Class | Job |
-|---|---|
-| `UDCSubsystem` (GameInstanceSubsystem) | Backend address + region (command line / config), polls `/changes` every 1.5 s, resolves changed slots, owns the download manager, pack cache (LRU, versioned, its own folder per game copy), signature check (RS256 via the engine's platform crypto), telemetry batching |
-| `ADCSlot` | Slot ID, size class, bounds box = class limits, pre-fetch radius; runs the **slot lifecycle** exactly as the figure: IDLE → RESOLVING → DOWNLOADING → VERIFYING → MOUNTING → ACTIVE → SWAP PENDING (player inside) → UNLOAD & PRESERVE; ERROR / FALLBACK with backoff, default content stays |
-| `ADCContentActor` | Builds the interactables from sockets; state = lights A / B, door, screen index (schema 1); brand colour / emblem params |
-| `UDCStateStore` | Saves state on unload keyed by slot + content + schema; restores on spawn; mismatched schema → discard, never crash |
-| Interaction | Prompted use of door / switches / screen; each use = an interaction event |
-| UI | Status strip (build · uptime · restarts: 0 · content loading screens: 0 + per-slot state), neutral waypoint marker, X-ray view (pre-fetch ring, manifest, cache list), title menu Game A / Game B, pause menu |
-| Telemetry | view (on screen ≥ 1 s within 30 m, line check), visit (enters slot bounds), dwell, interaction |
-| Preview mode | `-DCPreview -DCRegion=r2`: no input, no audio, auto-pilot to `SOCKET_Inside` of the slot just auctioned, 30 fps cap, half resolution, lowest settings, below-normal priority, own cache folder |
+| Class | Job | Status |
+|---|---|---|
+| `UDCSubsystem` (GameInstanceSubsystem) | Backend address + region (command line / config), polls `/changes` every 1.5 s, resolves changed slots, owns the download manager, pack cache (LRU, versioned, its own folder per game copy), signature check (RS256 via the engine's platform crypto), telemetry batching | DONE (brief 011) |
+| `ADCSlot` | Slot ID, size class, bounds box = class limits, pre-fetch radius; runs the **slot lifecycle** exactly as the figure: IDLE → RESOLVING → DOWNLOADING → VERIFYING → MOUNTING → ACTIVE → SWAP PENDING (player inside) → UNLOAD & PRESERVE; ERROR / FALLBACK with backoff, default content stays | DONE (011, 016) |
+| `ADCContentActor` | Builds the interactables from sockets; state = lights A / B, door, screen index (schema 1); brand colour / emblem params | DONE (006, 016) |
+| `UDCStateStore` | Saves state on unload keyed by slot + content + schema; restores on spawn; mismatched schema → discard, never crash | DONE (brief 016) |
+| `UDCInteractor` | Prompted use of door / switches / screen; each use = an interaction event | DONE (brief 016) |
+| UI | Status strip (build · uptime · restarts: 0 · content loading screens: 0 + per-slot state), neutral waypoint marker | DONE (011, 016) |
+| UI | X-ray view (pre-fetch ring, manifest, cache list), title menu Game A / Game B, pause menu | FUTURE |
+| Telemetry | view (on screen ≥ 1 s within 30 m, line check), visit (enters slot bounds), dwell, interaction | DONE (011, 013, 016) |
+| Preview mode | `-DCPreview -DCRegion=r2`: no input, no audio, auto-pilot to `SOCKET_Inside` of the slot just auctioned, 30 fps cap, half resolution, lowest settings, below-normal priority, own cache folder | FUTURE (plan §14 step 5) |
+
+The interaction is **Enhanced Input**, bound by the plugin itself: a Shipping build with the
+Enhanced Input plugin on processes no legacy key bindings at all, so `UDCInteractor` pushes its
+own `UEnhancedInputComponent` onto the player controller's input stack and adds its own mapping
+context. The keys live in C++ and only the `UInputAction` is an asset — `FKey`'s `KeyName` is a
+private UPROPERTY, so the editor's Python cannot build a key at all. `unreal/README.md` has the
+long version, and plan v6 §14 step 6's exit test is `unreal/Tools/state_exit_test.py`.
 
 Day-1 checks from plan §11 (pad 1 only, background pad 2 untouched, two copies side by side, keeps running unfocused) are the
 first acceptance tests once the plugin exists.

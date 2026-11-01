@@ -229,6 +229,8 @@ class Repo(ABC):
     @abstractmethod
     def set_paused(self, alloc_id: int, paused: bool) -> None: ...
     @abstractmethod
+    def end_allocation(self, alloc_id: int, at: datetime) -> None: ...
+    @abstractmethod
     def set_paused_all_visitor(self, paused: bool) -> int: ...
     @abstractmethod
     def last_allocation_end(self, game: str, slot: str, region: str) -> datetime | None: ...
@@ -531,6 +533,16 @@ class SqliteRepo(Repo):
         with self._lock:
             self.conn.execute("UPDATE allocations SET paused=? WHERE id=?",
                               (1 if paused else 0, alloc_id))
+            self.conn.commit()
+
+    def end_allocation(self, alloc_id: int, at: datetime) -> None:
+        """Bring a block's end forward to `at` — "the three hours are up, now".
+
+        Nothing else changes: the row stays, so `last_allocation_ended` finds it and the
+        region's rival takes the next block exactly as it would have at the natural end.
+        """
+        with self._lock:
+            self.conn.execute("UPDATE allocations SET end_at=? WHERE id=?", (iso(at), alloc_id))
             self.conn.commit()
 
     def set_paused_all_visitor(self, paused: bool) -> int:

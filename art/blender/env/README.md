@@ -36,7 +36,7 @@ It is a small cousin of `art/blender/dc_kit.py` and borrows that file's `MeshBui
 same welded-group polygon builder with the same outward-normal checks — its colour maths, its
 bevel and its export plumbing. What it does differently:
 
-- **its own material slots** — ground, paving, kerb, timber, foliage, water — instead of the
+- **its own material slots** — ground, paving, kerb, slot pad, timber, foliage, water — not the
   content's wall/door/sign/screen list. There is deliberately **no `M_BrandAccent`, `M_Sign`
   or `M_Screen`**, and `validate_env.py` fails a piece that uses one: a piece of environment
   must never be able to wear a brand. Three of the slots — `M_Ground`, `M_GroundAlt` and
@@ -73,13 +73,21 @@ A placement in `unreal/Tools/make_maps.py` is then a location and a yaw and noth
 on the whole bounding box: a lamp post's arm reaches a metre out at four metres up and that is
 not a badly anchored piece.
 
-## The slot pads are two pieces, not one scaled
+## The slot pads are two pieces, not one scaled — and they have their own two colours
 
 `slot_pad` is 14 × 14 m for an L or a T slot and `slot_pad_s` is 7 × 7 m for an S one, and
 both are used at **scale 1.0**. The S pad used to be the big one scaled to 0.5, which scaled
 the 0.55 m kerb band and the inlaid square down with it: the result read as a *model of* a
 pad rather than as a pad. `_slot_pad` in `ground.py` is one builder taking the side length
 and the band widths in metres, so the two sizes cannot drift apart.
+
+Both are laid in **`M_SlotPad`** with an **`M_SlotKerb`** band (brief 016), not in the
+`M_Paving` / `M_Kerb` the plaza round them uses. The reason is the picture a brand is shown
+of the spot it is bidding on: the slot-map tool's eye-level thumbnail **hides whatever is
+standing in the slot**, so what the thumbnail shows is the empty pad — and in the same two
+colours as the paving it sits in, that was a patch of paving. Its own ground tone and a
+distinctly darker band make the prepared spot a legible shape at 960 px in both palettes.
+They are still only colours: no marking, no emblem, nothing a brand could claim.
 
 ## Collision
 

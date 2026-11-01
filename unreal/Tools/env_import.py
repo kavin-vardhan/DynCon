@@ -215,13 +215,49 @@ def assign_materials(mesh, mi_by_slot):
     return order
 
 
+def asset_file_for(package_path):
+    """<project>/Content/... for a /Game/... package path, so its date can be compared."""
+    content = unreal.SystemLibrary.get_project_content_directory()
+    return os.path.join(content, package_path.replace("/Game/", "", 1) + ".uasset")
+
+
+def is_stale(pid, manifest, want_path, fbx):
+    """True when the asset in the project no longer matches the piece on disk.
+
+    Two ways a piece can have moved on, and the second is the one that cost a run of the
+    slot-map tool to notice: the FBX can be **newer** than the asset (the geometry changed),
+    or the asset's material slots can no longer be the manifest's (the piece was given a new
+    material slot - which is exactly what `slot_pad` got in brief 016). An asset that is
+    merely old is left alone; importing a static mesh is the slow part of this script.
+    """
+    asset_file = asset_file_for(want_path)
+    if not os.path.exists(asset_file):
+        return "the asset file is missing"
+    try:
+        if os.path.getmtime(fbx) > os.path.getmtime(asset_file):
+            return "the FBX is newer than the asset"
+    except OSError:
+        pass
+
+    mesh = load_asset(want_path)
+    if mesh is None:
+        return "the asset would not load"
+    have = {str(entry.get_editor_property("imported_material_slot_name"))
+            for entry in mesh.get_editor_property("static_materials")}
+    want = set(manifest.get("material_slots", []))
+    if want and have != want:
+        return "material slots %s, the manifest says %s" % (sorted(have), sorted(want))
+    return ""
+
+
 def import_env_meshes(manifests, palette_materials, default_palette="warm", reimport=False):
     """Every piece into /Game/DCEnv/Meshes, dressed in the default palette.
 
     Importing a static mesh in the editor is slow - most of it is the asynchronous mesh build
     and the first compile of the new material instances - so a piece whose asset is already
-    there is left alone unless `reimport` says otherwise. That is what makes a second run of
-    `make_maps.ps1` quick, which matters because the map layout is what gets iterated on.
+    there and still matches the piece on disk is left alone. That is what makes a second run
+    of `make_maps.ps1` quick, which matters because the map layout is what gets iterated on.
+    `is_stale` is what decides; `--reimport` overrules it for everything.
     """
     out = {}
     report = []
@@ -234,7 +270,13 @@ def import_env_meshes(manifests, palette_materials, default_palette="warm", reim
         want_name = "SM_ENV_%s" % pid
         want_path = "%s/%s" % (ENV_MESHES, want_name)
 
-        if reimport or not unreal.EditorAssetLibrary.does_asset_exist(want_path):
+        stale = ""
+        if unreal.EditorAssetLibrary.does_asset_exist(want_path):
+            stale = is_stale(pid, manifest, want_path, fbx)
+            if stale:
+                log("re-importing %s: %s" % (pid, stale))
+
+        if reimport or stale or not unreal.EditorAssetLibrary.does_asset_exist(want_path):
             imported = import_env_fbx(fbx, ENV_MESHES)
             if not imported:
                 fail("import produced nothing for %s" % pid)

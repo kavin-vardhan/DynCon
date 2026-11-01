@@ -70,51 +70,37 @@
  "object_name": "SM_ENV_slot_pad_s",
  "materials": [
   {
-   "slot": "M_Paving",
-   "base_color_hex": "#D9C8A6",
+   "slot": "M_SlotPad",
+   "base_color_hex": "#C3B08C",
    "base_color_linear": [
-    0.69387,
-    0.57758,
-    0.38133
+    0.54572,
+    0.43415,
+    0.26225
+   ],
+   "roughness": 0.84,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 0.0
+  },
+  {
+   "slot": "M_SlotKerb",
+   "base_color_hex": "#7E6A4E",
+   "base_color_linear": [
+    0.20864,
+    0.14413,
+    0.07619
    ],
    "roughness": 0.78,
-   "metallic": 0.0,
-   "alpha": 1.0,
-   "emissive_strength": 0.0
-  },
-  {
-   "slot": "M_PavingAlt",
-   "base_color_hex": "#C2AC85",
-   "base_color_linear": [
-    0.53948,
-    0.41254,
-    0.23455
-   ],
-   "roughness": 0.74,
-   "metallic": 0.0,
-   "alpha": 1.0,
-   "emissive_strength": 0.0
-  },
-  {
-   "slot": "M_Kerb",
-   "base_color_hex": "#A99579",
-   "base_color_linear": [
-    0.39676,
-    0.30054,
-    0.1912
-   ],
-   "roughness": 0.8,
    "metallic": 0.0,
    "alpha": 1.0,
    "emissive_strength": 0.0
   }
  ],
  "material_slots": [
-  "M_Paving",
-  "M_Kerb",
-  "M_PavingAlt"
+  "M_SlotPad",
+  "M_SlotKerb"
  ],
- "material_slot_count": 3,
+ "material_slot_count": 2,
  "palettes": [
   "cool",
   "warm"
@@ -122,9 +108,10 @@
  "preview_palette": "warm",
  "notes": [
   "The pad for an S slot (7 x 7 m class footprint), used at scale 1.0 - it is not slot_pad scaled down.",
+  "Its own ground tone (M_SlotPad) and a darker kerb band (M_SlotKerb), so an empty slot reads as a prepared spot in a thumbnail.",
   "Never carries a brand or a marking."
  ],
- "build_seconds": 8.23,
+ "build_seconds": 0.11,
  "exports": {
   "fbx": "export_env/slot_pad_s/slot_pad_s.fbx",
   "glb": "export_env/slot_pad_s/slot_pad_s.glb"
@@ -134,11 +121,11 @@
   "warm": "previews_env/warm/slot_pad_s.png"
  },
  "generator": {
-  "env_kit_sha256": "ef56679a28c42e6a74d0d6f4027c720e64e7cd0f2f0882c9798d1f5091ec35b9",
+  "env_kit_sha256": "de5af8d15e515714fbffd79eb98e535539b3dd0921ca3367a557474c10052772",
   "piece_script": "blender/env/ground.py",
-  "piece_sha256": "dd55dacfc01cb772cf5476884cd2930ee2462b0a913cd2f627f2af74ff9310bc",
+  "piece_sha256": "e5dc71e1a89387d19ccc9de643855130c9017e598105af93b3fa844629e433d1",
   "dc_kit_sha256": "bb5a3473ce162fa2e6a00d5e1ebe7a22df324ed05eaf89d6de3aa7cd84bda4bc",
   "blender": "5.2.3 LTS",
-  "built_utc": "2026-11-01T09:57:18Z"
+  "built_utc": "2026-11-01T14:55:41Z"
  }
 }

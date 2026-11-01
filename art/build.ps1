@@ -105,6 +105,10 @@ if (-not $SkipEmblems) {
     if ($LASTEXITCODE -ne 0) { throw "make_emblems.py failed" }
     python (Join-Path $art "tools\make_sample_screen.py")
     if ($LASTEXITCODE -ne 0) { throw "make_sample_screen.py failed" }
+    # The four images the screen inside a piece cycles through. Base-game content, like the
+    # emblems: a pack never carries one (brief 016).
+    python (Join-Path $art "tools\make_screen_set.py")
+    if ($LASTEXITCODE -ne 0) { throw "make_screen_set.py failed" }
 }
 
 Write-Host "`n== blender build =="

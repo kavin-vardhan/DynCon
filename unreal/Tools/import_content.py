@@ -36,9 +36,16 @@ Blueprint defaults.
 
 import json
 import os
+import sys
 import traceback
 
 import unreal
+
+_HERE = os.path.dirname(os.path.abspath(__file__))
+if _HERE not in sys.path:
+    sys.path.insert(0, _HERE)
+
+import core_extras as CE      # noqa: E402
 
 # --------------------------------------------------------------------------- configuration
 
@@ -1069,6 +1076,10 @@ def main():
     screen_tex = import_texture(screen_png, CORE_SCREENS, "T_DC_Screen_Sample") \
         if os.path.isfile(screen_png) else None
     report["screen_sample"] = screen_tex.get_name() if screen_tex else None
+
+    # The set the screen cycles through, and the Player's "use" button. Defined in
+    # core_extras so make_maps.py produces exactly the same two things (brief 016).
+    report["core_extras"] = CE.build_all()
 
     create_material("M_DC_Master", build_master)
     create_material("M_DC_Glass", build_glass)

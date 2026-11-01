@@ -459,6 +459,12 @@ class CloseAuctionIn(BaseModel):
     lot_id: str = Field(default="all", description='a lot id, or "all"')
 
 
+class EndBlockIn(BaseModel):
+    game: str
+    slot: str
+    region: str
+
+
 @admin.get("/health")
 def health(svc: Service = Depends(get_svc)) -> dict[str, Any]:
     return svc.health()
@@ -483,3 +489,15 @@ def allocate(body: AllocateIn, svc: Service = Depends(get_svc)) -> dict[str, Any
 def close_auction(body: CloseAuctionIn, svc: Service = Depends(get_svc)) -> dict[str, Any]:
     """Booth staff: settle a lot now instead of waiting for its clock."""
     return svc.close_auction(body.lot_id)
+
+
+@admin.post("/end-block", dependencies=[Depends(admin_guard)])
+def end_block(body: EndBlockIn, svc: Service = Depends(get_svc)) -> dict[str, Any]:
+    """Booth staff: end the live block in one slot now instead of waiting three minutes.
+
+    The counterpart of `/admin/close-auction` for the other timestamp rule. What follows is
+    the ordinary one - the region's rival, the next winner, takes the block - which is what
+    makes "the block ends while the Player is inside" something a rehearsal, and the state
+    exit test, can make happen on cue.
+    """
+    return svc.end_block(body.game, body.slot, body.region)

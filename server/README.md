@@ -153,7 +153,7 @@ client keeps the default up and retries — `tools/fake_client.py` is the worked
 `/status/live`
 
 **Admin** — `/admin/health` · `POST /admin/reset` · `POST /admin/sabotage` ·
-`POST /admin/allocate` · `POST /admin/close-auction`
+`POST /admin/allocate` · `POST /admin/close-auction` · `POST /admin/end-block`
 
 **Static** — `/portal/` is the brand portal (the `portal/` folder, served as-is). It is
 mounted last so it can never shadow an API route, and a checkout without the folder still
@@ -161,6 +161,15 @@ starts: `GET /` then reports `portal_ui: null` and `/portal/` is a 404.
 
 `POST /admin/allocate` stays: it is how a block gets written by hand when the auction is not
 involved.
+
+`POST /admin/end-block {game, slot, region}` (brief 016) is the other one of that family: it
+pulls the live allocation's `end_at` back to now, which is "the three demo hours are up,
+now". Nothing else is touched — the row stays, so the report still counts the block and its
+telemetry — and what happens next is the ordinary rule above, step 3: the region's rival, the
+next winner, takes the block. It is the counterpart of `/admin/close-auction` for the other
+timestamp rule, and it is what lets a rehearsal (and `unreal\Tools\state_exit_test.py`) make
+"the block ends while the Player is standing inside" happen on cue instead of three real
+minutes from now.
 
 ## Registering a game (`POST /games/register`)
 

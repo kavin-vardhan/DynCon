@@ -1,8 +1,11 @@
 #include "DCSubsystem.h"
 
+#include "DCContentActor.h"
 #include "DCCrypto.h"
+#include "DCInteractor.h"
 #include "DCPackMounter.h"
 #include "DCSlot.h"
+#include "DCStateStore.h"
 #include "DynamicContents.h"
 
 #include "Dom/JsonObject.h"
@@ -30,6 +33,12 @@ namespace
 {
 	/** Where the base game keeps the eight emblems (unreal\Tools\import_content.py). */
 	const TCHAR* DCEmblemFolder = TEXT("/Game/DCCore/Emblems/T_Emblem_");
+
+	/** …and the screen image set (unreal\Tools\core_extras.py). 1-based on disk. */
+	const TCHAR* DCScreenPrefix = TEXT("/Game/DCCore/Screens/T_DC_Screen_");
+
+	/** Nobody is going to cycle past this many; it only stops a runaway loop. */
+	constexpr int32 DCMaxScreenImages = 16;
 
 	/** Keep the status file's history bounded; a booth day is a long run. */
 	constexpr int32 DCMaxActivations = 400;
@@ -286,6 +295,46 @@ UTexture2D* UDCSubsystem::GetEmblemTexture(const FString& Emblem)
 	return Texture;
 }
 
+int32 UDCSubsystem::GetScreenImageCount()
+{
+	if (!bScreenImagesLoaded)
+	{
+		bScreenImagesLoaded = true;
+		// Counted by loading until one is missing, rather than by a number written down
+		// twice: adding a fifth image to the set is then a build step and nothing else.
+		for (int32 Index = 1; Index <= DCMaxScreenImages; ++Index)
+		{
+			const FString Path = FString::Printf(TEXT("%s%d"), DCScreenPrefix, Index);
+			UTexture2D* Texture = LoadObject<UTexture2D>(nullptr, *Path);
+			if (Texture == nullptr)
+			{
+				break;
+			}
+			ScreenImages.Add(Texture);
+		}
+		if (ScreenImages.Num() == 0)
+		{
+			DC_LOG(Warning, TEXT("SCREENS no image set at %s1 - every screen keeps the image "
+				"its pack was built with"), DCScreenPrefix);
+		}
+		else
+		{
+			DC_LOG(Log, TEXT("SCREENS %d image(s) in the base game's set"), ScreenImages.Num());
+		}
+	}
+	return ScreenImages.Num();
+}
+
+UTexture2D* UDCSubsystem::GetScreenImage(int32 Index)
+{
+	const int32 Count = GetScreenImageCount();
+	if (Count <= 0 || Index < 1 || Index > Count)
+	{
+		return nullptr;
+	}
+	return ScreenImages[Index - 1].Get();
+}
+
 // ===================================================================== HTTP plumbing
 
 FString UDCSubsystem::AbsoluteUrl(const FString& PathOrUrl) const
@@ -508,6 +557,12 @@ void UDCSubsystem::OnChanges(FHttpResponsePtr Response, bool bOk)
 		// Never delete the bytes of a pack that is mounted; the LRU gets those later.
 		Purge.RemoveAll([this](const FString& PackId) { return MountedPackIds.Contains(PackId); });
 		Cache.Purge(Purge);
+		// A reset wipes the visitor's saved state too (plan v6 §9): the next visitor must not
+		// walk into the last one's lights.
+		if (UDCStateStore* Store = UDCStateStore::Get(this))
+		{
+			Store->Clear(FString::Printf(TEXT("booth reset, generation %d"), ResetGeneration));
+		}
 		for (ADCSlot* Slot : GetSlots())
 		{
 			Slot->SetWantedAllocKey(FString());
@@ -1295,6 +1350,23 @@ void UDCSubsystem::WriteStatusFile()
 		W->WriteValue(TEXT("attempts"), Slot->GetAttempts());
 		W->WriteValue(TEXT("active_since_utc"), Slot->HasContent()
 			? Slot->GetActiveSince().ToIso8601() : FString());
+		W->WriteValue(TEXT("visits"), Slot->GetVisitCount());
+		W->WriteValue(TEXT("dwell_s"), Slot->GetTotalDwellSeconds() + Slot->GetDwellSeconds());
+		W->WriteValue(TEXT("waypoint"), Slot->IsWaypointActive());
+
+		// What the Player has done inside whatever is standing here - the thing a swap has to
+		// carry over, written out four times a second so a test can watch it happen.
+		FDCContentState State;
+		if (Slot->GetContentState(State))
+		{
+			W->WriteObjectStart(TEXT("content_state"));
+			W->WriteValue(TEXT("light_a_on"), State.bLightAOn);
+			W->WriteValue(TEXT("light_b_on"), State.bLightBOn);
+			W->WriteValue(TEXT("door_open"), State.bDoorOpen);
+			W->WriteValue(TEXT("screen_image_index"), State.ScreenIndex);
+			W->WriteValue(TEXT("schema"), Slot->GetActiveManifest().StateSchemaVersion);
+			W->WriteObjectEnd();
+		}
 		W->WriteObjectEnd();
 	}
 	W->WriteObjectEnd();
@@ -1340,6 +1412,31 @@ void UDCSubsystem::WriteStatusFile()
 		W->WriteObjectEnd();
 	}
 	W->WriteArrayEnd();
+
+	W->WriteArrayStart(TEXT("state_store"));
+	if (const UDCStateStore* Store = UDCStateStore::Get(this))
+	{
+		for (const FString& Line : Store->DescribeAll())
+		{
+			W->WriteValue(Line);
+		}
+	}
+	W->WriteArrayEnd();
+
+	if (const UDCInteractor* Interactor = UDCInteractor::Find(this))
+	{
+		W->WriteObjectStart(TEXT("interaction"));
+		W->WriteValue(TEXT("uses"), Interactor->GetTotalUses());
+		W->WriteValue(TEXT("door"), Interactor->GetUseCount(EDCInteraction::Door));
+		W->WriteValue(TEXT("light_a"), Interactor->GetUseCount(EDCInteraction::LightA));
+		W->WriteValue(TEXT("light_b"), Interactor->GetUseCount(EDCInteraction::LightB));
+		W->WriteValue(TEXT("screen"), Interactor->GetUseCount(EDCInteraction::Screen));
+		W->WriteValue(TEXT("prompt_agreed"), Interactor->GetPromptAgreed());
+		W->WriteValue(TEXT("prompt_checked"), Interactor->GetPromptChecked());
+		W->WriteValue(TEXT("prompt"), Interactor->GetTarget().IsValid()
+			? Interactor->GetTarget().Prompt : FString());
+		W->WriteObjectEnd();
+	}
 
 	W->WriteObjectEnd();
 	W->Close();

@@ -240,6 +240,16 @@ namespace
 			SetFlag(Flags, TEXT("LumenReflections"), false);
 			SetFlag(Flags, TEXT("ScreenSpaceReflections"), false);
 			SetFlag(Flags, TEXT("Bloom"), false);
+			// And **no specular at all** on a site plan. The water is a roughness-0.04
+			// surface, which is a mirror; from straight above with every other reflection
+			// method already off, the one that was left - the reflection environment, i.e.
+			// the sky light's cubemap - was all it had to reflect, and a mirror pointed at
+			// the sky is white. Game B's first registered capture had a white sea, and
+			// because that white sea is half the frame the histogram exposure then pulled
+			// everything else down until the roofs were black. Turning both off gives the
+			// water its own colour back and the rest of the picture its exposure back.
+			SetFlag(Flags, TEXT("ReflectionEnvironment"), false);
+			SetFlag(Flags, TEXT("Specular"), false);
 		}
 		Capture->SetShowFlagSettings(Flags);
 
@@ -756,7 +766,7 @@ FDCSlotMapResult UDCSlotMapTool::RegisterCurrentLevel(const FDCSlotMapOptions& O
 	{
 		UTextureRenderTarget2D* RT = MakeRenderTarget(MapWidth, MapHeight);
 		USceneCaptureComponent2D* Capture = MakeCapture(World, RT, Hidden, /*bPlanView=*/true,
-			Options.bMapAtmosphere, Options.ExposureBias);
+			Options.bMapAtmosphere, Options.MapExposureBias);
 		Capture->ProjectionType = ECameraProjectionMode::Orthographic;
 		Capture->OrthoWidth = LongCm;
 		// Explicitly off: the automatic planes are worked out from the distance to the

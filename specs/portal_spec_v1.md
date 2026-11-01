@@ -1,7 +1,7 @@
 # Brand portal — spec v1 (right monitor, controller 2)
 
 *Written 2026-10-25 by chat Claude for Claude Code. Derived from demo plan v6 §4, §10.4, §11 and `server_spec_v1.md`.
-Status: DONE (spec); build QUEUED — after the server.*
+Status: DONE (spec); build DONE (briefs 014–015).*
 
 ## 1. Shape
 

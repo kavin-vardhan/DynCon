@@ -33,6 +33,11 @@
 			"_comment": "The engine's own crypto: IPlatformCrypto::CreateContext gives the OpenSSL-backed FEncryptionContext this plugin verifies RS256 manifests and hashes pack files with (see Public/DCCrypto.h). It is EnabledByDefault, but saying so here is what stops UnrealBuildTool warning that a module dependency crosses a plugin boundary the descriptor does not declare.",
 			"Name": "PlatformCrypto",
 			"Enabled": true
+		},
+		{
+			"_comment": "UDCInteractor binds the Player's 'use' button. A Shipping build with Enhanced Input on processes no legacy key bindings at all, so the plugin pushes its own UEnhancedInputComponent onto the controller's input stack - which needs the module, which needs this line for the same reason as PlatformCrypto above.",
+			"Name": "EnhancedInput",
+			"Enabled": true
 		}
 	]
 }

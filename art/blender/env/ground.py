@@ -132,24 +132,34 @@ def _slot_pad(pid, side, palette, *, band, inlay, margin, notes):
     metres rather than as a fraction of the side, because that is what scaling a 14 m pad
     down to 7 m got wrong - a half-scale pad has a half-width kerb, and the S slot's pad read
     as a model of a pad rather than as a pad.
+
+    **Its own two tones.** The pad used to be laid in M_Paving with an M_Kerb band, i.e. in
+    the same two colours as the plaza round it, and an *empty* slot then read as a patch of
+    paving - which is precisely the picture a brand is shown of the spot it is bidding on
+    (the slot-map tool's eye-level thumbnail hides whatever is standing there). M_SlotPad and
+    M_SlotKerb give the prepared ground a tone of its own and the band a distinctly darker
+    one, so the empty spot is a legible shape at thumbnail size in both palettes. They are
+    still only colours: no marking, no emblem, nothing a brand could claim.
     """
     P = E.EnvPiece(pid, "ground", palette=palette, collision="blocking",
                    footprint=(side, side))
     for note in notes:
         P.notes.append(note)
+    P.notes.append("Its own ground tone (M_SlotPad) and a darker kerb band (M_SlotKerb), so "
+                   "an empty slot reads as a prepared spot in a thumbnail.")
     P.notes.append("Never carries a brand or a marking.")
     h = side / 2.0
-    P.box((-h, -h, 0.0), (h, h, 0.17), "M_Paving")
+    P.box((-h, -h, 0.0), (h, h, 0.17), "M_SlotPad")
     for (ax, ay, bx, by) in ((-h, -h, h, -h + band), (-h, h - band, h, h),
                              (-h, -h + band, -h + band, h - band),
                              (h - band, -h + band, h, h - band)):
-        P.box((ax, ay, 0.0), (bx, by, 0.23), "M_Kerb")
+        P.box((ax, ay, 0.0), (bx, by, 0.23), "M_SlotKerb")
     # a shallow inlaid square, so the pad has a centre to stand something on
     for s in (-1, 1):
         P.box((-h + margin, s * inlay - 0.09, 0.168),
-              (h - margin, s * inlay + 0.09, 0.176), "M_PavingAlt")
+              (h - margin, s * inlay + 0.09, 0.176), "M_SlotKerb")
         P.box((s * inlay - 0.09, -h + margin, 0.168),
-              (s * inlay + 0.09, h - margin, 0.176), "M_PavingAlt")
+              (s * inlay + 0.09, h - margin, 0.176), "M_SlotKerb")
     return P
 
 

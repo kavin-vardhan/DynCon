@@ -19,7 +19,8 @@ import sys
 
 # the kit, restated here so the validator does not depend on Blender
 ENV_MATERIAL_SLOTS = {
-    "M_Ground", "M_GroundAlt", "M_Grass", "M_Paving", "M_PavingAlt", "M_Kerb", "M_Wall",
+    "M_Ground", "M_GroundAlt", "M_Grass", "M_Paving", "M_PavingAlt", "M_Kerb",
+    "M_SlotPad", "M_SlotKerb", "M_Wall",
     "M_WallAlt", "M_Roof", "M_Trim", "M_Glass", "M_Metal", "M_Timber", "M_Foliage",
     "M_Trunk", "M_Water", "M_Emissive",
 }

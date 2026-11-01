@@ -17,6 +17,16 @@
 //                                      every slot, then walk to each one and in through its
 //                                      door, with a shot from inside. Writes dc_tour.json
 //                                      with the walk results and the frame times.
+//   -DCStateTest[=<rounds>]            the state-across-a-swap exit test (plan v6 §14 step 6):
+//                                      walk in, open the door, turn light B on, set the screen
+//                                      to image 3, wait for the replacement the backend is
+//                                      about to send, watch SWAP PENDING hold it, walk out,
+//                                      walk back in and check. Ten rounds by default. Writes
+//                                      dc_state_test.json, and -DCStateFile live as it goes.
+//   -DCStateSlot=A1  -DCStateBase=content1  which slot and which piece the test uses
+//   -DCStateFile=<path>                the handshake file the driving script watches
+//   -DCWarmup=<seconds>                how long either scripted run waits for the backend to
+//                                      fill the slots before it starts
 //   -DCPawn=<class path>               override the Player pawn / controller classes
 //   -DCController=<class path>
 //   -DCRunSeconds=<n>                  quit after n seconds (0 = never)
@@ -28,14 +38,16 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "DCContentActor.h"
+#include "DCStateStore.h"
 #include "GameFramework/GameModeBase.h"
 #include "UObject/SoftObjectPath.h"
 
 #include "DCRuntimeGameMode.generated.h"
 
 class ACameraActor;
-class ADCContentActor;
 class ADCSlot;
+class UDCInteractor;
 struct FDCManifest;
 
 UCLASS()
@@ -133,9 +145,86 @@ private:
 	void StartWalk(int32 SlotIndex, const TArray<FVector>& Targets, const FString& Leg);
 	bool TickWalk(float DeltaSeconds);
 	void FinishWalk(bool bArrived, const FString& Note);
-	void TourShot(const FString& Label);
+	FString TourShot(const FString& Label);
 	void SetViewToPawn();
-	void SetSpringArm(float Length);
+	void SetSpringArm(float Length, float Right = 0.0f, float Up = 0.0f);
+
+	// ---------------------------------------------------------------- the state exit test
+	//
+	// Plan v6 §14 step 6: "step 9 works ten times out of ten, including when the block ends
+	// while the Player is inside." One round is the whole of step 9 - walk in, use the door,
+	// the switches and the screen, let the backend send a replacement while the Player is
+	// standing inside, watch SWAP PENDING hold it, walk out, and check what comes back.
+	//
+	// The game does not know which kind of round it is in, and that is deliberate: the script
+	// driving it pushes an update or ends the block, and the game works out what to expect
+	// from what actually arrived - the same content (any version) must come back wearing what
+	// the Player left, a different piece must not.
+
+	enum class EStateStep : uint8
+	{
+		WaitForContent,
+		WalkToDoor,
+		CloseDoorIfOpen,
+		OpenDoor,
+		WalkInside,
+		SetLights,
+		WalkToScreen,
+		SetScreen,
+		ShotSet,
+		Arm,
+		WaitPending,
+		WalkToInside2,
+		ShotPending,
+		WalkClear,
+		WaitSwapped,
+		ShotSwapped,
+		WalkBackToDoor,
+		WalkBackInside,
+		ShotBack,
+		WalkClearAgain,
+		RoundDone,
+		Done
+	};
+
+	struct FStateRound
+	{
+		int32 N = 0;
+		FString BeforePiece;
+		FString BeforeVersion;
+		FString BeforeAllocKey;
+		FString AfterPiece;
+		FString AfterVersion;
+		FString AfterAllocKey;
+		FString Kind;                 // "same content" | "different content"
+		FDCContentState Left;         // what the Player left
+		FDCContentState Expected;
+		FDCContentState Found;
+		bool bSetOk = false;
+		bool bPendingSeen = false;
+		bool bSwapped = false;
+		bool bStateOk = false;
+		bool bRestoredOnReturn = false;
+		bool bOk = false;
+		float PendingSeconds = 0.0f;
+		float SwapSeconds = 0.0f;
+		int32 Interactions = 0;
+		FString Note;
+		TArray<FString> Shots;
+	};
+
+	void TickStateTest(float DeltaSeconds);
+	void StateStepTo(EStateStep Next);
+	bool StateWalk(const FVector& To, const FString& Leg);
+	bool StateWalkPath(const TArray<FVector>& Through, const FString& Leg);
+	void StateFail(const FString& Why);
+	void StateNextRound();
+	ADCSlot* StateSlot() const;
+	ADCContentActor* StateContent() const;
+	UDCInteractor* StateInteractor() const;
+	void WriteStateFile(const TCHAR* Phase);
+	void WriteStateResultFile();
+	void FaceTowards(const FVector& Where);
 
 	void Finish();
 	void WriteResultFile();
@@ -173,9 +262,36 @@ private:
 	float WalkStuckSeconds = 0.0f;
 	FVector WalkLastPosition = FVector::ZeroVector;
 
+	// state-test state
+	bool bStateTest = false;
+	int32 StateRounds = 10;
+	FString StateSlotId = TEXT("A1");
+	FString StateBasePiece = TEXT("content1");
+	FString StateFilePath;
+	EStateStep StateStep = EStateStep::WaitForContent;
+	int32 StateRoundIndex = 0;
+	double StateStepStarted = 0.0;
+	double StateRoundStarted = 0.0;
+	float StateWaitLeft = 0.0f;
+	int32 StateSubStep = 0;
+
+	/** Which half of a two-part step this is: drive to the baseline, then to the target. */
+	int32 StatePhase = 0;
+	int32 StateUsesAtRoundStart = 0;
+
+	/** The Player has turned to look at the thing they are about to use. */
+	bool bStateAimed = false;
+
+	/** When the walk out of the bounds box began - what "applied after" is measured from. */
+	double StateWalkOutStarted = 0.0;
+	TArray<FStateRound> StateResults;
+	FStateRound StateRound;
+
 	// frame times, for the report
 	TArray<float> FrameMs;
 	bool bCollectFrames = false;
+
+	TWeakObjectPtr<UDCInteractor> Interactor;
 
 	TWeakObjectPtr<ACameraActor> Camera;
 	FTimerHandle ShotTimer;

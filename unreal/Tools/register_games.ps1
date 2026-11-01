@@ -27,6 +27,12 @@ param(
     [int]   $Port    = 8700,
     [int]   $MapPixels = 2048,
     [int]   $ThumbWidth = 960,
+    # Exposure compensation in stops. The plan view gets its own: a site plan is all ground
+    # and has no sky in frame to anchor the histogram, so one number cannot serve both
+    # pictures. The fill is what stands in for Lumen, which a headless editor cannot run.
+    [double]$Exposure = 0.6,
+    [double]$MapExposure = 0.9,
+    [double]$Fill = 0.6,
     [string]$Games   = 'A,B',
     [switch]$NoPost
 )
@@ -73,6 +79,9 @@ try {
     $env:DC_REGISTER_GAMES      = $Games
     $env:DC_REGISTER_MAP_PIXELS = "$MapPixels"
     $env:DC_REGISTER_THUMB_WIDTH = "$ThumbWidth"
+    $env:DC_REGISTER_EXPOSURE     = "$Exposure"
+    $env:DC_REGISTER_MAP_EXPOSURE = "$MapExposure"
+    $env:DC_REGISTER_FILL         = "$Fill"
     $env:DC_REGISTER_POST       = if ($NoPost) { '0' } else { '1' }
     $env:DC_REGISTER_OUT        = Join-Path $Repo 'unreal\_build\slotmap'
 
@@ -110,7 +119,8 @@ try {
     }
     foreach ($name in @('DCSERVER_DATA', 'DC_REGISTER_BACKEND', 'DC_REGISTER_GAMES',
                         'DC_REGISTER_MAP_PIXELS', 'DC_REGISTER_THUMB_WIDTH',
-                        'DC_REGISTER_POST', 'DC_REGISTER_OUT')) {
+                        'DC_REGISTER_EXPOSURE', 'DC_REGISTER_MAP_EXPOSURE',
+                        'DC_REGISTER_FILL', 'DC_REGISTER_POST', 'DC_REGISTER_OUT')) {
         Remove-Item "Env:\$name" -ErrorAction SilentlyContinue
     }
 }

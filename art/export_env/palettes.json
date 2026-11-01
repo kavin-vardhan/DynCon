@@ -7,6 +7,8 @@
   "M_Paving",
   "M_PavingAlt",
   "M_Kerb",
+  "M_SlotPad",
+  "M_SlotKerb",
   "M_Wall",
   "M_WallAlt",
   "M_Roof",
@@ -91,6 +93,30 @@
       0.1912
      ],
      "roughness": 0.8,
+     "metallic": 0.0,
+     "alpha": 1.0,
+     "emissive_strength": 0.0
+    },
+    "M_SlotPad": {
+     "base_color_hex": "#C3B08C",
+     "base_color_linear": [
+      0.54572,
+      0.43415,
+      0.26225
+     ],
+     "roughness": 0.84,
+     "metallic": 0.0,
+     "alpha": 1.0,
+     "emissive_strength": 0.0
+    },
+    "M_SlotKerb": {
+     "base_color_hex": "#7E6A4E",
+     "base_color_linear": [
+      0.20864,
+      0.14413,
+      0.07619
+     ],
+     "roughness": 0.78,
      "metallic": 0.0,
      "alpha": 1.0,
      "emissive_strength": 0.0
@@ -210,7 +236,7 @@
       0.32778,
       0.39157
      ],
-     "roughness": 0.08,
+     "roughness": 0.26,
      "metallic": 0.0,
      "alpha": 0.7,
      "emissive_strength": 0.0
@@ -300,6 +326,30 @@
       0.19462
      ],
      "roughness": 0.8,
+     "metallic": 0.0,
+     "alpha": 1.0,
+     "emissive_strength": 0.0
+    },
+    "M_SlotPad": {
+     "base_color_hex": "#889299",
+     "base_color_linear": [
+      0.2462,
+      0.28744,
+      0.31855
+     ],
+     "roughness": 0.84,
+     "metallic": 0.0,
+     "alpha": 1.0,
+     "emissive_strength": 0.0
+    },
+    "M_SlotKerb": {
+     "base_color_hex": "#454D55",
+     "base_color_linear": [
+      0.05951,
+      0.07421,
+      0.09084
+     ],
+     "roughness": 0.78,
      "metallic": 0.0,
      "alpha": 1.0,
      "emissive_strength": 0.0
@@ -419,7 +469,7 @@
       0.14703,
       0.27468
      ],
-     "roughness": 0.04,
+     "roughness": 0.34,
      "metallic": 0.0,
      "alpha": 0.78,
      "emissive_strength": 0.0

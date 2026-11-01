@@ -17,6 +17,9 @@ Options come in through **environment variables**, not the command line:
     DC_REGISTER_GAMES         which maps                      (default "A,B")
     DC_REGISTER_MAP_PIXELS    the map capture's long side      (default 2048)
     DC_REGISTER_THUMB_WIDTH   a thumbnail's width              (default 960)
+    DC_REGISTER_EXPOSURE      thumbnail exposure bias, stops   (default 0.6)
+    DC_REGISTER_MAP_EXPOSURE  plan-view exposure bias, stops   (default 0.9)
+    DC_REGISTER_FILL          capture fill, as a fraction of the map's own sun (default 0.6)
 
 Not the command line, because `UPythonScriptCommandlet` does not forward one: it parses
 `-Script=` with `FParse::Token`, which stops at the first space, and everything after `--`
@@ -61,6 +64,9 @@ def main():
              for g in env("DC_REGISTER_GAMES", "A,B").split(",") if g.strip()]
     map_pixels = int(env("DC_REGISTER_MAP_PIXELS", "2048"))
     thumb_width = int(env("DC_REGISTER_THUMB_WIDTH", "960"))
+    exposure = float(env("DC_REGISTER_EXPOSURE", "0.6"))
+    map_exposure = float(env("DC_REGISTER_MAP_EXPOSURE", "0.9"))
+    fill = float(env("DC_REGISTER_FILL", "0.6"))
     post = env("DC_REGISTER_POST", "1") != "0"
     unreal.log("[register_games] backend=%s games=%s post=%s out=%s"
                % (backend, ",".join(games), post, out_root))
@@ -85,6 +91,9 @@ def main():
         options.set_editor_property("out_dir", os.path.join(out_root, game))
         options.set_editor_property("map_long_side_pixels", map_pixels)
         options.set_editor_property("thumb_width_pixels", thumb_width)
+        options.set_editor_property("exposure_bias", exposure)
+        options.set_editor_property("map_exposure_bias", map_exposure)
+        options.set_editor_property("fill_fraction", fill)
         options.set_editor_property("post_to_backend", post)
 
         result = unreal.DCSlotMapTool.register_current_level(options)

@@ -1,6 +1,7 @@
 """Draw the pins on the captured maps and collect brief 013's evidence.
 
     python unreal/Tools/make_slotmap_sheet.py
+    python unreal/Tools/make_slotmap_sheet.py --out-dir unreal/spike/shots/016
 
 The slot-map tool writes a map capture, a thumbnail per slot and a JSON that says where each
 slot lands on the capture as a fraction of its width and height. The whole thing is only
@@ -8,7 +9,8 @@ worth anything if those fractions are right, and the only way to know is to **dr
 the picture and look**. That is what this does.
 
 It reads what `unreal\\Tools\\register_games.ps1` left in `unreal\\_build\\slotmap\\<game>\\`
-and writes, into `unreal\\spike\\shots\\013\\`:
+and writes, into `unreal\\spike\\shots\\013\\` (or wherever `--out-dir` says - a later
+registration's evidence belongs in its own brief's folder, not on top of 013's):
 
     <game>_map_pins.png       the capture with a pin, a ring and a label per slot
     <game>_<slot>.png         the eye-level thumbnail, as captured
@@ -20,6 +22,7 @@ out for itself.
 """
 from __future__ import annotations
 
+import argparse
 import json
 import os
 import shutil
@@ -204,6 +207,14 @@ def sheet(entries, pins, thumbs):
 
 
 def main():
+    global OUT_DIR, SHEET
+    ap = argparse.ArgumentParser(description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--out-dir", default=OUT_DIR)
+    args = ap.parse_args()
+    OUT_DIR = os.path.abspath(args.out_dir)
+    SHEET = os.path.join(OUT_DIR, "slotmap_contact.png")
+
     entries = [e for e in (load("A"), load("B")) if e]
     if not entries:
         print("nothing under %s - run unreal\\Tools\\register_games.ps1 first" % SLOTMAP)

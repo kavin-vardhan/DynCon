@@ -95,9 +95,20 @@ struct FDCSlotMapOptions
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DC|SlotMap")
 	float FillFraction = 0.60f;
 
-	/** Exposure compensation, stops. The captures adapt their own exposure; this nudges it. */
+	/** Exposure compensation for a thumbnail, stops. The captures adapt; this nudges them. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DC|SlotMap")
 	float ExposureBias = 0.6f;
+
+	/**
+	 * Exposure compensation for the plan view, which needs its own.
+	 *
+	 * A site plan is mostly ground, and a straight-down frame has no sky in it to anchor the
+	 * histogram - so what the two pictures are looking at is different enough that one number
+	 * cannot serve both. This one is a knob rather than a constant because what it is really
+	 * compensating for is how much of a particular map is water, grass or paving.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DC|SlotMap")
+	float MapExposureBias = 0.9f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DC|SlotMap")
 	bool bPostToBackend = true;

@@ -65,6 +65,13 @@ ENV_MATERIAL_SLOTS = (
     "M_Paving",       # plaza slabs / promenade deck
     "M_PavingAlt",    # the banding and the inlays that give paving a rhythm
     "M_Kerb",
+    # The slot pad's own two tones. A slot pad used to be paving and kerb like any other
+    # ground piece, and an *empty* slot then read as a patch of the same paving it sits in -
+    # which is exactly what a brand sees in the eye-level thumbnail it is bidding on. Its own
+    # ground tone and a distinctly darker kerb band make the prepared spot a shape in the
+    # picture. See ground._slot_pad.
+    "M_SlotPad",
+    "M_SlotKerb",
     "M_Wall",         # background block walls
     "M_WallAlt",      # a second wall tone, so a row of blocks is not one colour
     "M_Roof",
@@ -82,6 +89,13 @@ ENV_MATERIAL_SLOTS = (
 # dozen shadow-casting point lights, and three slots of content is most of this PC's light
 # budget at 1600x900. The environment therefore adds no dynamic lights at all - the sun, the
 # sky light and the fog do all of it, and a lamp head is a bright material.
+#
+# Why the water is not a mirror: M_Water used to be roughness 0.04, i.e. glass. Water that
+# reflects the sky looks right at eye level and is wrong everywhere else - a straight-down
+# capture of Game B's waterfront came out with a **white sea**, and because the white sea is
+# half the frame the histogram exposure then pulled the roofs of every building down to black
+# (brief 016). It is also the one specular surface in a kit whose whole look is flat colour.
+# At 0.26 / 0.34 it is still glossy enough to read as water from the promenade.
 
 MAX_MATERIAL_SLOTS = 8
 
@@ -109,6 +123,8 @@ PALETTES = {
         M_Paving=dict(color="#D9C8A6", roughness=0.78),
         M_PavingAlt=dict(color="#C2AC85", roughness=0.74),
         M_Kerb=dict(color="#A99579", roughness=0.80),
+        M_SlotPad=dict(color="#C3B08C", roughness=0.84),
+        M_SlotKerb=dict(color="#7E6A4E", roughness=0.78),
         M_Wall=dict(color="#E3D6BE", roughness=0.66),
         M_WallAlt=dict(color="#CDBB9C", roughness=0.68),
         M_Roof=dict(color="#A4573C", roughness=0.70),
@@ -118,7 +134,7 @@ PALETTES = {
         M_Timber=dict(color="#A67E54", roughness=0.74),
         M_Foliage=dict(color="#5E8A47", roughness=0.86),
         M_Trunk=dict(color="#6E5940", roughness=0.84),
-        M_Water=dict(color="#6E9BA8", roughness=0.08, alpha=0.70),
+        M_Water=dict(color="#6E9BA8", roughness=0.26, alpha=0.70),
         M_Emissive=dict(color="#FFEFD0", roughness=0.40, emissive=5.0),
     ),
     "cool": dict(
@@ -129,6 +145,8 @@ PALETTES = {
         M_Paving=dict(color="#9AA3A9", roughness=0.74),
         M_PavingAlt=dict(color="#7D868D", roughness=0.72),
         M_Kerb=dict(color="#69727A", roughness=0.80),
+        M_SlotPad=dict(color="#889299", roughness=0.84),
+        M_SlotKerb=dict(color="#454D55", roughness=0.78),
         M_Wall=dict(color="#C3CBD1", roughness=0.62),
         M_WallAlt=dict(color="#9BA7B0", roughness=0.64),
         M_Roof=dict(color="#3A454E", roughness=0.66),
@@ -138,7 +156,7 @@ PALETTES = {
         M_Timber=dict(color="#8B7355", roughness=0.78),
         M_Foliage=dict(color="#4E7A63", roughness=0.86),
         M_Trunk=dict(color="#5A5247", roughness=0.84),
-        M_Water=dict(color="#2E6B8F", roughness=0.04, alpha=0.78),
+        M_Water=dict(color="#2E6B8F", roughness=0.34, alpha=0.78),
         M_Emissive=dict(color="#DCEBFF", roughness=0.40, emissive=5.0),
     ),
 }

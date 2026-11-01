@@ -1,7 +1,9 @@
 #include "DCRuntimeGameMode.h"
 
 #include "DCContentActor.h"
+#include "DCInteractor.h"
 #include "DCSlot.h"
+#include "DCStateStore.h"
 #include "DCStatusHud.h"
 #include "DCSubsystem.h"
 #include "DynamicContents.h"
@@ -52,12 +54,60 @@ namespace
 	constexpr float DCArmOutside = 400.0f;
 	constexpr float DCArmInside = 130.0f;
 
+	/** …and swings over the shoulder for a picture of what the Player is looking at. */
+	constexpr float DCArmShot = 300.0f;
+	constexpr float DCShotRight = 125.0f;
+	constexpr float DCShotUp = 40.0f;
+
 	/** Frames within this of a shutter are thrown out of the frame-time figures. */
 	constexpr double DCShotBlackout = 0.5;
+
+	// ---- the state exit test ------------------------------------------------------------
+
+	/** A whole round, from "content1 is up" to "checked". Generous: a pack takes ~4 s twice. */
+	constexpr float DCStateRoundTimeout = 240.0f;
+
+	/** Any single waiting step. */
+	constexpr float DCStateStepTimeout = 100.0f;
+
+	/** Between two presses of the same button, so each one is a separate press. */
+	constexpr float DCStatePressGap = 0.35f;
+
+	/** Give up on a button that is not doing what it should. */
+	constexpr int32 DCStateMaxPresses = 12;
+
+	/** A 90 degree swing takes about half a second; ten is a hang, not a slow door. */
+	constexpr float DCStateDoorTimeout = 10.0f;
+
+	/**
+	 * How far outside the slot's bounds box the Player walks to let a held swap apply.
+	 *
+	 * It has to clear the **box**, not the building: SWAP PENDING is held while the Player is
+	 * inside the class-limit volume, which for an L slot is 7 m from the middle in every
+	 * direction - and the door itself is only about 4.9 m out, so standing at the door is
+	 * standing inside the box.
+	 */
+	constexpr float DCStateClearExtra = 450.0f;
+
+	/**
+	 * Where the Player stands to use a door: on the slot's centre line, this far clear of the
+	 * front of the piece. Two metres is a step back from a doorway - close enough that the
+	 * prompt is obviously about this door, far enough that an inward-swinging leaf has nobody
+	 * in the way of it.
+	 */
+	constexpr float DCStateFrontClearance = 200.0f;
+
+	/** Further than this from the slot and the walk uses the map's approach path. */
+	constexpr float DCStateFarAway = 2800.0f;
 
 	FString TwoDigits(int32 N)
 	{
 		return FString::Printf(TEXT("%02d"), N);
+	}
+
+	FString BoolWord(bool b)
+	{
+		return b ? TEXT("yes") : TEXT("no");
 	}
 }
 
@@ -146,13 +196,43 @@ void ADCRuntimeGameMode::BeginPlay()
 		bTour = true;
 		TourWarmupSeconds = Warmup;
 	}
-	if ((bAutoShot || bTour) && ShotDir.IsEmpty())
+	// Both scripted runs wait this long before they start, so the backend has filled every
+	// slot and the first picture is of a map that is already doing its job.
+	if (FParse::Value(Cmd, TEXT("DCWarmup="), Warmup) && Warmup > 0.0f)
+	{
+		TourWarmupSeconds = Warmup;
+	}
+
+	bStateTest = FParse::Param(Cmd, TEXT("DCStateTest"));
+	int32 Rounds = 0;
+	if (FParse::Value(Cmd, TEXT("DCStateTest="), Rounds) && Rounds > 0)
+	{
+		bStateTest = true;
+		StateRounds = Rounds;
+	}
+	if (FParse::Value(Cmd, TEXT("DCStateSlot="), Value, false) && !Value.IsEmpty())
+	{
+		StateSlotId = Value.TrimQuotes();
+	}
+	if (FParse::Value(Cmd, TEXT("DCStateBase="), Value, false) && !Value.IsEmpty())
+	{
+		StateBasePiece = Value.TrimQuotes();
+	}
+	if (FParse::Value(Cmd, TEXT("DCStateFile="), Value, false) && !Value.IsEmpty())
+	{
+		StateFilePath = FPaths::ConvertRelativePathToFull(Value.TrimQuotes());
+		IFileManager::Get().MakeDirectory(*FPaths::GetPath(StateFilePath), true);
+		IFileManager::Get().Delete(*StateFilePath, false, true, true);
+	}
+
+	if ((bAutoShot || bTour || bStateTest) && ShotDir.IsEmpty())
 	{
 		ShotDir = FPaths::ConvertRelativePathToFull(FPaths::ProjectSavedDir() / TEXT("DCShots"));
 		IFileManager::Get().MakeDirectory(*ShotDir, true);
 	}
-	// The tour drives its own camera: a shot per arriving piece would fight it for the view.
-	if (bTour)
+	// The tour and the state test drive their own camera and their own Player: a shot per
+	// arriving piece would fight them for the view.
+	if (bTour || bStateTest)
 	{
 		bAutoShot = false;
 	}
@@ -175,10 +255,27 @@ void ADCRuntimeGameMode::BeginPlay()
 	Subsystem->OnSlotFallback.AddUObject(this, &ADCRuntimeGameMode::OnSlotFallback);
 	Subsystem->Start();
 
-	DC_LOG(Log, TEXT("slots in map: %d   auto-shot=%s tour=%s dir=%s   run_seconds=%.0f"),
+	DC_LOG(Log, TEXT("slots in map: %d   auto-shot=%s tour=%s state-test=%s dir=%s   "
+		"run_seconds=%.0f"),
 		Subsystem->GetSlots().Num(), bAutoShot ? TEXT("yes") : TEXT("no"),
 		bTour ? TEXT("yes") : TEXT("no"),
+		bStateTest ? *FString::Printf(TEXT("%d round(s) on %s/%s"), StateRounds, *StateSlotId,
+			*StateBasePiece) : TEXT("no"),
 		ShotDir.IsEmpty() ? TEXT("(none)") : *ShotDir, RunSeconds);
+
+	if (bStateTest)
+	{
+		// The Player is the camera for the whole of this test: everything it photographs is
+		// what somebody standing there would see.
+		if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
+		{
+			PC->SetIgnoreLookInput(true);
+			PC->SetIgnoreMoveInput(false);
+		}
+		StateStepStarted = StartSeconds;
+		StateRoundStarted = StartSeconds;
+		WriteStateFile(TEXT("warming up"));
+	}
 
 	if (bAutoShot || bTour)
 	{
@@ -508,7 +605,7 @@ void ADCRuntimeGameMode::SetViewToPawn()
 	}
 }
 
-void ADCRuntimeGameMode::SetSpringArm(float Length)
+void ADCRuntimeGameMode::SetSpringArm(float Length, float Right, float Up)
 {
 	if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
 	{
@@ -517,12 +614,16 @@ void ADCRuntimeGameMode::SetSpringArm(float Length)
 			if (USpringArmComponent* Arm = Pawn->FindComponentByClass<USpringArmComponent>())
 			{
 				Arm->TargetArmLength = Length;
+				// Over the shoulder for a picture of something the Player is looking at: a
+				// camera straight behind a character puts the character in front of the thing
+				// being photographed, which for a 3 m screen is all of it.
+				Arm->SocketOffset = FVector(0.0f, Right, Up);
 			}
 		}
 	}
 }
 
-void ADCRuntimeGameMode::TourShot(const FString& Label)
+FString ADCRuntimeGameMode::TourShot(const FString& Label)
 {
 	++ShotCount;
 	const FString Name = TwoDigits(ShotCount) + TEXT("_") + Label + TEXT(".png");
@@ -530,6 +631,21 @@ void ADCRuntimeGameMode::TourShot(const FString& Label)
 	FScreenshotRequest::RequestScreenshot(Path, false, false);
 	LastShotSeconds = FPlatformTime::Seconds();
 	DC_LOG(Log, TEXT("SHOT  %s"), *Path);
+	return Name;
+}
+
+void ADCRuntimeGameMode::FaceTowards(const FVector& Where)
+{
+	APlayerController* PC = GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr;
+	const APawn* Pawn = PC ? PC->GetPawn() : nullptr;
+	if (Pawn == nullptr)
+	{
+		return;
+	}
+	FRotator Look = (Where - Pawn->GetActorLocation()).Rotation();
+	Look.Pitch = FMath::Clamp(Look.Pitch, -18.0f, 6.0f);
+	Look.Roll = 0.0f;
+	PC->SetControlRotation(Look);
 }
 
 void ADCRuntimeGameMode::StartWalk(int32 SlotIndex, const TArray<FVector>& Targets,
@@ -805,6 +921,700 @@ void ADCRuntimeGameMode::TickTour(float DeltaSeconds)
 	}
 }
 
+// ============================================================ the state exit test (step 6)
+
+ADCSlot* ADCRuntimeGameMode::StateSlot() const
+{
+	return FindSlot(StateSlotId);
+}
+
+ADCContentActor* ADCRuntimeGameMode::StateContent() const
+{
+	const ADCSlot* Slot = StateSlot();
+	return Slot ? Cast<ADCContentActor>(Slot->GetContentActor()) : nullptr;
+}
+
+UDCInteractor* ADCRuntimeGameMode::StateInteractor() const
+{
+	return Interactor.Get();
+}
+
+void ADCRuntimeGameMode::StateStepTo(EStateStep Next)
+{
+	StateStep = Next;
+	StateStepStarted = FPlatformTime::Seconds();
+	StateSubStep = 0;
+	StatePhase = 0;
+	bStateAimed = false;
+	StateWaitLeft = 0.0f;
+}
+
+bool ADCRuntimeGameMode::StateWalk(const FVector& To, const FString& Leg)
+{
+	TArray<FVector> One;
+	One.Add(To);
+	return StateWalkPath(One, Leg);
+}
+
+bool ADCRuntimeGameMode::StateWalkPath(const TArray<FVector>& Through, const FString& Leg)
+{
+	const ADCSlot* Slot = StateSlot();
+	int32 Index = 0;
+	if (const UDCSubsystem* Subsystem = UDCSubsystem::Get(this))
+	{
+		const TArray<ADCSlot*> Slots = Subsystem->GetSlots();
+		for (int32 i = 0; i < Slots.Num(); ++i)
+		{
+			if (Slots[i] == Slot)
+			{
+				Index = i;
+				break;
+			}
+		}
+	}
+
+	TArray<FVector> Targets;
+	const APlayerController* PC = GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr;
+	const APawn* Pawn = PC ? PC->GetPawn() : nullptr;
+	if (Slot != nullptr && Pawn != nullptr
+		&& FVector::Dist2D(Pawn->GetActorLocation(), Slot->GetActorLocation()) > DCStateFarAway)
+	{
+		// Only when the Player is actually somewhere else: the map's approach path starts at
+		// the spawn, and following it from four metres away would walk back to the plaza.
+		Targets.Append(Slot->ApproachPath);
+	}
+	Targets.Append(Through);
+	StartWalk(Index, Targets, Leg);
+	return true;
+}
+
+void ADCRuntimeGameMode::StateFail(const FString& Why)
+{
+	StateRound.bOk = false;
+	StateRound.Note = Why;
+	DC_LOG(Error, TEXT("STATETEST round %d FAILED: %s"), StateRound.N, *Why);
+	StateStepTo(EStateStep::WalkClearAgain);
+}
+
+void ADCRuntimeGameMode::StateNextRound()
+{
+	StateRound.bOk = StateRound.bSetOk && StateRound.bPendingSeen && StateRound.bSwapped
+		&& StateRound.bStateOk;
+	if (UDCInteractor* Use = StateInteractor())
+	{
+		StateRound.Interactions = Use->GetTotalUses() - StateUsesAtRoundStart;
+	}
+	StateResults.Add(StateRound);
+
+	DC_LOG(Log, TEXT("STATETEST round %d %s  %s %s -> %s %s (%s)  set=%s pending=%s(%.1fs) "
+		"swapped=%s(%.1fs) state=%s  left[%s] expected[%s] found[%s]  %s"),
+		StateRound.N, StateRound.bOk ? TEXT("PASS") : TEXT("FAIL"),
+		*StateRound.BeforePiece, *StateRound.BeforeVersion,
+		*StateRound.AfterPiece, *StateRound.AfterVersion, *StateRound.Kind,
+		*BoolWord(StateRound.bSetOk), *BoolWord(StateRound.bPendingSeen),
+		StateRound.PendingSeconds, *BoolWord(StateRound.bSwapped), StateRound.SwapSeconds,
+		*BoolWord(StateRound.bStateOk), *StateRound.Left.Describe(),
+		*StateRound.Expected.Describe(), *StateRound.Found.Describe(), *StateRound.Note);
+
+	WriteStateFile(TEXT("round done"));
+
+	if (StateRoundIndex >= StateRounds)
+	{
+		StateStepTo(EStateStep::Done);
+		return;
+	}
+	StateRound = FStateRound();
+	StateRoundStarted = FPlatformTime::Seconds();
+	StateStepTo(EStateStep::WaitForContent);
+}
+
+void ADCRuntimeGameMode::TickStateTest(float DeltaSeconds)
+{
+	if (StateStep == EStateStep::Done)
+	{
+		WriteStateFile(TEXT("done"));
+		DC_LOG(Log, TEXT("STATETEST done"));
+		Finish();
+		return;
+	}
+
+	if (StateWaitLeft > 0.0f)
+	{
+		StateWaitLeft -= DeltaSeconds;
+		return;
+	}
+
+	// A walk in progress owns the frame; every walking step advances to the next one when the
+	// Player gets there, which is what keeps the list below a straight sequence.
+	if (WalkTarget >= 0)
+	{
+		if (!TickWalk(DeltaSeconds))
+		{
+			return;
+		}
+		StateStepTo(static_cast<EStateStep>(static_cast<uint8>(StateStep) + 1));
+		return;
+	}
+
+	const double Now = FPlatformTime::Seconds();
+	if (StateRoundIndex > 0 && StateStep != EStateStep::WalkClearAgain
+		&& StateStep != EStateStep::RoundDone
+		&& Now - StateRoundStarted > DCStateRoundTimeout)
+	{
+		StateFail(FString::Printf(TEXT("the round ran past %.0f s at step %d"),
+			DCStateRoundTimeout, static_cast<int32>(StateStep)));
+		return;
+	}
+
+	ADCSlot* Slot = StateSlot();
+	if (Slot == nullptr)
+	{
+		if (Now - StateStepStarted > DCStateStepTimeout)
+		{
+			DC_LOG(Error, TEXT("STATETEST there is no slot %s in this map"), *StateSlotId);
+			StateStepTo(EStateStep::Done);
+		}
+		return;
+	}
+	ADCContentActor* Content = StateContent();
+	UDCInteractor* Use = StateInteractor();
+	FDCInteractionPoint Point;
+
+	switch (StateStep)
+	{
+	// ---------------------------------------------------------------- the round starts
+	case EStateStep::WaitForContent:
+	{
+		if (StateSubStep == 0)
+		{
+			++StateRoundIndex;
+			StateRound = FStateRound();
+			StateRound.N = StateRoundIndex;
+			StateRoundStarted = Now;
+			StateUsesAtRoundStart = Use ? Use->GetTotalUses() : 0;
+			StateSubStep = 1;
+			WriteStateFile(TEXT("waiting"));
+			DC_LOG(Log, TEXT("STATETEST ---- round %d / %d ----"), StateRoundIndex, StateRounds);
+		}
+		if (Content == nullptr || Slot->GetState() != EDCSlotState::Active
+			|| Slot->GetActiveManifest().Piece != StateBasePiece || Content->IsDoorMoving())
+		{
+			if (Now - StateStepStarted > DCStateStepTimeout)
+			{
+				StateFail(FString::Printf(TEXT("%s never came up in %s"), *StateBasePiece,
+					*StateSlotId));
+			}
+			return;
+		}
+		// What the Player finds on walking up to a slot that has been through somebody else's
+		// content since they were last here. If the round before this one ended with a
+		// *different* piece taking the block, then this is the record surviving that - the
+		// state outlived the content it belongs to, which is the other half of the promise.
+		if (StateResults.Num() > 0)
+		{
+			FStateRound& Previous = StateResults.Last();
+			if (Previous.AfterPiece != Previous.BeforePiece && !Previous.AfterPiece.IsEmpty())
+			{
+				Previous.bRestoredOnReturn = Content->GetContentState() == Previous.Left;
+				DC_LOG(Log, TEXT("STATETEST round %d: %s came back to %s wearing %s - the "
+					"record %s a block of somebody else's content"),
+					Previous.N, *StateBasePiece, *StateSlotId,
+					*Content->GetContentState().Describe(),
+					Previous.bRestoredOnReturn ? TEXT("outlived") : TEXT("DID NOT outlive"));
+			}
+		}
+		StateStepTo(EStateStep::WalkToDoor);
+		return;
+	}
+
+	case EStateStep::WalkToDoor:
+	{
+		if (Content == nullptr || !Content->GetInteractionPoint(EDCInteraction::Door, Point))
+		{
+			StateFail(TEXT("the piece that came up has no door"));
+			return;
+		}
+		StateWalk(Slot->GetFrontStandPoint(DCStateFrontClearance), TEXT("to the door"));
+		return;
+	}
+
+	// ---------------------------------------------------------------- the door
+	case EStateStep::CloseDoorIfOpen:
+	{
+		if (Content == nullptr)
+		{
+			StateFail(TEXT("the content went away at the door"));
+			return;
+		}
+		if (StateSubStep == 0)
+		{
+			StateSubStep = 1;
+			if (Content->GetInteractionPoint(EDCInteraction::Door, Point))
+			{
+				FaceTowards(Point.Location);
+			}
+			StateWaitLeft = 0.25f;
+			return;
+		}
+		if (Content->bDoorOpen)
+		{
+			// Every round starts from a door that is shut, so "the Player opens the door" is
+			// a real use of it and not a no-op left over from the round before.
+			if (Use == nullptr || !Use->TryUseKind(EDCInteraction::Door))
+			{
+				StateFail(TEXT("could not close the door from where the Player is standing"));
+				return;
+			}
+			StateWaitLeft = 0.8f;
+			return;
+		}
+		if (Content->IsDoorMoving())
+		{
+			if (Now - StateStepStarted > DCStateDoorTimeout)
+			{
+				StateFail(TEXT("the door never finished closing"));
+			}
+			return;
+		}
+		StateStepTo(EStateStep::OpenDoor);
+		return;
+	}
+
+	case EStateStep::OpenDoor:
+	{
+		if (Content == nullptr)
+		{
+			StateFail(TEXT("the content went away at the door"));
+			return;
+		}
+		if (StateSubStep == 0)
+		{
+			StateSubStep = 1;
+			if (Use == nullptr || !Use->TryUseKind(EDCInteraction::Door))
+			{
+				StateFail(TEXT("could not open the door from where the Player is standing"));
+				return;
+			}
+			StateWaitLeft = 0.9f;
+			return;
+		}
+		if (Content->IsDoorMoving())
+		{
+			if (Now - StateStepStarted > DCStateDoorTimeout)
+			{
+				StateFail(TEXT("the door never finished opening"));
+			}
+			return;
+		}
+		if (!Content->bDoorOpen)
+		{
+			StateFail(TEXT("the door did not open"));
+			return;
+		}
+		StateStepTo(EStateStep::WalkInside);
+		return;
+	}
+
+	case EStateStep::WalkInside:
+	{
+		FTransform Inside;
+		if (Content == nullptr || !Content->GetSocketWorldTransform(TEXT("Inside"), Inside))
+		{
+			StateFail(TEXT("the piece has no inside to walk to"));
+			return;
+		}
+		SetSpringArm(DCArmInside);
+		StateWalk(Inside.GetLocation(), TEXT("in through the door"));
+		return;
+	}
+
+	// ---------------------------------------------------------------- the switches
+	case EStateStep::SetLights:
+	{
+		if (Content == nullptr || Use == nullptr)
+		{
+			StateFail(TEXT("the content went away inside"));
+			return;
+		}
+		if (StateSubStep > DCStateMaxPresses)
+		{
+			StateFail(TEXT("the light switches would not reach the state the round wanted"));
+			return;
+		}
+		// What the round wants next: the baseline (A on, B off) first, then the one thing it
+		// is about, light B on. StatePhase 1 is the baseline, 2 is the target.
+		if (StatePhase == 0)
+		{
+			StatePhase = (Content->bLightAOn && !Content->bLightBOn) ? 2 : 1;
+		}
+		EDCInteraction Want = EDCInteraction::None;
+		if (!Content->bLightAOn)
+		{
+			Want = EDCInteraction::LightA;              // the baseline wants A on
+		}
+		else if (StatePhase == 1 && Content->bLightBOn)
+		{
+			Want = EDCInteraction::LightB;              // ...and B off, to start from
+		}
+		else if (StatePhase == 1)
+		{
+			StatePhase = 2;
+			return;
+		}
+		else if (!Content->bLightBOn)
+		{
+			Want = EDCInteraction::LightB;              // the round's own change
+		}
+		if (Want == EDCInteraction::None)
+		{
+			StateStepTo(EStateStep::WalkToScreen);
+			return;
+		}
+		// Look at it, *then* press it a tick later. The prompt is chosen from the camera's
+		// view point, and the camera is a spring arm behind the Player that catches up a
+		// frame later - so pressing in the same tick as the turn would have the prompt still
+		// showing whatever was in front of the Player before they turned.
+		if (!bStateAimed)
+		{
+			if (Content->GetInteractionPoint(Want, Point))
+			{
+				FaceTowards(Point.Location);
+			}
+			bStateAimed = true;
+			StateWaitLeft = DCStatePressGap;
+			return;
+		}
+		if (!Use->TryUseKind(Want))
+		{
+			StateFail(FString::Printf(TEXT("switch %s is not in reach from inside the door"),
+				DCInteractionName(Want)));
+			return;
+		}
+		++StateSubStep;
+		bStateAimed = false;
+		StateWaitLeft = DCStatePressGap;
+		return;
+	}
+
+	// ---------------------------------------------------------------- the screen
+	case EStateStep::WalkToScreen:
+	{
+		if (Content == nullptr || !Content->GetInteractionPoint(EDCInteraction::Screen, Point))
+		{
+			StateFail(TEXT("the piece has no screen"));
+			return;
+		}
+		StateWalk(Point.StandPoint, TEXT("across to the screen"));
+		return;
+	}
+
+	case EStateStep::SetScreen:
+	{
+		if (Content == nullptr || Use == nullptr)
+		{
+			StateFail(TEXT("the content went away at the screen"));
+			return;
+		}
+		if (StatePhase == 0)
+		{
+			if (Content->GetInteractionPoint(EDCInteraction::Screen, Point))
+			{
+				FaceTowards(Point.Location);
+			}
+			StatePhase = 1;
+			StateWaitLeft = 0.25f;
+			return;
+		}
+		if (StateSubStep > DCStateMaxPresses)
+		{
+			StateFail(TEXT("the screen would not reach image 3"));
+			return;
+		}
+		// Baseline first (image 1), then the round's target (image 3). Without the baseline
+		// a round that started with the screen already on 3 - because the last round's state
+		// was restored - would press the button no times and prove nothing.
+		const int32 Want = (StatePhase == 1) ? 1 : 3;
+		if (Content->ScreenIndex != Want)
+		{
+			if (!Use->TryUseKind(EDCInteraction::Screen))
+			{
+				StateFail(TEXT("the screen is not in reach"));
+				return;
+			}
+			++StateSubStep;
+			StateWaitLeft = DCStatePressGap;
+			return;
+		}
+		if (StatePhase == 1)
+		{
+			StatePhase = 2;
+			return;
+		}
+		StateStepTo(EStateStep::ShotSet);
+		return;
+	}
+
+	case EStateStep::ShotSet:
+	{
+		if (Content == nullptr)
+		{
+			StateFail(TEXT("the content went away before the picture"));
+			return;
+		}
+		if (StateSubStep == 0)
+		{
+			StateSubStep = 1;
+			SetSpringArm(DCArmShot, DCShotRight, DCShotUp);
+			if (Content->GetInteractionPoint(EDCInteraction::Screen, Point))
+			{
+				FaceTowards(Point.Location);
+			}
+			StateWaitLeft = DCSettleSeconds;
+			return;
+		}
+		StateRound.Shots.Add(TourShot(FString::Printf(TEXT("r%02d_set"), StateRound.N)));
+		StateWaitLeft = DCAfterShotSeconds;
+		StateStepTo(EStateStep::Arm);
+		return;
+	}
+
+	// ---------------------------------------------------------------- hand over to the script
+	case EStateStep::Arm:
+	{
+		if (Content == nullptr)
+		{
+			StateFail(TEXT("the content went away before the round was armed"));
+			return;
+		}
+		StateRound.Left = Content->GetContentState();
+		StateRound.BeforePiece = Slot->GetActiveManifest().Piece;
+		StateRound.BeforeVersion = Slot->GetActiveManifest().Version;
+		StateRound.BeforeAllocKey = Slot->GetActiveAllocKey();
+		StateRound.bSetOk = StateRound.Left.bDoorOpen && StateRound.Left.bLightBOn
+			&& StateRound.Left.ScreenIndex == 3 && Slot->IsPlayerInside();
+		if (!StateRound.bSetOk)
+		{
+			StateFail(FString::Printf(TEXT("the Player did not end up with what the round "
+				"wanted: %s, inside=%s"), *StateRound.Left.Describe(),
+				*BoolWord(Slot->IsPlayerInside())));
+			return;
+		}
+		// The driving script is watching this file: it pushes a new version, or ends the
+		// block, the moment it sees "armed". The game is told neither which it was nor what
+		// to expect - it works that out from whatever turns up.
+		WriteStateFile(TEXT("armed"));
+		DC_LOG(Log, TEXT("STATETEST round %d armed: %s %s is up, the Player is inside with %s"),
+			StateRound.N, *StateRound.BeforePiece, *StateRound.BeforeVersion,
+			*StateRound.Left.Describe());
+		StateStepTo(EStateStep::WaitPending);
+		return;
+	}
+
+	case EStateStep::WaitPending:
+	{
+		if (Slot->GetState() == EDCSlotState::SwapPending)
+		{
+			StateRound.bPendingSeen = true;
+			StateRound.PendingSeconds = static_cast<float>(Now - StateStepStarted);
+			DC_LOG(Log, TEXT("STATETEST round %d SWAP PENDING after %.1f s; %s %s is still up"),
+				StateRound.N, StateRound.PendingSeconds, *Slot->GetActiveManifest().Piece,
+				*Slot->GetActiveManifest().Version);
+			StateStepTo(EStateStep::WalkToInside2);
+			return;
+		}
+		if (Slot->GetActiveAllocKey() != StateRound.BeforeAllocKey
+			&& !StateRound.BeforeAllocKey.IsEmpty())
+		{
+			StateFail(TEXT("the content changed without ever being held as SWAP PENDING - "
+				"the Player was not inside the bounds box"));
+			return;
+		}
+		if (Now - StateStepStarted > DCStateStepTimeout)
+		{
+			StateFail(TEXT("nothing arrived to swap in"));
+		}
+		return;
+	}
+
+	case EStateStep::WalkToInside2:
+	{
+		FTransform Inside;
+		if (Content == nullptr || !Content->GetSocketWorldTransform(TEXT("Inside"), Inside))
+		{
+			StateStepTo(EStateStep::ShotPending);
+			return;
+		}
+		StateWalk(Inside.GetLocation(), TEXT("back to the door, still inside"));
+		return;
+	}
+
+	case EStateStep::ShotPending:
+	{
+		if (StateSubStep == 0)
+		{
+			StateSubStep = 1;
+			SetSpringArm(DCArmShot, DCShotRight, DCShotUp);
+			if (Content != nullptr
+				&& Content->GetInteractionPoint(EDCInteraction::Screen, Point))
+			{
+				FaceTowards(Point.Location);
+			}
+			StateWaitLeft = DCSettleSeconds;
+			return;
+		}
+		StateRound.Shots.Add(TourShot(FString::Printf(TEXT("r%02d_pending"), StateRound.N)));
+		StateWaitLeft = DCAfterShotSeconds;
+		StateStepTo(EStateStep::WalkClear);
+		return;
+	}
+
+	// ---------------------------------------------------------------- walk out, let it swap
+	case EStateStep::WalkClear:
+		SetSpringArm(DCArmOutside);
+		StateWalkOutStarted = Now;
+		StateWalk(Slot->GetDoorApproachPoint(DCStateClearExtra), TEXT("out of the bounds box"));
+		return;
+
+	case EStateStep::WaitSwapped:
+	{
+		if (Slot->GetState() == EDCSlotState::Active && Slot->HasContent()
+			&& Slot->GetActiveAllocKey() != StateRound.BeforeAllocKey)
+		{
+			ADCContentActor* Now2 = StateContent();
+			StateRound.bSwapped = true;
+			// Measured from the moment the Player set off out of the bounds box, not from
+			// the moment this step started: the held swap often applies while they are still
+			// walking, which is the point.
+			StateRound.SwapSeconds = static_cast<float>(Now - StateWalkOutStarted);
+			StateRound.AfterPiece = Slot->GetActiveManifest().Piece;
+			StateRound.AfterVersion = Slot->GetActiveManifest().Version;
+			StateRound.AfterAllocKey = Slot->GetActiveAllocKey();
+			StateRound.Found = Now2 ? Now2->GetContentState() : FDCContentState();
+
+			// The rule under test, decided by the game from what arrived: the same content,
+			// whatever its version, comes back wearing what the Player left; a different
+			// piece gets its own defaults and must not be wearing somebody else's state.
+			const bool bSameContent = StateRound.AfterPiece == StateRound.BeforePiece;
+			StateRound.Kind = bSameContent ? TEXT("same content") : TEXT("different content");
+			StateRound.Expected = bSameContent ? StateRound.Left : FDCContentState();
+			StateRound.bStateOk = StateRound.Found == StateRound.Expected;
+			if (!bSameContent && StateRound.Found == StateRound.Left)
+			{
+				StateRound.bStateOk = false;
+				StateRound.Note = TEXT("a different piece came up wearing the state the "
+					"Player left on the last one");
+			}
+			DC_LOG(Log, TEXT("STATETEST round %d swapped after %.1f s: %s %s -> %s %s (%s)  "
+				"found[%s] expected[%s] -> %s"),
+				StateRound.N, StateRound.SwapSeconds, *StateRound.BeforePiece,
+				*StateRound.BeforeVersion, *StateRound.AfterPiece, *StateRound.AfterVersion,
+				*StateRound.Kind, *StateRound.Found.Describe(),
+				*StateRound.Expected.Describe(),
+				StateRound.bStateOk ? TEXT("KEPT") : TEXT("WRONG"));
+			StateStepTo(EStateStep::ShotSwapped);
+			return;
+		}
+		if (Now - StateStepStarted > DCStateStepTimeout)
+		{
+			StateFail(TEXT("the held swap never applied after the Player walked out"));
+		}
+		return;
+	}
+
+	case EStateStep::ShotSwapped:
+	{
+		if (StateSubStep == 0)
+		{
+			StateSubStep = 1;
+			FaceTowards(Slot->GetContentCentre());
+			StateWaitLeft = DCSettleSeconds;
+			return;
+		}
+		StateRound.Shots.Add(TourShot(FString::Printf(TEXT("r%02d_swapped"), StateRound.N)));
+		StateWaitLeft = DCAfterShotSeconds;
+		StateStepTo(EStateStep::WalkBackToDoor);
+		return;
+	}
+
+	// ---------------------------------------------------------------- walk back in and look
+	case EStateStep::WalkBackToDoor:
+	{
+		if (Content == nullptr || !Content->GetInteractionPoint(EDCInteraction::Door, Point))
+		{
+			StateStepTo(EStateStep::ShotBack);
+			return;
+		}
+		StateWalk(Slot->GetFrontStandPoint(DCStateFrontClearance), TEXT("back to the door"));
+		return;
+	}
+
+	case EStateStep::WalkBackInside:
+	{
+		FTransform Inside;
+		// Only through a door that is already open. Opening a closed one would be the Player
+		// *changing* the piece they came back to look at - and on a round where somebody
+		// else's content took the block, that change would be saved and would turn up in the
+		// next round as a state nobody set.
+		if (Content == nullptr || !Content->bDoorOpen
+			|| !Content->GetSocketWorldTransform(TEXT("Inside"), Inside))
+		{
+			StateStepTo(EStateStep::ShotBack);
+			return;
+		}
+		SetSpringArm(DCArmInside);
+		{
+			// In through the door and on across to the screen, so the picture of "exactly as
+			// they left it" actually has the screen in it.
+			TArray<FVector> Targets;
+			Targets.Add(Inside.GetLocation());
+			if (Content->GetInteractionPoint(EDCInteraction::Screen, Point))
+			{
+				Targets.Add(Point.StandPoint);
+			}
+			StateWalkPath(Targets, TEXT("back in through the door"));
+		}
+		return;
+	}
+
+	case EStateStep::ShotBack:
+	{
+		if (StateSubStep == 0)
+		{
+			StateSubStep = 1;
+			SetSpringArm(DCArmShot, DCShotRight, DCShotUp);
+			if (Content != nullptr
+				&& Content->GetInteractionPoint(EDCInteraction::Screen, Point))
+			{
+				FaceTowards(Point.Location);
+			}
+			else
+			{
+				FaceTowards(Slot->GetContentCentre());
+			}
+			StateWaitLeft = DCSettleSeconds;
+			return;
+		}
+		StateRound.Shots.Add(TourShot(FString::Printf(TEXT("r%02d_back"), StateRound.N)));
+		StateWaitLeft = DCAfterShotSeconds;
+		StateStepTo(EStateStep::WalkClearAgain);
+		return;
+	}
+
+	case EStateStep::WalkClearAgain:
+		SetSpringArm(DCArmOutside);
+		StateWalk(Slot->GetDoorApproachPoint(DCStateClearExtra), TEXT("clear of the slot"));
+		return;
+
+	case EStateStep::RoundDone:
+		StateNextRound();
+		return;
+
+	default:
+		StateStepTo(EStateStep::Done);
+		return;
+	}
+}
+
 // ===================================================================== tick
 
 void ADCRuntimeGameMode::Tick(float DeltaSeconds)
@@ -826,6 +1636,20 @@ void ADCRuntimeGameMode::Tick(float DeltaSeconds)
 		FrameMs.Add(DeltaSeconds * 1000.0f);
 	}
 
+	// The interaction component belongs to the plugin, not to the game module's pawn
+	// Blueprint, so the game mode puts it on whatever pawn the Player ends up driving. The
+	// pawn arrives a frame or two after BeginPlay, hence the check every tick until it does.
+	if (!Interactor.IsValid())
+	{
+		if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
+		{
+			if (APawn* Pawn = PC->GetPawn())
+			{
+				Interactor = UDCInteractor::EnsureOn(Pawn);
+			}
+		}
+	}
+
 	if (bTour)
 	{
 		if (!bTourBuilt)
@@ -837,6 +1661,14 @@ void ADCRuntimeGameMode::Tick(float DeltaSeconds)
 			return;
 		}
 		TickTour(DeltaSeconds);
+	}
+	else if (bStateTest)
+	{
+		if (Now - StartSeconds < TourWarmupSeconds)
+		{
+			return;                       // let the slots fill from the backend first
+		}
+		TickStateTest(DeltaSeconds);
 	}
 }
 
@@ -990,6 +1822,169 @@ void ADCRuntimeGameMode::WriteTourFile()
 	DC_LOG(Log, TEXT("wrote %s"), *Path);
 }
 
+void ADCRuntimeGameMode::WriteStateFile(const TCHAR* Phase)
+{
+	if (StateFilePath.IsEmpty())
+	{
+		return;
+	}
+	const ADCSlot* Slot = StateSlot();
+	const ADCContentActor* Content = StateContent();
+
+	FString Text;
+	const TSharedRef<TJsonWriter<TCHAR>> W = TJsonWriterFactory<TCHAR>::Create(&Text);
+	W->WriteObjectStart();
+	W->WriteValue(TEXT("phase"), Phase);
+	W->WriteValue(TEXT("round"), StateRoundIndex);
+	W->WriteValue(TEXT("rounds"), StateRounds);
+	W->WriteValue(TEXT("slot"), StateSlotId);
+	W->WriteValue(TEXT("base_piece"), StateBasePiece);
+	W->WriteValue(TEXT("step"), static_cast<int32>(StateStep));
+	W->WriteValue(TEXT("updated_utc"), FDateTime::UtcNow().ToIso8601());
+	W->WriteValue(TEXT("uptime_s"), FPlatformTime::Seconds() - StartSeconds);
+	W->WriteValue(TEXT("slot_state"), Slot ? DCSlotStateName(Slot->GetState()) : TEXT("-"));
+	W->WriteValue(TEXT("piece"), Slot ? Slot->GetActiveManifest().Piece : FString());
+	W->WriteValue(TEXT("version"), Slot ? Slot->GetActiveManifest().Version : FString());
+	W->WriteValue(TEXT("alloc_key"), Slot ? Slot->GetActiveAllocKey() : FString());
+	W->WriteValue(TEXT("player_inside"), Slot ? Slot->IsPlayerInside() : false);
+	if (Content != nullptr)
+	{
+		const FDCContentState State = Content->GetContentState();
+		W->WriteObjectStart(TEXT("state"));
+		W->WriteValue(TEXT("light_a_on"), State.bLightAOn);
+		W->WriteValue(TEXT("light_b_on"), State.bLightBOn);
+		W->WriteValue(TEXT("door_open"), State.bDoorOpen);
+		W->WriteValue(TEXT("screen_image_index"), State.ScreenIndex);
+		W->WriteObjectEnd();
+	}
+	W->WriteValue(TEXT("passed"), StateResults.FilterByPredicate(
+		[](const FStateRound& R) { return R.bOk; }).Num());
+	W->WriteValue(TEXT("finished"), StateResults.Num());
+	W->WriteObjectEnd();
+	W->Close();
+
+	// Written aside and moved into place, like the status file: the script watching this
+	// never reads half of one.
+	const FString Temp = StateFilePath + TEXT(".tmp");
+	if (FFileHelper::SaveStringToFile(Text, *Temp,
+		FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM))
+	{
+		IFileManager::Get().Move(*StateFilePath, *Temp, true, true);
+	}
+}
+
+void ADCRuntimeGameMode::WriteStateResultFile()
+{
+	if (ShotDir.IsEmpty() || !bStateTest)
+	{
+		return;
+	}
+	const UDCInteractor* Use = StateInteractor();
+	const UDCStateStore* Store = UDCStateStore::Get(this);
+
+	auto WriteState = [](const TSharedRef<TJsonWriter<TCHAR>>& W, const TCHAR* Name,
+		const FDCContentState& S)
+	{
+		W->WriteObjectStart(Name);
+		W->WriteValue(TEXT("light_a_on"), S.bLightAOn);
+		W->WriteValue(TEXT("light_b_on"), S.bLightBOn);
+		W->WriteValue(TEXT("door_open"), S.bDoorOpen);
+		W->WriteValue(TEXT("screen_image_index"), S.ScreenIndex);
+		W->WriteObjectEnd();
+	};
+
+	FString Text;
+	const TSharedRef<TJsonWriter<TCHAR>> W = TJsonWriterFactory<TCHAR>::Create(&Text);
+	W->WriteObjectStart();
+	W->WriteValue(TEXT("map"), GetWorld()->GetMapName());
+	W->WriteValue(TEXT("build"), UDCSubsystem::GetBuildConfigName());
+	W->WriteValue(TEXT("slot"), StateSlotId);
+	W->WriteValue(TEXT("base_piece"), StateBasePiece);
+	W->WriteValue(TEXT("rounds_asked"), StateRounds);
+	W->WriteValue(TEXT("rounds_run"), StateResults.Num());
+	W->WriteValue(TEXT("passed"), StateResults.FilterByPredicate(
+		[](const FStateRound& R) { return R.bOk; }).Num());
+	W->WriteValue(TEXT("seconds"), FPlatformTime::Seconds() - StartSeconds);
+	if (Use != nullptr)
+	{
+		W->WriteObjectStart(TEXT("interaction"));
+		W->WriteValue(TEXT("uses"), Use->GetTotalUses());
+		W->WriteValue(TEXT("door"), Use->GetUseCount(EDCInteraction::Door));
+		W->WriteValue(TEXT("light_a"), Use->GetUseCount(EDCInteraction::LightA));
+		W->WriteValue(TEXT("light_b"), Use->GetUseCount(EDCInteraction::LightB));
+		W->WriteValue(TEXT("screen"), Use->GetUseCount(EDCInteraction::Screen));
+		W->WriteValue(TEXT("prompt_agreed"), Use->GetPromptAgreed());
+		W->WriteValue(TEXT("prompt_checked"), Use->GetPromptChecked());
+		W->WriteValue(TEXT("reach_cm"), Use->GetReach());
+		W->WriteObjectEnd();
+	}
+
+	W->WriteArrayStart(TEXT("rounds"));
+	for (const FStateRound& R : StateResults)
+	{
+		W->WriteObjectStart();
+		W->WriteValue(TEXT("n"), R.N);
+		W->WriteValue(TEXT("ok"), R.bOk);
+		W->WriteValue(TEXT("kind"), R.Kind);
+		W->WriteValue(TEXT("before_piece"), R.BeforePiece);
+		W->WriteValue(TEXT("before_version"), R.BeforeVersion);
+		W->WriteValue(TEXT("before_alloc_key"), R.BeforeAllocKey);
+		W->WriteValue(TEXT("after_piece"), R.AfterPiece);
+		W->WriteValue(TEXT("after_version"), R.AfterVersion);
+		W->WriteValue(TEXT("after_alloc_key"), R.AfterAllocKey);
+		W->WriteValue(TEXT("set_ok"), R.bSetOk);
+		W->WriteValue(TEXT("swap_pending_seen"), R.bPendingSeen);
+		W->WriteValue(TEXT("swap_pending_s"), R.PendingSeconds);
+		W->WriteValue(TEXT("swapped"), R.bSwapped);
+		W->WriteValue(TEXT("swap_s"), R.SwapSeconds);
+		W->WriteValue(TEXT("state_ok"), R.bStateOk);
+		W->WriteValue(TEXT("restored_on_return"), R.bRestoredOnReturn);
+		W->WriteValue(TEXT("interactions_so_far"), R.Interactions);
+		W->WriteValue(TEXT("note"), R.Note);
+		WriteState(W, TEXT("left"), R.Left);
+		WriteState(W, TEXT("expected"), R.Expected);
+		WriteState(W, TEXT("found"), R.Found);
+		W->WriteArrayStart(TEXT("shots"));
+		for (const FString& Shot : R.Shots)
+		{
+			W->WriteValue(Shot);
+		}
+		W->WriteArrayEnd();
+		W->WriteObjectEnd();
+	}
+	W->WriteArrayEnd();
+
+	W->WriteArrayStart(TEXT("state_store"));
+	if (Store != nullptr)
+	{
+		for (const FString& Line : Store->DescribeAll())
+		{
+			W->WriteValue(Line);
+		}
+	}
+	W->WriteArrayEnd();
+
+	W->WriteArrayStart(TEXT("slots"));
+	if (const UDCSubsystem* Subsystem = UDCSubsystem::Get(this))
+	{
+		for (const ADCSlot* Slot : Subsystem->GetSlots())
+		{
+			W->WriteObjectStart();
+			W->WriteValue(TEXT("slot"), Slot->SlotId.ToString());
+			W->WriteValue(TEXT("visits"), Slot->GetVisitCount());
+			W->WriteValue(TEXT("dwell_s"), Slot->GetTotalDwellSeconds());
+			W->WriteObjectEnd();
+		}
+	}
+	W->WriteArrayEnd();
+	W->WriteObjectEnd();
+	W->Close();
+
+	const FString Path = ShotDir / TEXT("dc_state_test.json");
+	FFileHelper::SaveStringToFile(Text, *Path, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM);
+	DC_LOG(Log, TEXT("wrote %s"), *Path);
+}
+
 void ADCRuntimeGameMode::Finish()
 {
 	if (bFinished)
@@ -1004,6 +1999,8 @@ void ADCRuntimeGameMode::Finish()
 	}
 	WriteResultFile();
 	WriteTourFile();
+	WriteStateResultFile();
+	WriteStateFile(TEXT("finished"));
 
 	DC_LOG(Log, TEXT("---------------- run done after %.0f s, %d shot(s) ----------------"),
 		FPlatformTime::Seconds() - StartSeconds, ShotCount);

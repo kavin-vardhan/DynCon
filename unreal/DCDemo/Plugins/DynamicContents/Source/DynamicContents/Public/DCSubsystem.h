@@ -133,6 +133,16 @@ public:
 	/** The base game owns the eight emblems; a brand picks one by name. */
 	UTexture2D* GetEmblemTexture(const FString& Emblem);
 
+	/**
+	 * The base game also owns the screen images a piece cycles through (art/samples/screens,
+	 * imported to /Game/DCCore/Screens/T_DC_Screen_<n>). 1-based; nullptr when the set is not
+	 * in this build, which simply leaves a pack's own default image on the screen.
+	 */
+	UTexture2D* GetScreenImage(int32 Index);
+
+	/** How many there are. 0 in a build without the set. */
+	int32 GetScreenImageCount();
+
 	void QueueTelemetry(const FString& Type, const FString& SlotId, const FString& AllocKey,
 		double Value);
 
@@ -282,6 +292,11 @@ private:
 
 	UPROPERTY(Transient)
 	TMap<FString, TObjectPtr<UTexture2D>> Emblems;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UTexture2D>> ScreenImages;
+
+	bool bScreenImagesLoaded = false;
 
 	FDCPackCache Cache;
 

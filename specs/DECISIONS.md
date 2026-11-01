@@ -202,3 +202,57 @@ decisions. Each line: date · decision · why. Kavin can overturn any of these; 
   screen with a header and a hint bar.
 - 2026-11-01 · The attract screen **re-opens the lots whenever `/lots` comes back empty**. · A reset wipes them, and
   the next visitor's attract screen would otherwise show an empty auction panel until somebody bid.
+
+- 2026-11-01 · The Player's `use` button is **Enhanced Input**, bound by the plugin itself:
+  `UDCInteractor` pushes its own `UEnhancedInputComponent` onto the player controller's
+  input stack and adds its own mapping context. · A Shipping build with Enhanced Input on
+  processes **no legacy key bindings at all** (`UEnhancedPlayerInput::EvaluateInputComponentDelegates`
+  only looks at enhanced components, and debug key bindings are compiled out of Shipping), so
+  `InputComponent->BindKey` was never going to work. Binding on the controller rather than on
+  the pawn keeps the plugin independent of the game module's Blueprint.
+- 2026-11-01 · The **keys** (`E` and the pad's bottom face button) live in C++, not in an
+  asset; only the `UInputAction` is an asset (`/Game/Input/Actions/IA_DCUse`, built by
+  `unreal\Tools\core_extras.py`). · `FKey`'s `KeyName` is a private UPROPERTY, so the
+  editor's Python cannot construct one at all - and the keys are better off next to the binding
+  that answers them than in an asset nobody opens.
+- 2026-11-01 · `UDCInteractor` picks what the prompt shows by **distance x aim**
+  (`score = distance x (1 + 3(1 - cos))`), not by distance alone. · The two light switches are
+  38 cm apart on one wall; from a metre and a half away distance cannot tell them apart and the
+  14 degrees between them easily can.
+- 2026-11-01 · The scripted exit test uses `TryUseKind(kind)` rather than the prompt's own
+  choice, and **counts how often the prompt already agreed**. · The action path is identical -
+  same reach test, same `ADCContentActor::Interact`, same telemetry; what it skips is only
+  which of two things 38 cm apart a human's head happened to be pointing at, and counting the
+  agreement is what still says something about that.
+- 2026-11-01 · State is kept in `UDCStateStore` keyed by **slot + content id**, with the
+  schema version stored in the record and checked on restore (mismatch → the record is
+  discarded and logged). · The key must not contain the version, because "version 2 picks up
+  where version 1 left off" is the whole promise; keying on the schema instead of checking it
+  would make a mismatch invisible rather than reportable.
+- 2026-11-01 · The **door swings** (190 deg/s) and nothing else about the state is animated.
+  `ADCContentActor` ticks only while a leaf is moving. · The door is the one thing a Player
+  is standing next to when they press the button; an instant 90 degrees reads as a glitch. A
+  slot nobody is touching must still cost no tick.
+- 2026-11-01 · The screen image set is **base-game content** (`/Game/DCCore/Screens/T_DC_Screen_1..4`
+  from `art/samples/screens/`), handed to a piece at spawn by `UDCSubsystem::GetScreenImage`;
+  a pack carries no screen image. · It is a runtime input exactly like the brand colour and the
+  emblem, and it is what lets "which image is showing" survive a content update - the number
+  survives, and the number is all the piece keeps.
+- 2026-11-01 · `POST /admin/end-block {game, slot, region}` pulls the live allocation's
+  `end_at` back to now; nothing else changes, so the ordinary rule (step 3: the region's
+  rival) takes over. · The counterpart of `/admin/close-auction` for the other timestamp
+  rule. "The block ends while the Player is inside" is a demo beat and an exit-test case, and
+  neither can wait three real minutes for it.
+- 2026-11-01 · After a swap the scripted test **walks back in only through a door that is
+  already open**. · Opening a closed one would be the Player changing the piece they came back
+  to look at, and on a round where somebody else's content took the block that change would be
+  saved and would turn up in the next round as a state nobody set.
+- 2026-11-01 · The slot pad gets **its own two material slots** (`M_SlotPad`, `M_SlotKerb`)
+  rather than the plaza's paving and kerb. · The slot-map tool's thumbnail hides whatever is
+  standing in the slot, so what a brand is shown of the spot it is bidding on is the empty pad -
+  and in the paving's own colours that was a patch of paving.
+- 2026-11-01 · The slot-map tool's **plan view turns the reflection environment and specular
+  off**, and has its own exposure bias. · Game B's water is a roughness-0.04 surface; from
+  straight above, with every other reflection method already off, the sky light's cubemap was
+  all it had to reflect - so the sea came out white, and because the white sea is half the frame
+  the histogram exposure then pulled the roofs down to black.

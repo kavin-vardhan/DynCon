@@ -782,6 +782,34 @@ class Service:
                 "reason": showing.reason, "is_default": showing.is_default,
                 "pack_id": showing.pack_id}
 
+    def end_block(self, game: str, slot: str, region: str) -> dict[str, Any]:
+        """Booth staff / a rehearsal: end the block that is live in this slot **now**.
+
+        The same thing `POST /admin/close-auction` is for the auction clock — a way to make a
+        timestamp-driven rule fire on demand instead of waiting three real minutes for it. The
+        allocation's `end_at` is pulled back to now and nothing else is touched, so what
+        happens next is the ordinary rule: `rules.resolve_showing` falls through to step 3 and
+        the region's rival — the next winner — takes the block.
+
+        It is also how the state exit test makes "the block ends while the Player is inside"
+        happen at a known moment (plan v6 §14 step 6).
+        """
+        self._require_slot(game, slot, region)
+        now = self.now()
+        active = self.repo.active_allocation(game, slot, region, now)
+        if not active:
+            raise ServiceError(404, f"Nothing is allocated to slot {slot} in that region "
+                                    f"right now, so there is no block to end.")
+        before = self.describe(self.showing(game, slot, region))
+        self.repo.end_allocation(int(active["id"]), now)
+        after = self.describe(self.showing(game, slot, region))
+        log.info("ended block %s on %s/%s/%s: %s -> %s", active["id"], game, slot, region,
+                 (before or {}).get("piece"), (after or {}).get("piece"))
+        return {"ok": True, "game": game, "slot": slot, "region": region,
+                "allocation_id": int(active["id"]), "kind": active["kind"],
+                "ended_at": iso(now), "was": before, "now": after,
+                "server_time": iso(now)}
+
     def set_paused(self, paused: bool) -> dict[str, Any]:
         n = self.repo.set_paused_all_visitor(paused)
         return {"paused": bool(paused), "allocations": n}

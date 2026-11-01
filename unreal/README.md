@@ -1,8 +1,9 @@
 # The Unreal side — what is here and how to run it
 
 *Written 2026-10-26 (brief 004), rewritten the same day for brief 006, and extended
-2026-11-01 with the runtime client (brief 011), the two maps and the Player (brief 012), and
-the slot-map tool (brief 013). Plain-words guide for a cold reader. Status of each item is
+2026-11-01 with the runtime client (brief 011), the two maps and the Player (brief 012), the
+slot-map tool (brief 013), and the interaction, the state store and the waypoint marker
+(brief 016). Plain-words guide for a cold reader. Status of each item is
 marked **DONE / QUEUED / FUTURE**. The spec this implements is `specs/unreal_spec_v1.md`.*
 
 ## What this folder is
@@ -21,7 +22,8 @@ round's screenshots showed was wrong.
 | `DCDemo/Config/` | map + game mode, the chunk settings that make content packs | DONE |
 | `DCDemo/Source/DCDemo/` | the renamed third-person template (character, controller, game mode) | DONE |
 | `DCDemo/Plugins/DynamicContents/` | the plugin. Two modules: the **runtime** one (file log, pack mounter, slot lifecycle, content actor, backend client, status strip, two run drivers) and the **editor** one (the slot-map tool) | DONE |
-| `DCDemo/Content/DCCore/` | what the base game owns: master materials, the 8 emblems, the sample screen image | DONE |
+| `DCDemo/Content/DCCore/` | what the base game owns: master materials, the 8 emblems, the sample screen image and the **4-image screen set** a piece cycles through | DONE |
+| `DCDemo/Content/Input/` | the template's input assets plus **`IA_DCUse`**, the Player's "use" action (the keys that trigger it are in `UDCInteractor`) | DONE |
 | `DCDemo/Content/DCContent/<id>_<v>/` | one folder per piece-version = one content pack | DONE, all 13 |
 | `DCDemo/Content/Maps/Spike` | brief 006's pack round-trip map: ground, sun, sky, player start, one slot per size class | DONE |
 | `DCDemo/Content/Maps/DCRuntime` | brief 011's runtime-client map: the same ground and light, slots **A1 (L), A2 (T), A3 (S)** | DONE |
@@ -37,6 +39,7 @@ round's screenshots showed was wrong.
 | `spike/shots/011/runtime_contact.png` | the contact sheet of brief 011's exit-test run | DONE |
 | `spike/shots/012/maps_contact.png` | the contact sheet of both maps' walk-and-photograph runs | DONE |
 | `spike/shots/013/` | the slot-map tool's evidence: both captures with the pins drawn on them, the five thumbnails, and the frame times before and after | DONE |
+| `spike/shots/016/state_contact.png` | the contact sheet of the state-across-a-swap exit test | DONE |
 
 ## The five steps, in order
 
@@ -79,6 +82,11 @@ photograph one map with the server up) and **`make_maps_sheet.py`**.
 Three more belong to the slot-map tool: **`register_games.ps1`** (server up, both maps
 captured and registered), **`register_games.py`** (the editor Python it runs) and
 **`make_slotmap_sheet.py`** (draw the pins on the captures and look at them).
+
+Two belong to the state exit test: **`state_exit_test.py`** (plan v6 §14 step 6 — the server,
+the packaged game and ten rounds of step 9) and **`make_state_sheet.py`**. And
+**`core_extras.py`** is editor Python that both `import_content.py` and `make_maps.py` call,
+so the base game's screen-image set and the Player's input action are defined once.
 
 ## How a content pack works
 
@@ -223,11 +231,12 @@ checks it and puts it there, while it is running. Nothing is handed to it.
 | `UDCSubsystem` (GameInstanceSubsystem) | backend address and region from the command line; `GET /client-config` once; `GET /changes` every 1.5 s; `GET /resolve` and the signature check; the downloads, the SHA-256 of every file, the LRU pack cache, the mounting; telemetry batching; the status file | DONE |
 | `ADCSlot` | the slot lifecycle exactly as the figure — IDLE → RESOLVING → DOWNLOADING → VERIFYING → MOUNTING → ACTIVE, with SWAP PENDING while the Player is inside the bounds box and ERROR / FALLBACK with backoff | DONE |
 | `ADCRuntimeGameMode` | starts the client, draws the status strip, and (for a test) photographs every change | DONE |
-| `ADCStatusHud` | the status strip: build · uptime · restarts · content loading screens, plus a line per slot | DONE |
+| `ADCStatusHud` | the status strip, the interaction prompt and the waypoint marker | DONE |
 | `FDCCrypto` | RS256 over the signed payload, SHA-256 per file | DONE |
 | `FDCPackCache` | one folder per pack under `Saved\DCPacks\`, least-recently-used eviction, purge on a booth reset | DONE |
 | `FDCManifest` | the parsed, verified manifest | DONE |
-| `UDCStateStore`, interaction, X-ray view, preview mode | plan v6 §14 steps 5–6 | FUTURE |
+| `UDCInteractor`, `UDCStateStore` | brief 016: the Player uses the content, and what they do survives a replacement | DONE |
+| X-ray view, preview mode | plan v6 §11 and §14 step 5 | FUTURE |
 
 `ADCSpikeGameMode` is untouched apart from one guard (see "A Shipping build ignores the map"
 below), so `run_all_packs.ps1` still does exactly what brief 006 reported.
@@ -621,6 +630,253 @@ What the server did with it is `server/README.md`: the files land in `server/con
 anywhere in sight, and the registered pin positions replace the hand-guessed `px` values that
 were in `demo.json`.
 
+---
+
+# The Player uses the content, and what they do survives a swap (brief 016)
+
+Everything up to here is about getting content into a slot. Plan v6 §14 step 6 is about what
+happens **while somebody is standing in it**: the Player can use the door, the switches and
+the screen, and when the backend replaces the content under them, nothing changes until they
+walk out — and when they walk back in it is as they left it.
+
+| Class | Job | Status |
+|---|---|---|
+| `UDCInteractor` (ActorComponent on the pawn) | what is in reach, what the prompt says, and what the button does; posts an `interaction` event per use | DONE |
+| `UDCStateStore` (GameInstanceSubsystem) | saves the four things schema 1 keeps, keyed by slot + content id; restores them on any version of the same content; discards a mismatched schema | DONE |
+| `ADCContentActor` | the door swings, the switches toggle their group, the screen steps through the base game's image set | DONE |
+| `ADCStatusHud` | adds the context prompt and the waypoint marker to the strip | DONE |
+| `ADCSlot` | saves on unload, restores on spawn, counts `visit` and `dwell`, arms the waypoint marker | DONE |
+| `ADCRuntimeGameMode` | `-DCStateTest=<rounds>`: the whole of step 9, as many times as asked | DONE |
+
+## Why the input had to be Enhanced Input, and why the keys are not an asset
+
+A Shipping build with the Enhanced Input plugin enabled processes **no legacy key bindings at
+all**. `UEnhancedPlayerInput::EvaluateInputComponentDelegates` says so in a comment — "we only
+want to process enhanced input components in this subclass" — and the debug key bindings that
+look like an escape hatch are behind `DEV_ONLY_KEY_BINDINGS_AVAILABLE`, which Shipping does
+not have. So `InputComponent->BindKey` was never going to work, and the plugin binds the way
+the engine wants: it makes its own `UEnhancedInputComponent`, binds `IA_DCUse` to
+`ETriggerEvent::Started` on it, and **pushes it onto the player controller's input stack**.
+On the controller rather than on the pawn, because the pawn is a Blueprint in the game
+module's content and this plugin must not need to touch it.
+
+The **keys** are in C++ (`EKeys::E` and `EKeys::Gamepad_FaceButton_Bottom`) and only the
+`UInputAction` is an asset. `FKey`'s `KeyName` is a private `UPROPERTY`, so editor Python
+cannot build an `FKey` at all — `unreal.Key("E")` is *"call() takes at most 0 arguments"* —
+and `UInputMappingContext::MapKey` needs one. Rather than hand-author an asset nobody could
+rebuild, `UDCInteractor::BindInput` makes the mapping context at runtime. Which is the better
+place anyway: the keys sit next to the binding that answers them. `-DCInteractContext=<path>`
+takes a project's own context instead.
+
+`unreal\Tools\core_extras.py` builds `IA_DCUse` and imports the screen image set, and is
+called by **both** `import_content.py` and `make_maps.py` so either half of the pipeline
+produces them. `/Game/Input` had to join `DirectoriesToAlwaysCook` for the same reason
+`/Game/Player` did: the action is loaded by soft path and the cook does not follow one.
+
+## What is in reach, and which of two things 38 cm apart the prompt means
+
+Reach is **5 m, measured from the Player**, not from the camera — a third-person camera is
+several metres behind the character and measuring from it would put the whole room in reach.
+Five metres is what it takes to be able to stand at a door: the place to stand is 2 m clear
+of the front of the piece, on its centre line, the door is about a metre off that line, and
+the walk that gets there accepts 1.1 m of slack.
+
+The two light switches are **38 cm apart on the same wall**, so distance alone cannot tell
+them apart from a metre and a half away — but the angle between them from there is about 14°,
+which easily can. The prompt therefore picks the lowest `distance × (1 + 3(1 − cos))`, and
+anything more than ~75° off the middle of the screen is not a candidate at all.
+
+Two things this cost, both written down because they are the sort that look like nothing:
+
+- the door's prompt is anchored on the **hinge**, not on the leaf. An open leaf has swung a
+  metre into the room, which moves the thing the reach is measured to — so the first run had a
+  Player standing at an open door being told it was out of reach, by **one centimetre**;
+- the prompt is chosen from the **camera's** view point, and the camera is a spring arm that
+  catches up a frame later. A scripted run that turns and presses in the same tick is pressing
+  with the prompt still showing whatever was in front of the Player before they turned. The
+  test turns, waits a tick, then presses.
+
+## What survives, and what must not
+
+`UDCStateStore` keeps `{lights A, lights B, door, screen image index}` — the manifest's own
+`state_schema` — against a key of **slot + content id**. Three rules, and they are the class:
+
+- **no version in the key**, because "version 2 picks up where version 1 left off" is the
+  whole promise. The exit test alternates v2 / v1 / v2 on purpose: each is a real new version
+  (`version_n` goes up every time) and version 1 coming back after version 2 restores the
+  state just the same;
+- **the slot is in the key**, because the same content in another slot is another building;
+- the **schema version is in the record and checked on the way out**. A mismatch discards the
+  record and logs it rather than half-applying it. v1 and v2 of everything in this demo share
+  schema 1, so that path is exercised by a test and not by the demo — which is exactly why it
+  has to be written down.
+
+The restore happens **before `FinishSpawning`**, next to where the brand is set, so the piece
+is built already holding what the Player left rather than showing a frame of its own defaults.
+The save happens in `ADCSlot::DespawnContent` **before** `Destroy()` — UNLOAD & PRESERVE, in
+that order, because once the actor is gone there is nothing left to ask.
+
+A **different** piece arriving in the slot gets its own defaults, and the test checks that
+explicitly: when the block ends and the region's rival takes it, the rival must not be
+standing there with the visitor's lights on.
+
+## The door swings; nothing else is animated
+
+`ADCContentActor` ticks only while a leaf is moving (190°/s, so about half a second for 90°)
+and turns its own tick off again when it stops. The door is the one piece of state a Player is
+standing next to when they press the button, and an instant 90° reads as a glitch rather than
+as a door; a slot nobody is touching still costs no tick. Every piece's manifest already said
+`"swings": "inward"`, and `import_content.py` negates the sign on import because Blender → UE
+is a mirror in Y — so the leaf really does swing into the room, which is what makes it safe to
+stand in front of a door and open it.
+
+## The screen's images belong to the base game
+
+`art/samples/screens/screen_1..4.png` → `/Game/DCCore/Screens/T_DC_Screen_<n>`, handed to a
+piece at spawn by `UDCSubsystem::GetScreenImage`. A pack never carries a screen image: it is a
+runtime input exactly like the brand colour and the emblem. That is also what lets "which image
+is showing" survive an update — the **number** survives, and the number is all the piece keeps.
+Four images, each a different dominant colour *and* a different shape, so "the screen is on
+image 3" is readable in a 1600 × 900 screenshot from across a room. The set is counted by
+loading until one is missing, so a fifth image is a build step and nothing else.
+
+## The waypoint marker
+
+When a slot's content changes, `ADCSlot` arms a marker; `ADCStatusHud` draws a small diamond
+at the piece's own `SOCKET_Waypoint` with the slot id and the distance under it, clamped to
+the screen edge when the slot is behind the Player. It clears when they get within 22 m of the
+content's bounds, or after 75 seconds, so it is never clutter. It is a **shape and a number**
+and nothing else: no ad and no money language ever reaches the Player's screen (plan v6 §3),
+and a wordless marker cannot become either in another language. `-DCNoMarker` turns it off;
+`-DCNoStrip` now turns off only the status strip, because the prompt and the marker belong to
+the game rather than to the demo's instrumentation.
+
+## How the exit test is driven
+
+```powershell
+server\.venv\Scripts\python.exe unreal\Tools\state_exit_test.py
+server\.venv\Scripts\python.exe unreal\Tools\state_exit_test.py --rounds 3 --plan push,end,push
+python unreal\Tools\make_state_sheet.py
+```
+
+The game drives itself and the script drives the backend, and they meet at one file:
+
+| the game writes | the script does |
+|---|---|
+| `phase: waiting`, round *n* | make sure the visitor's content is allocated to the slot |
+| `phase: armed`, round *n* | push a new version, **or** `POST /admin/end-block` |
+
+The game is told neither which it was nor what to expect. It works that out from what turns
+up: **the same content, whatever its version, must come back wearing what the Player left; a
+different piece must not.** That is the rule under test, so the thing under test is the only
+thing that decides the answer.
+
+Everything the Player does goes through `UDCInteractor`, the same component the key and the
+pad button call. The scripted run names the thing it wants (`TryUseKind`) instead of taking
+whatever the prompt happened to pick — the same reach test, the same
+`ADCContentActor::Interact`, the same telemetry; what it skips is only which of two things
+38 cm apart a human's head was pointing at. So it **counts how often the prompt already
+agreed**, which is what still says something about that.
+
+`POST /admin/end-block {game, slot, region}` is new on the server for this: it pulls the live
+allocation's `end_at` back to now and changes nothing else, so what happens next is the
+ordinary rule — the region's rival, the next winner, takes the block. It is the counterpart of
+`/admin/close-auction` for the other timestamp rule, and the booth gets it too: "the block
+ends while the Player is inside" is a demo beat, and a rehearsal cannot wait three real
+minutes for it.
+
+One deliberate restraint in the test: after a swap it **walks back in only through a door that
+is already open**. Opening a closed one would be the Player changing the piece they came back
+to look at — and on a round where somebody else's content took the block, that change would be
+saved and would turn up in the next round as a state nobody set.
+
+## Three art fixes, and the re-registration that proved them
+
+Queued out of brief 013, all three about the **picture a brand is shown of the spot it is
+bidding on** — the slot-map tool hides whatever is standing in a slot, so that picture is of
+the empty pad.
+
+- **the slot pad has its own two colours.** `M_SlotPad` and `M_SlotKerb` instead of the
+  plaza's `M_Paving` and `M_Kerb`, so an empty slot is a legible shape rather than a patch of
+  the paving round it. `art/blender/env/README.md` has the longer note.
+- **the water is not a mirror.** `M_Water` was roughness 0.04, i.e. glass. Water that
+  reflects the sky looks right from the promenade and is wrong from directly above: Game B's
+  plan view came out with a **white sea**, and because that white sea is half the frame the
+  plan view's histogram exposure then pulled every roof down to **black**. At 0.26 (warm) /
+  0.34 (cool) it still reads as water at eye level — better, in fact — and the plan view got
+  its exposure back. The plan view also turns `ReflectionEnvironment` and `Specular` off and
+  has its own exposure bias (`-MapExposure`), which is a knob because what it compensates for
+  is how much of a particular map is water, grass or paving.
+- **`env_import` now notices when a kit piece has moved on.** The first attempt at the pad
+  change did nothing visible, because `import_env_meshes` skipped every mesh whose asset
+  already existed — so the asset kept the *old* material slots and the new ones were never
+  assigned. `is_stale` re-imports a piece whose FBX is newer than its asset, or whose asset's
+  material slots are no longer the manifest's. Importing a static mesh is still the slow part
+  of that script, so everything else is still skipped.
+
+Both games were captured and registered again (`register_games.ps1`): Game A 2048 × 1316 px
+of 202 × 130 m, Game B 2048 × 1616 px of 97 × 76 m, five thumbnails, `POST /games/register`
+**200** both times, and the pin positions unchanged from brief 013 to four decimal places —
+the geometry did not move, only its colour. The evidence is `spike/shots/016/`: both captures
+with the pins drawn back on from the JSON the tool actually sent, and the five thumbnails.
+`server/config/maps/` is committed, so a clean checkout serves the new pictures.
+
+## What the state exit test proved (brief 016, 2026-11-01)
+
+One packaged Shipping build that contains none of the content, one run, no restart and no
+loading screen. Every round is the whole of plan v6 §4 step 9: walk in, open the door, turn
+light B on, set the screen to image 3, let the backend replace the content while the Player is
+standing inside, watch SWAP PENDING hold it, walk out, walk back in and look.
+
+| # | what the backend did | before | after | what came back | held | applied | state |
+|---|---|---|---|---|---|---|---|
+| 1 | a new version was pushed | content1 v1 | content1 v2 | A+ B+ door open screen 3 | 5.1 s | 1.8 s | **kept** |
+| 2 | a new version was pushed | content1 v2 | content1 v1 | A+ B+ door open screen 3 | 1.5 s | 1.8 s | **kept** |
+| 3 | the block ended | content1 v1 | rival1 v1 | A+ B- door shut screen 1 | 5.3 s | 1.8 s | **kept** |
+| 4 | a new version was pushed | content1 v1 | content1 v2 | A+ B+ door open screen 3 | 0.6 s | 1.8 s | **kept** |
+| 5 | a new version was pushed | content1 v2 | content1 v1 | A+ B+ door open screen 3 | 1.2 s | 1.8 s | **kept** |
+| 6 | the block ended | content1 v1 | rival1 v1 | A+ B- door shut screen 1 | 0.9 s | 1.8 s | **kept** |
+| 7 | a new version was pushed | content1 v1 | content1 v2 | A+ B+ door open screen 3 | 0.5 s | 1.8 s | **kept** |
+| 8 | a new version was pushed | content1 v2 | content1 v1 | A+ B+ door open screen 3 | 0.9 s | 1.8 s | **kept** |
+| 9 | the block ended | content1 v1 | rival1 v1 | A+ B- door shut screen 1 | 1.1 s | 1.8 s | **kept** |
+| 10 | a new version was pushed | content1 v1 | content1 v2 | A+ B+ door open screen 3 | 0.6 s | 1.8 s | **kept** |
+
+**10 / 10.** The Player left `A+ B+ door open screen 3` every time.
+
+- **3 of the ten were the block ending** while the Player was inside (rounds 3, 6, 9). The next
+  winner - the region's rival - waited in SWAP PENDING exactly the same way, and came up
+  wearing **its own defaults**: a different piece never gets the state the Player left on the
+  last one.
+- the record **outlived a block of somebody else's content**: after rounds 3, 6, 9 the visitor's
+  content was allocated again and came back wearing what had been left on it before the rival
+  took the block.
+- the version alternates on purpose - v1 → v2 → v1 → v2 - because the key is the *content*, not
+  the version. Version 1 coming back after version 2 restores the state just the same.
+- **76 interactions** in the run (door 19, lights A 0, lights B 19, screen 38), every one through
+  `UDCInteractor` - the same component the key and the pad button call. The on-screen prompt
+  was **already showing the thing the script went on to use 57 times out of 76**.
+- telemetry the run produced on A1: **17 visits, 160 s of dwell**, plus the interactions above
+  and the views - all of it on `/report`, split by region.
+
+`GET /report` for r1 at the end of the run: *views 14,422 (14,400 simulated + 22 counted),
+visits 27, dwell 238.8 s, interactions 118, mounts 7, blocks 4.* The visit, dwell and
+interaction figures are **higher than the game's own counters** (17 / 160 / 76) for a reason
+worth knowing: the report counts a block's telemetry over `[start, end + 60 s]`, and that
+minute of slack - which exists so a batch the client posts just after a block rolls over is
+not lost - counts those events into the next block as well. Four blocks in four minutes is
+this test, not the demo: at the booth a block is three minutes long and the next one starts
+when the auction says so, so nothing lands in two windows. Worth tightening in the hardening
+step all the same.
+
+The picture of all of it is `spike/shots/016/state_contact.png`, and `DC_LOG` writes a
+`STATE save` / `STATE restore` line for every one of them:
+
+```
+A1|content1  schema 1  lights A on / B on, door open, screen 3  (saved 10, restored 10)
+A1|rival1  schema 1  lights A on / B off, door closed, screen 1  (saved 3, restored 2)
+A2|default  schema 1  lights A on / B off, door closed, screen 1  (saved 1, restored 0)
+A3|rivalsmall  schema 1  lights A on / B off, door closed, screen 1  (saved 1, restored 0)
+```
 ## Things worth knowing about this PC
 
 - The engine is the launcher install at `E:\EpicGames\UE_5.7` (5.7.4) and is **read-only**.

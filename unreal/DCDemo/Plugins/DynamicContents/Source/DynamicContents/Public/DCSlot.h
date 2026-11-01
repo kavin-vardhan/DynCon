@@ -21,6 +21,7 @@
 
 #include "CoreMinimal.h"
 #include "DCManifest.h"
+#include "DCStateStore.h"
 #include "GameFramework/Actor.h"
 #include "Templates/SubclassOf.h"
 
@@ -124,6 +125,19 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DC|Slot")
 	TArray<FVector> ApproachPath;
 
+	// ---------------------------------------------------------------- the waypoint marker
+
+	/**
+	 * How near the Player has to get for the marker to have done its job, centimetres.
+	 * Measured to the content's own bounds, like the view radius.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DC|Slot")
+	float WaypointClearRadius = 2200.0f;
+
+	/** The marker gives up after this long, so it is never clutter. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DC|Slot")
+	float WaypointSeconds = 75.0f;
+
 	// ---------------------------------------------------------------- geometry questions
 
 	/** Transform content should be spawned at. */
@@ -163,6 +177,19 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "DC|Slot")
 	FVector GetDoorApproachPoint(float Extra = 400.0f) const;
+
+	/**
+	 * Where to stand to use the door of whatever is in this slot: on the slot's centre line,
+	 * `Clearance` centimetres clear of the **front of the piece itself**.
+	 *
+	 * Not the class footprint, which is what GetDoorApproachPoint measures from: a small
+	 * piece in a large slot would put that point four metres further out than the door is,
+	 * and a Player standing there is not standing at a door. Not the door leaf either - the
+	 * leaf swings, and a place to stand that moves when the door opens is how a Player ends
+	 * up in the doorway with a door closing through them.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "DC|Slot")
+	FVector GetFrontStandPoint(float Clearance = 200.0f) const;
 
 	/** What is on screen in this slot right now, or nullptr. */
 	UFUNCTION(BlueprintCallable, Category = "DC|Slot")
@@ -227,6 +254,30 @@ public:
 
 	float GetLastSpawnMs() const { return LastSpawnMs; }
 
+	// ---------------------------------------------------------------- the waypoint marker
+
+	/**
+	 * A neutral marker on the Player's screen points here (plan v6 §3) until they get close.
+	 * Armed whenever this slot's content changes; cleared by arriving or by time.
+	 */
+	bool IsWaypointActive() const { return bWaypointActive; }
+
+	/** Where the marker points: the piece's own SOCKET_Waypoint, or the top of the box. */
+	FVector GetWaypointLocation() const;
+
+	/** Seconds the marker has been up. */
+	float GetWaypointSeconds() const { return WaypointElapsed; }
+
+	// ---------------------------------------------------------------- visits
+
+	/** True while the Player has been inside the bounds box since a visit was counted. */
+	float GetDwellSeconds() const { return DwellSeconds; }
+	int32 GetVisitCount() const { return VisitCount; }
+	float GetTotalDwellSeconds() const { return TotalDwellSeconds; }
+
+	/** State kept across a replacement: what the Player left, if there is anything. */
+	bool GetContentState(FDCContentState& Out) const;
+
 	virtual void OnConstruction(const FTransform& Transform) override;
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
@@ -245,6 +296,13 @@ private:
 	bool SpawnFromClass(UClass* ContentClass, const FDCManifest& Manifest, FString& OutError);
 	void UpdatePlayerInside();
 	void UpdateViewSeconds(float DeltaSeconds);
+	void UpdateWaypoint(float DeltaSeconds);
+
+	/** Hand what the Player did to UDCStateStore, just before the piece goes. */
+	void SaveContentState();
+
+	/** Count the seconds the Player has been inside and post them. */
+	void EndDwell(const TCHAR* Why);
 
 	EDCSlotState State = EDCSlotState::Idle;
 	double StateEnteredSeconds = 0.0;
@@ -271,4 +329,15 @@ private:
 	bool bViewReported = false;
 	float LastSpawnMs = 0.0f;
 	FDateTime ActiveSinceUtc = FDateTime::MinValue();
+
+	/** Visits and dwell (plan v6 §9): a visit is entering the bounds, dwell is seconds in. */
+	float DwellSeconds = 0.0f;
+	float TotalDwellSeconds = 0.0f;
+	int32 VisitCount = 0;
+
+	/** The allocation key that was up when the Player walked in, so dwell is filed with it. */
+	FString DwellAllocKey;
+
+	bool bWaypointActive = false;
+	float WaypointElapsed = 0.0f;
 };

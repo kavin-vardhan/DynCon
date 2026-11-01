@@ -37,6 +37,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 if HERE not in sys.path:
     sys.path.insert(0, HERE)
 
+import core_extras as CE     # noqa: E402
 import env_import as EI      # noqa: E402
 
 REPO = r"E:\DynamicContents"
@@ -611,6 +612,12 @@ def main():
     pal_mats = EI.make_palette_materials(palettes)
     meshes, mesh_report = EI.import_env_meshes(manifests, pal_mats, reimport=reimport)
     report["environment"] = mesh_report
+
+    # Base-game content the Player's side needs: the screen image set and the "use" input.
+    # Defined once in core_extras and also called by import_content.py, so a clean checkout
+    # gets them whichever half of the pipeline is run.
+    report["core_extras"] = CE.build_all(reimport=reimport)
+    LOG.extend(CE.LOG)
 
     char_mats = EI.make_character_materials()
     skeletal, slots = EI.dress_mannequin(char_mats)

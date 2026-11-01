@@ -24,6 +24,13 @@ public class DynamicContents : ModuleRules
 			// exactly which calls are used.
 			"HTTP",
 			"Json",
+
+			// The Player's side: the interaction prompt and the "use" button. It has to be
+			// Enhanced Input - a Shipping build with the Enhanced Input plugin on does not
+			// process legacy key bindings at all (see DCInteractor.h) - so the plugin binds
+			// its own UEnhancedInputComponent onto the player controller's input stack.
+			"EnhancedInput",
+			"InputCore",
 			// PlatformCrypto is the entry point (IPlatformCrypto::CreateContext); the
 			// context class itself lives in PlatformCryptoContext and the result enum in
 			// PlatformCryptoTypes, and both have to be named here or the link does not find
