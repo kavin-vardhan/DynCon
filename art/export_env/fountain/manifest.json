@@ -1,0 +1,143 @@
+{
+ "schema_version": 1,
+ "kind": "environment",
+ "id": "fountain",
+ "category": "street",
+ "collision": "blocking",
+ "units": {
+  "authoring": "m",
+  "fbx": "cm",
+  "glb": "m",
+  "fbx_scale": 100.0,
+  "engine": "cm",
+  "engine_unit_scale": 1.0
+ },
+ "bounds": {
+  "min": [
+   -3.0,
+   -3.0,
+   0.0
+  ],
+  "max": [
+   3.0,
+   3.0,
+   2.45
+  ],
+  "size": [
+   6.0,
+   6.0,
+   2.45
+  ]
+ },
+ "bounds_cm": {
+  "min": [
+   -300.0,
+   -300.0,
+   0.0
+  ],
+  "max": [
+   300.0,
+   300.0,
+   245.0
+  ],
+  "size": [
+   600.0,
+   600.0,
+   245.0
+  ]
+ },
+ "footprint": [
+  6.0,
+  6.0
+ ],
+ "ground_bounds": {
+  "min": [
+   -3.0,
+   -3.0
+  ],
+  "max": [
+   3.0,
+   3.0
+  ],
+  "size": [
+   6.0,
+   6.0
+  ],
+  "band": 0.6
+ },
+ "triangles": 812,
+ "triangle_budget": 3000,
+ "object_name": "SM_ENV_fountain",
+ "materials": [
+  {
+   "slot": "M_Paving",
+   "base_color_hex": "#D9C8A6",
+   "base_color_linear": [
+    0.69387,
+    0.57758,
+    0.38133
+   ],
+   "roughness": 0.78,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 0.0
+  },
+  {
+   "slot": "M_Kerb",
+   "base_color_hex": "#A99579",
+   "base_color_linear": [
+    0.39676,
+    0.30054,
+    0.1912
+   ],
+   "roughness": 0.8,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 0.0
+  },
+  {
+   "slot": "M_Water",
+   "base_color_hex": "#6E9BA8",
+   "base_color_linear": [
+    0.15593,
+    0.32778,
+    0.39157
+   ],
+   "roughness": 0.08,
+   "metallic": 0.0,
+   "alpha": 0.7,
+   "emissive_strength": 0.0
+  }
+ ],
+ "material_slots": [
+  "M_Paving",
+  "M_Kerb",
+  "M_Water"
+ ],
+ "material_slot_count": 3,
+ "palettes": [
+  "cool",
+  "warm"
+ ],
+ "preview_palette": "warm",
+ "notes": [
+  "Still water: a flat M_Water disc, no simulation and no particles."
+ ],
+ "build_seconds": 0.7,
+ "exports": {
+  "fbx": "export_env/fountain/fountain.fbx",
+  "glb": "export_env/fountain/fountain.glb"
+ },
+ "previews": {
+  "cool": "previews_env/cool/fountain.png",
+  "warm": "previews_env/warm/fountain.png"
+ },
+ "generator": {
+  "env_kit_sha256": "4f8523c94c58efb50716510b58a4b1b0e79aee14d6c5551d2d99a0e3df32ba14",
+  "piece_script": "blender/env/props.py",
+  "piece_sha256": "2ec40c9d2202b41602a9f1c40bea58c80b984f182802fa6083140f5f9d0ac585",
+  "dc_kit_sha256": "bb5a3473ce162fa2e6a00d5e1ebe7a22df324ed05eaf89d6de3aa7cd84bda4bc",
+  "blender": "5.2.3 LTS",
+  "built_utc": "2026-11-01T07:47:40Z"
+ }
+}

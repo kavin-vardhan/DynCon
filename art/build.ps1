@@ -1,12 +1,15 @@
 <#
 .SYNOPSIS
-    Build the DynamicContents content art: Blender pieces, then validate, then the contact sheet.
+    Build the DynamicContents art: the content pieces, then the environment kit, then
+    validate both and build the contact sheets.
 
 .EXAMPLE
     .\art\build.ps1
     .\art\build.ps1 -Only content4
     .\art\build.ps1 -Only content4:v2,content1:v1 -Samples 128
     .\art\build.ps1 -NoRender          # geometry + exports only, much faster
+    .\art\build.ps1 -EnvOnly           # just the environment kit (brief 012)
+    .\art\build.ps1 -SkipEnv           # just the content, as it was before brief 012
 
 .NOTES
     Blender is always launched headless with --factory-startup so no add-on or open session
@@ -20,6 +23,9 @@ param(
     [int]     $Samples = 64,
     [switch]  $SkipEmblems,
     [switch]  $QaShots,
+    [switch]  $SkipEnv,
+    [switch]  $EnvOnly,
+    [string]  $OnlyEnv = "",
     [string]  $Blender = ""
 )
 
@@ -60,6 +66,38 @@ function Find-Blender {
 $blender = Find-Blender -Explicit $Blender
 Write-Host "Blender : $blender  ($((Get-Item $blender).VersionInfo.ProductVersion))"
 Write-Host "Project : $root"
+
+$envCode = 0
+$envValCode = 0
+
+function Invoke-EnvBuild {
+    Write-Host "`n== environment kit =="
+    $envArgs = @("-b", "--factory-startup", "-noaudio", "-P",
+                 (Join-Path $art "blender\env\build_env.py"), "--")
+    if ($OnlyEnv)  { $envArgs += @("--only", $OnlyEnv) }
+    if ($NoRender) { $envArgs += "--no-render" }
+    $envArgs += @("--samples", "$([Math]::Max(16, [int]($Samples / 2)))")
+    & $blender @envArgs
+    $script:envCode = $LASTEXITCODE
+
+    Write-Host "`n== validate environment =="
+    python (Join-Path $art "tools\validate_env.py")
+    $script:envValCode = $LASTEXITCODE
+
+    Write-Host "`n== environment sheet =="
+    python (Join-Path $art "tools\env_sheet.py")
+    if ($LASTEXITCODE -ne 0) { Write-Warning "env_sheet.py failed (exit $LASTEXITCODE)" }
+}
+
+if ($EnvOnly) {
+    Invoke-EnvBuild
+    if ($envCode -ne 0 -or $envValCode -ne 0) {
+        Write-Host "`nFAILED (env build=$envCode validate=$envValCode)" -ForegroundColor Red
+        exit 1
+    }
+    Write-Host "`nall good" -ForegroundColor Green
+    exit 0
+}
 
 if (-not $SkipEmblems) {
     Write-Host "`n== emblems and sample screen =="
@@ -102,8 +140,10 @@ Write-Host "`n== sheets =="
 python (Join-Path $art "tools\contact_sheet.py")
 if ($LASTEXITCODE -ne 0) { throw "contact_sheet.py failed" }
 
-if ($valCode -ne 0 -or $rtCode -ne 0) {
-    Write-Host "`nFAILED (validate=$valCode roundtrip=$rtCode)" -ForegroundColor Red
+if (-not $SkipEnv) { Invoke-EnvBuild }
+
+if ($valCode -ne 0 -or $rtCode -ne 0 -or $envCode -ne 0 -or $envValCode -ne 0) {
+    Write-Host ("`nFAILED (validate=$valCode roundtrip=$rtCode env={0} env validate={1})" -f $envCode, $envValCode) -ForegroundColor Red
     exit 1
 }
 Write-Host "`nall good" -ForegroundColor Green

@@ -107,6 +107,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DC|Slot")
 	float PrefetchRadius = 6000.0f;
 
+	/**
+	 * World-space waypoints a walker follows to reach this slot's door, set by the map
+	 * builder. Only X and Y are used. It is a route, not a path-finder: the demo's maps are
+	 * built by a script, so the way round the arcades and down the avenue is known when the
+	 * map is written and does not need a navigation mesh at runtime.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DC|Slot")
+	TArray<FVector> ApproachPath;
+
 	// ---------------------------------------------------------------- geometry questions
 
 	/** Transform content should be spawned at. */
@@ -128,6 +137,18 @@ public:
 	/** Middle of whatever is on screen, or of the bounds box when nothing is. */
 	UFUNCTION(BlueprintCallable, Category = "DC|Slot")
 	FVector GetContentCentre() const;
+
+	/**
+	 * Where a walker should stand to be in front of the door, `Extra` centimetres clear of
+	 * the slot's own footprint. The slot's +X is the door direction: ADCSlot adds a -90 yaw
+	 * when it spawns content, and the art is authored facing -Y.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "DC|Slot")
+	FVector GetDoorApproachPoint(float Extra = 400.0f) const;
+
+	/** What is on screen in this slot right now, or nullptr. */
+	UFUNCTION(BlueprintCallable, Category = "DC|Slot")
+	AActor* GetContentActor() const { return Content.Get(); }
 
 	// ---------------------------------------------------------------- lifecycle
 

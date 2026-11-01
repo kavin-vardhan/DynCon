@@ -1,0 +1,141 @@
+{
+ "schema_version": 1,
+ "kind": "environment",
+ "id": "planter",
+ "category": "street",
+ "collision": "blocking",
+ "units": {
+  "authoring": "m",
+  "fbx": "cm",
+  "glb": "m",
+  "fbx_scale": 100.0,
+  "engine": "cm",
+  "engine_unit_scale": 1.0
+ },
+ "bounds": {
+  "min": [
+   -0.9,
+   -0.5,
+   0.0
+  ],
+  "max": [
+   0.9,
+   0.5,
+   1.092
+  ],
+  "size": [
+   1.8,
+   1.0,
+   1.092
+  ]
+ },
+ "bounds_cm": {
+  "min": [
+   -90.0,
+   -50.0,
+   0.0
+  ],
+  "max": [
+   90.0,
+   50.0,
+   109.2
+  ],
+  "size": [
+   180.0,
+   100.0,
+   109.2
+  ]
+ },
+ "footprint": [
+  1.8,
+  1.0
+ ],
+ "ground_bounds": {
+  "min": [
+   -0.9,
+   -0.5
+  ],
+  "max": [
+   0.9,
+   0.5
+  ],
+  "size": [
+   1.8,
+   1.0
+  ],
+  "band": 0.6
+ },
+ "triangles": 136,
+ "triangle_budget": 3000,
+ "object_name": "SM_ENV_planter",
+ "materials": [
+  {
+   "slot": "M_Trim",
+   "base_color_hex": "#6B5340",
+   "base_color_linear": [
+    0.14703,
+    0.0865,
+    0.05127
+   ],
+   "roughness": 0.52,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 0.0
+  },
+  {
+   "slot": "M_Foliage",
+   "base_color_hex": "#5E8A47",
+   "base_color_linear": [
+    0.11193,
+    0.25415,
+    0.06301
+   ],
+   "roughness": 0.86,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 0.0
+  },
+  {
+   "slot": "M_Trunk",
+   "base_color_hex": "#6E5940",
+   "base_color_linear": [
+    0.15593,
+    0.0999,
+    0.05127
+   ],
+   "roughness": 0.84,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 0.0
+  }
+ ],
+ "material_slots": [
+  "M_Trim",
+  "M_Trunk",
+  "M_Foliage"
+ ],
+ "material_slot_count": 3,
+ "palettes": [
+  "cool",
+  "warm"
+ ],
+ "preview_palette": "warm",
+ "notes": [],
+ "build_seconds": 0.48,
+ "exports": {
+  "fbx": "export_env/planter/planter.fbx",
+  "glb": "export_env/planter/planter.glb"
+ },
+ "previews": {
+  "cool": "previews_env/cool/planter.png",
+  "warm": "previews_env/warm/planter.png"
+ },
+ "generator": {
+  "env_kit_sha256": "4f8523c94c58efb50716510b58a4b1b0e79aee14d6c5551d2d99a0e3df32ba14",
+  "piece_script": "blender/env/props.py",
+  "piece_sha256": "2ec40c9d2202b41602a9f1c40bea58c80b984f182802fa6083140f5f9d0ac585",
+  "dc_kit_sha256": "bb5a3473ce162fa2e6a00d5e1ebe7a22df324ed05eaf89d6de3aa7cd84bda4bc",
+  "blender": "5.2.3 LTS",
+  "built_utc": "2026-11-01T07:47:38Z"
+ }
+}

@@ -117,6 +117,15 @@ FVector ADCSlot::GetContentCentre() const
 	return LimitsBox ? LimitsBox->GetComponentLocation() : GetActorLocation();
 }
 
+FVector ADCSlot::GetDoorApproachPoint(float Extra) const
+{
+	const FVector Limits = GetClassLimits();
+	const FVector Here = GetActorLocation();
+	const FVector Forward = GetActorForwardVector();
+	const float Reach = Limits.X * 0.5f + Extra;
+	return FVector(Here.X + Forward.X * Reach, Here.Y + Forward.Y * Reach, Here.Z);
+}
+
 void ADCSlot::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);

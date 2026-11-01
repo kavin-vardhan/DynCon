@@ -1,0 +1,129 @@
+{
+ "schema_version": 1,
+ "kind": "environment",
+ "id": "paving_tile",
+ "category": "ground",
+ "collision": "blocking",
+ "units": {
+  "authoring": "m",
+  "fbx": "cm",
+  "glb": "m",
+  "fbx_scale": 100.0,
+  "engine": "cm",
+  "engine_unit_scale": 1.0
+ },
+ "bounds": {
+  "min": [
+   -4.0,
+   -4.0,
+   0.0
+  ],
+  "max": [
+   4.0,
+   4.0,
+   0.144
+  ],
+  "size": [
+   8.0,
+   8.0,
+   0.144
+  ]
+ },
+ "bounds_cm": {
+  "min": [
+   -400.0,
+   -400.0,
+   0.0
+  ],
+  "max": [
+   400.0,
+   400.0,
+   14.4
+  ],
+  "size": [
+   800.0,
+   800.0,
+   14.4
+  ]
+ },
+ "footprint": [
+  8.0,
+  8.0
+ ],
+ "ground_bounds": {
+  "min": [
+   -4.0,
+   -4.0
+  ],
+  "max": [
+   4.0,
+   4.0
+  ],
+  "size": [
+   8.0,
+   8.0
+  ],
+  "band": 0.6
+ },
+ "triangles": 96,
+ "triangle_budget": 1500,
+ "object_name": "SM_ENV_paving_tile",
+ "materials": [
+  {
+   "slot": "M_Paving",
+   "base_color_hex": "#D9C8A6",
+   "base_color_linear": [
+    0.69387,
+    0.57758,
+    0.38133
+   ],
+   "roughness": 0.78,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 0.0
+  },
+  {
+   "slot": "M_PavingAlt",
+   "base_color_hex": "#C2AC85",
+   "base_color_linear": [
+    0.53948,
+    0.41254,
+    0.23455
+   ],
+   "roughness": 0.74,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 0.0
+  }
+ ],
+ "material_slots": [
+  "M_Paving",
+  "M_PavingAlt"
+ ],
+ "material_slot_count": 2,
+ "palettes": [
+  "cool",
+  "warm"
+ ],
+ "preview_palette": "warm",
+ "notes": [
+  "Lays edge to edge on an 8 m grid; the top is PAVE_T above the ground plane."
+ ],
+ "build_seconds": 1.35,
+ "exports": {
+  "fbx": "export_env/paving_tile/paving_tile.fbx",
+  "glb": "export_env/paving_tile/paving_tile.glb"
+ },
+ "previews": {
+  "cool": "previews_env/cool/paving_tile.png",
+  "warm": "previews_env/warm/paving_tile.png"
+ },
+ "generator": {
+  "env_kit_sha256": "4f8523c94c58efb50716510b58a4b1b0e79aee14d6c5551d2d99a0e3df32ba14",
+  "piece_script": "blender/env/ground.py",
+  "piece_sha256": "fb382f3b7c26d2ccde182bf79342bfb1f9865b0179b43efa7165b7b6486993aa",
+  "dc_kit_sha256": "bb5a3473ce162fa2e6a00d5e1ebe7a22df324ed05eaf89d6de3aa7cd84bda4bc",
+  "blender": "5.2.3 LTS",
+  "built_utc": "2026-11-01T07:47:23Z"
+ }
+}

@@ -1,9 +1,9 @@
 # The Unreal side — what is here and how to run it
 
 *Written 2026-10-26 (brief 004), rewritten the same day for brief 006, and extended
-2026-11-01 (brief 011) with the runtime client. Plain-words guide for a cold reader. Status of
-each item is marked **DONE / QUEUED / FUTURE**. The spec this implements is
-`specs/unreal_spec_v1.md`.*
+2026-11-01 with the runtime client (brief 011) and the two maps and the Player (brief 012).
+Plain-words guide for a cold reader. Status of each item is marked **DONE / QUEUED / FUTURE**.
+The spec this implements is `specs/unreal_spec_v1.md`.*
 
 ## What this folder is
 
@@ -25,12 +25,17 @@ round's screenshots showed was wrong.
 | `DCDemo/Content/DCContent/<id>_<v>/` | one folder per piece-version = one content pack | DONE, all 13 |
 | `DCDemo/Content/Maps/Spike` | brief 006's pack round-trip map: ground, sun, sky, player start, one slot per size class | DONE |
 | `DCDemo/Content/Maps/DCRuntime` | brief 011's runtime-client map: the same ground and light, slots **A1 (L), A2 (T), A3 (S)** | DONE |
+| `DCDemo/Content/Maps/GameA` · `GameB` | the demo's two maps: a warm plaza and a cool waterfront | DONE |
+| `DCDemo/Content/DCEnv/` | the environment kit in the engine: 23 meshes and the two palettes' material instances | DONE |
+| `DCDemo/Content/Player/` | `BP_DCPlayer`, `BP_DCPlayerController` and the character's two materials | DONE |
+| `DCDemo/Content/Mannequin/` | the engine's UE4 mannequin, mesh and animations only (6.6 MB, no textures, no logo) | DONE |
 | `Tools/` | the scripts below, plus `chunk_ids.json` | DONE |
 | `_build/` | build outputs and logs (not in git, rebuilt by `package.ps1`) | — |
 | `_packs/` | the content packs cut out of the build (not in git) | — |
 | `spike/shots/engine_contact.png` | the contact sheet one pack round-trip run produces (the individual shots are git-ignored) | DONE |
 | `spike/shots/004/` | brief 004's two screenshots and result file, kept as they were | — |
 | `spike/shots/011/runtime_contact.png` | the contact sheet of brief 011's exit-test run | DONE |
+| `spike/shots/012/maps_contact.png` | the contact sheet of both maps' walk-and-photograph runs | DONE |
 
 ## The five steps, in order
 
@@ -65,6 +70,10 @@ Three more scripts belong to the runtime client (the section further down):
 **`make_runtime_map.py`** builds `/Game/Maps/DCRuntime`, **`run_runtime.ps1`** runs the game
 against the demo server, and **`ue_exit_test.py`** is the stage-1 exit test.
 **`make_runtime_sheet.py`** turns a run's screenshots into one contact sheet.
+
+And four belong to the two maps: **`make_maps.ps1`** (which copies the mannequin in and then
+runs **`make_maps.py`**, which calls **`env_import.py`**), **`map_check.py`** (walk and
+photograph one map with the server up) and **`make_maps_sheet.py`**.
 
 ## How a content pack works
 
@@ -361,6 +370,132 @@ While chasing this: a Shipping build's "project saved dir" is **`%LOCALAPPDATA%\
 not a folder next to the build. That is correct for a shipped game, and it is why the runners
 pass `-DCLogFile=`, `-DCCacheDir=` and `-DCStatusFile=` explicitly — so the evidence of a run
 lands next to the build instead of in the user profile.
+
+---
+
+# The two maps and the Player (brief 012)
+
+Plan v6 §3 asks for one packaged build with **two neutral, untitled maps that clearly read as
+two different games**. They are two different *places*, not one place twice, and the difference
+is carried by three things at once: **layout**, **palette** and **light**. All three come out
+of the same 23-piece environment kit (`art/blender/env/`, which has its own README), so
+nothing had to be modelled twice.
+
+Name-agnostic, as CLAUDE.md rule 3 requires: **no text, no signs, no logos and no names** are
+placed anywhere in either map. The only lettering the demo ever shows is the status strip the
+plugin draws. The engine's mannequin wears the engine's logo on its chest, so the Player's
+materials are replaced with two plain neutral ones and the logo asset is never copied into
+this repo at all.
+
+## Game A — the plaza (warm)
+
+**180 × 110 m, 292 actors.** Sandstone paving, terracotta roofs, green trees, a high midday
+sun at 5,900 K and the lightest of hazes.
+
+- a **64 × 64 m plaza** of 8 m slabs, with arcades down its east and west sides, a fountain,
+  benches, bollards and trees;
+- **A1 (L)** stands on a raised terrace at the north of the plaza, reached by a 16 m flight of
+  steps — it is the first thing you see from the spawn, 34 m dead ahead, which is right for the
+  slot with the highest footfall;
+- a **24 m avenue** running 60 m east between double rows of trees and lamp posts, with
+  **A2 (T)** closing it as a landmark;
+- a **path west into a walled garden court**, with **A3 (S)** in it;
+- the spawn is on the plaza, facing A1.
+
+## Game B — the waterfront (cool)
+
+**106 × 80 m, 178 actors.** Slate paving, timber decking, blue water, a low late-afternoon sun
+at 4,900 K and more haze — it is over water.
+
+- a **timber boardwalk promenade** 72 m along a quay wall, with slate paving behind it;
+- **B1 (L)** on the promenade;
+- a **pier** running 30 m out over the water on timber piles, railed both sides, widening to a
+  head where **B2 (S)** stands;
+- sheds, bollards, lamps and a row of cool-grey blocks behind.
+
+It is not a re-skin: different ground (water), different deck material, different sun angle,
+different building rhythm, a different shape of place.
+
+## Both maps
+
+- **no dark horizon band**: a 600 m ground plane, a sky atmosphere whose *ground albedo* is set
+  to the palette's own ground colour (its default is nearly black, which is what the band
+  actually is), and a thin exponential height fog. The fog is there to stop the ground meeting
+  the sky in a hard line, not to be weather;
+- **invisible bounds**: hidden, shadowless, blocking boxes round the playable area. Game B's
+  ring deliberately has **no south wall** - the quay wall and the pier's own side walls do that
+  job, and a ring wall across the waterfront would also have walled off the pier;
+- every slot is an `ADCSlot` of its size class, standing on a **`slot_pad`**. The packaged
+  build contains **none** of the content, so between the map loading and the backend's first
+  answer a slot is empty: the pad is what makes that read as a place waiting for something.
+  What then fills it is the server - the attract rotation serves the developer's `default` (or
+  a rival) within a few seconds of the first poll, over HTTP, exactly as at the booth;
+- the maps are built by **`unreal/Tools/make_maps.py`**, data plus small loops, so a layout
+  change is a number and both maps are reproducible from the repo with no hand editing. The
+  slot ids match `server/config/demo.json`.
+
+## The Player
+
+Third person with a visible character: the engine's **UE4 mannequin** out of the shared
+`Mannequin` template content pack. Only the mesh, its skeleton, its physics asset and the ten
+animation assets are copied - **6.6 MB, no materials and no textures**, because the mannequin's
+chest-logo material is a logo and `env_import.dress_mannequin` replaces both of its material
+slots with plain neutral ones anyway. That also keeps 30 MB of 4K textures and 25 MB of the
+second character out of the repo.
+
+`BP_DCPlayer` (a child of the template's `ADCDemoCharacter`, which carries the Enhanced Input
+actions) and `BP_DCPlayerController` (which adds the input mapping contexts) are built by
+`env_import.make_player_blueprints` and read back off disk afterwards, because setting a CDO
+is the sort of thing that fails quietly.
+
+`ADCRuntimeGameMode` names both of them by **soft path**
+(`/Game/Player/BP_DCPlayer.BP_DCPlayer_C`, overridable with `-DCPawn=` / `-DCController=`), so
+the plugin keeps no link dependency on the game module. The cook does not follow a soft path,
+which is why `/Game/Player` and `/Game/Mannequin` are in `DirectoriesToAlwaysCook`.
+
+## What the walk-and-photograph run proved (brief 012, 2026-11-01)
+
+```powershell
+server\.venv\Scripts\python.exe unreal\Tools\map_check.py --game A
+server\.venv\Scripts\python.exe unreal\Tools\map_check.py --game B --region r2
+python unreal\Tools\make_maps_sheet.py
+```
+
+Each run starts the demo server on a clean data folder, writes **one visitor allocation per
+slot**, starts the packaged Shipping build on that map with `-DCTour`, and lets the game take
+an overview shot, a framed shot of every slot, then **walk the Player from the spawn to each
+slot and in through its door** with a shot from the door and one from inside. The game writes
+its own `dc_tour.json` and both it and the server stop themselves.
+
+| | Game A | Game B |
+|---|---|---|
+| map | 180 × 110 m, 292 actors | 106 × 80 m, 178 actors |
+| slots filled | A1 content1 v1 · A2 content3 v1 · A3 content4 v1, all in the visitor's brand | B1 content2 v1 · B2 content4 v2 |
+| walk | **9 / 9 legs arrived** | **6 / 6 legs arrived** |
+| frame time at 1600 × 900 | average **12.47 ms (80 fps)**, median 12.96, **worst 1 % 19.05**, worst 26.05 (7,252 frames) | average **11.33 ms (88 fps)**, median 11.10, **worst 1 % 17.66**, worst 29.94 (3,899 frames) |
+| restarts / loading screens | 0 / 0 | 0 / 0 |
+
+A "leg" is one of *to the door*, *in through the door*, *back out*. The longest is A3's: 156 m
+of walking out of the plaza, down the avenue, back west and into the garden. Frame times
+exclude the first four seconds and any frame within half a second of a shutter.
+
+**Headroom:** the region preview window of plan v6 §11 is a second copy of this build at 30 fps
+and half resolution. The main game has 80–88 fps of its own at full resolution here, so there
+is room on paper; the soak test in plan §14 step 5 is what will decide it.
+
+The picture of all of it is `spike/shots/012/maps_contact.png`.
+
+## The walk is waypoints, not a navigation mesh
+
+`ADCSlot::ApproachPath` is a short list of world-space waypoints the map builder sets, and
+`ADCRuntimeGameMode`'s tour walks them with `AddMovementInput`, sliding sideways when it stops
+making progress. These maps are written by a script, so the way round the arcades and down the
+avenue is known when the map is written; a navigation mesh needs a brush volume, which is
+awkward to place from Python, and nothing in the demo needs path-finding at runtime.
+
+It is also a real collision test, and it found three things a camera never would: a flight of
+steps with a wall across it every four metres, a background block sitting on the garden path,
+and a boundary wall across the mouth of the pier. All three are fixed in the data.
 
 ## Things worth knowing about this PC
 

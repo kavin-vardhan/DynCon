@@ -1,0 +1,141 @@
+{
+ "schema_version": 1,
+ "kind": "environment",
+ "id": "shed",
+ "category": "building",
+ "collision": "blocking",
+ "units": {
+  "authoring": "m",
+  "fbx": "cm",
+  "glb": "m",
+  "fbx_scale": 100.0,
+  "engine": "cm",
+  "engine_unit_scale": 1.0
+ },
+ "bounds": {
+  "min": [
+   -3.3,
+   -2.35,
+   0.0
+  ],
+  "max": [
+   3.3,
+   2.35,
+   3.6
+  ],
+  "size": [
+   6.6,
+   4.7,
+   3.6
+  ]
+ },
+ "bounds_cm": {
+  "min": [
+   -330.0,
+   -235.0,
+   0.0
+  ],
+  "max": [
+   330.0,
+   235.0,
+   360.0
+  ],
+  "size": [
+   660.0,
+   470.0,
+   360.0
+  ]
+ },
+ "footprint": [
+  6.0,
+  4.0
+ ],
+ "ground_bounds": {
+  "min": [
+   -3.08,
+   -2.08
+  ],
+  "max": [
+   3.08,
+   2.08
+  ],
+  "size": [
+   6.16,
+   4.16
+  ],
+  "band": 0.6
+ },
+ "triangles": 528,
+ "triangle_budget": 14000,
+ "object_name": "SM_ENV_shed",
+ "materials": [
+  {
+   "slot": "M_Roof",
+   "base_color_hex": "#A4573C",
+   "base_color_linear": [
+    0.37124,
+    0.09531,
+    0.04519
+   ],
+   "roughness": 0.7,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 0.0
+  },
+  {
+   "slot": "M_Trim",
+   "base_color_hex": "#6B5340",
+   "base_color_linear": [
+    0.14703,
+    0.0865,
+    0.05127
+   ],
+   "roughness": 0.52,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 0.0
+  },
+  {
+   "slot": "M_Timber",
+   "base_color_hex": "#A67E54",
+   "base_color_linear": [
+    0.38133,
+    0.20864,
+    0.08866
+   ],
+   "roughness": 0.74,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 0.0
+  }
+ ],
+ "material_slots": [
+  "M_Trim",
+  "M_Timber",
+  "M_Roof"
+ ],
+ "material_slot_count": 3,
+ "palettes": [
+  "cool",
+  "warm"
+ ],
+ "preview_palette": "warm",
+ "notes": [],
+ "build_seconds": 0.82,
+ "exports": {
+  "fbx": "export_env/shed/shed.fbx",
+  "glb": "export_env/shed/shed.glb"
+ },
+ "previews": {
+  "cool": "previews_env/cool/shed.png",
+  "warm": "previews_env/warm/shed.png"
+ },
+ "generator": {
+  "env_kit_sha256": "4f8523c94c58efb50716510b58a4b1b0e79aee14d6c5551d2d99a0e3df32ba14",
+  "piece_script": "blender/env/buildings.py",
+  "piece_sha256": "93d09a67f21f1010ef54fcc9f49e56e67cc4f125ea4cff26b50531dfe37010d5",
+  "dc_kit_sha256": "bb5a3473ce162fa2e6a00d5e1ebe7a22df324ed05eaf89d6de3aa7cd84bda4bc",
+  "blender": "5.2.3 LTS",
+  "built_utc": "2026-11-01T07:47:35Z"
+ }
+}

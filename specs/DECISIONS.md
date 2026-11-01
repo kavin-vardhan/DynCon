@@ -84,3 +84,26 @@ decisions. Each line: date · decision · why. Kavin can overturn any of these; 
 - 2026-11-01 · The game writes a small **status JSON** (`-DCStatusFile=`) four times a second: per-slot state plus a
   history of activations and fallbacks with their timings. · It is how a test script knows what the game can see without
   parsing a log, and it is the same data the booth's watchdog will want.
+- 2026-11-01 · The environment is a **second Blender kit** (`art/blender/env/`), not more content: its own material
+  slots, its own tighter budgets, and **no M_BrandAccent / M_Sign / M_Screen** — the validator fails a piece that could
+  wear a brand. · The environment ships inside the build and must never be mistakable for content.
+- 2026-11-01 · **One FBX per environment piece, two palettes as material instances** (`warm` for Game A, `cool` for
+  Game B), chosen per actor by the map builder. · Two maps out of one kit; the geometry does not know what colour it is.
+- 2026-11-01 · The environment adds **no dynamic lights at all** — a lamp post is an emissive material. · A walk-in
+  content piece already spawns about a dozen shadow-casting point lights, and three slots of content is most of this
+  PC's light budget at 1600x900.
+- 2026-11-01 · Both maps are built by one committed editor script (`unreal/Tools/make_maps.py`), data plus loops. · A
+  layout change is a number, and the maps are reproducible from the repo with no hand editing.
+- 2026-11-01 · A slot with nothing in it yet stands on a **`slot_pad`** — environment, not content. The *default*
+  content still arrives from the server like everything else. · The build must keep containing none of the content;
+  the pad only stops the first few seconds reading as a hole in the paving.
+- 2026-11-01 · The Player is the engine's **UE4 mannequin**, mesh and animations only (6.6 MB), with its two material
+  slots replaced by plain neutral ones. · The mannequin wears the engine's logo on its chest and CLAUDE.md rule 3 is no
+  logos anywhere; this also keeps 55 MB of textures and a second character out of the repo.
+- 2026-11-01 · `ADCRuntimeGameMode` names the pawn and the controller by **soft path**, not by class. · The pawn is a
+  Blueprint in the game module's content and the game mode is in the plugin; a soft path keeps the plugin independent
+  (and means `/Game/Player` and `/Game/Mannequin` have to be in `DirectoriesToAlwaysCook`, because the cook does not
+  follow soft paths).
+- 2026-11-01 · The walk test follows **waypoints on the slot** (`ADCSlot::ApproachPath`), not a navigation mesh. · The
+  maps are written by a script, so the route is known when the map is; a nav mesh needs a brush volume, which is awkward
+  to place from Python, and nothing in the demo path-finds at runtime.

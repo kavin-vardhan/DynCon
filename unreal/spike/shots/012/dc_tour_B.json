@@ -1,0 +1,94 @@
+{
+	"map": "GameB",
+	"build": "Shipping",
+	"tour": true,
+	"shots": 7,
+	"seconds": 51.628686398267746,
+	"frame_ms":
+	{
+		"frames": 3899,
+		"average": 11.3311,
+		"median": 11.1032,
+		"worst_1_percent": 17.6557,
+		"worst": 29.937,
+		"average_fps": 88.2531
+	},
+	"walks": [
+		{
+			"slot": "B1",
+			"leg": "to the door",
+			"arrived": true,
+			"seconds": 3.85847,
+			"metres": 18.583,
+			"final_gap_cm": 108.394,
+			"note": ""
+		},
+		{
+			"slot": "B1",
+			"leg": "in through the door",
+			"arrived": true,
+			"seconds": 1.77836,
+			"metres": 8.25639,
+			"final_gap_cm": 103.527,
+			"note": ""
+		},
+		{
+			"slot": "B1",
+			"leg": "back out",
+			"arrived": true,
+			"seconds": 1.8554,
+			"metres": 8.63953,
+			"final_gap_cm": 105.174,
+			"note": ""
+		},
+		{
+			"slot": "B2",
+			"leg": "to the door",
+			"arrived": true,
+			"seconds": 9.35069,
+			"metres": 45.827,
+			"final_gap_cm": 104.167,
+			"note": ""
+		},
+		{
+			"slot": "B2",
+			"leg": "in through the door",
+			"arrived": true,
+			"seconds": 1.46113,
+			"metres": 6.66415,
+			"final_gap_cm": 102.86,
+			"note": ""
+		},
+		{
+			"slot": "B2",
+			"leg": "back out",
+			"arrived": true,
+			"seconds": 1.25329,
+			"metres": 5.62019,
+			"final_gap_cm": 105.447,
+			"note": ""
+		}
+	],
+	"slots": [
+		{
+			"slot": "B1",
+			"size_class": "L",
+			"state": "ACTIVE",
+			"piece": "content2",
+			"version": "v1",
+			"brand": "#E23D3D",
+			"emblem": "star",
+			"kind": "visitor"
+		},
+		{
+			"slot": "B2",
+			"size_class": "S",
+			"state": "ACTIVE",
+			"piece": "content4",
+			"version": "v2",
+			"brand": "#E23D3D",
+			"emblem": "star",
+			"kind": "visitor"
+		}
+	]
+}

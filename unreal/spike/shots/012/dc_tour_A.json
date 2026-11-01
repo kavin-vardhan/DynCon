@@ -1,0 +1,131 @@
+{
+	"map": "GameA",
+	"build": "Shipping",
+	"tour": true,
+	"shots": 10,
+	"seconds": 99.34809909760952,
+	"frame_ms":
+	{
+		"frames": 7252,
+		"average": 12.4682,
+		"median": 12.9597,
+		"worst_1_percent": 19.0522,
+		"worst": 26.0529,
+		"average_fps": 80.2037
+	},
+	"walks": [
+		{
+			"slot": "A1",
+			"leg": "to the door",
+			"arrived": true,
+			"seconds": 4.48007,
+			"metres": 21.7649,
+			"final_gap_cm": 103.514,
+			"note": ""
+		},
+		{
+			"slot": "A1",
+			"leg": "in through the door",
+			"arrived": true,
+			"seconds": 1.77209,
+			"metres": 8.22473,
+			"final_gap_cm": 102.46,
+			"note": ""
+		},
+		{
+			"slot": "A1",
+			"leg": "back out",
+			"arrived": true,
+			"seconds": 1.55808,
+			"metres": 7.15653,
+			"final_gap_cm": 108.166,
+			"note": ""
+		},
+		{
+			"slot": "A2",
+			"leg": "to the door",
+			"arrived": true,
+			"seconds": 15.3215,
+			"metres": 75.6536,
+			"final_gap_cm": 107.931,
+			"note": ""
+		},
+		{
+			"slot": "A2",
+			"leg": "in through the door",
+			"arrived": true,
+			"seconds": 1.77994,
+			"metres": 8.25754,
+			"final_gap_cm": 103.771,
+			"note": ""
+		},
+		{
+			"slot": "A2",
+			"leg": "back out",
+			"arrived": true,
+			"seconds": 1.55413,
+			"metres": 7.13275,
+			"final_gap_cm": 108.578,
+			"note": ""
+		},
+		{
+			"slot": "A3",
+			"leg": "to the door",
+			"arrived": true,
+			"seconds": 31.4932,
+			"metres": 156.023,
+			"final_gap_cm": 103.563,
+			"note": ""
+		},
+		{
+			"slot": "A3",
+			"leg": "in through the door",
+			"arrived": true,
+			"seconds": 1.45368,
+			"metres": 6.63248,
+			"final_gap_cm": 106.124,
+			"note": ""
+		},
+		{
+			"slot": "A3",
+			"leg": "back out",
+			"arrived": true,
+			"seconds": 1.2393,
+			"metres": 5.55523,
+			"final_gap_cm": 108.521,
+			"note": ""
+		}
+	],
+	"slots": [
+		{
+			"slot": "A1",
+			"size_class": "L",
+			"state": "ACTIVE",
+			"piece": "content1",
+			"version": "v1",
+			"brand": "#E23D3D",
+			"emblem": "star",
+			"kind": "visitor"
+		},
+		{
+			"slot": "A2",
+			"size_class": "T",
+			"state": "ACTIVE",
+			"piece": "content3",
+			"version": "v1",
+			"brand": "#E23D3D",
+			"emblem": "star",
+			"kind": "visitor"
+		},
+		{
+			"slot": "A3",
+			"size_class": "S",
+			"state": "ACTIVE",
+			"piece": "content4",
+			"version": "v1",
+			"brand": "#E23D3D",
+			"emblem": "star",
+			"kind": "visitor"
+		}
+	]
+}

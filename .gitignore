@@ -15,6 +15,11 @@ art/previews/*_top.png
 !art/previews/contact_sheet.png
 !art/previews/contact_ext.png
 !art/previews/swap_pairs.png
+!art/previews/env_contact.png
+
+# the environment kit's per-piece previews, same rule: two palettes x 23 pieces of PNG
+# regenerate from art/build.ps1 -EnvOnly; art/previews/env_contact.png is the one that stays
+art/previews_env/
 
 # the UE project: sources, Config and Content are committed, everything the engine
 # regenerates is not

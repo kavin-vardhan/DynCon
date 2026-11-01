@@ -1,0 +1,129 @@
+{
+ "schema_version": 1,
+ "kind": "environment",
+ "id": "pier_deck",
+ "category": "ground",
+ "collision": "blocking",
+ "units": {
+  "authoring": "m",
+  "fbx": "cm",
+  "glb": "m",
+  "fbx_scale": 100.0,
+  "engine": "cm",
+  "engine_unit_scale": 1.0
+ },
+ "bounds": {
+  "min": [
+   -3.0,
+   -2.12,
+   0.0
+  ],
+  "max": [
+   3.0,
+   2.12,
+   0.22
+  ],
+  "size": [
+   6.0,
+   4.24,
+   0.22
+  ]
+ },
+ "bounds_cm": {
+  "min": [
+   -300.0,
+   -212.0,
+   0.0
+  ],
+  "max": [
+   300.0,
+   212.0,
+   22.0
+  ],
+  "size": [
+   600.0,
+   424.0,
+   22.0
+  ]
+ },
+ "footprint": [
+  6.0,
+  4.0
+ ],
+ "ground_bounds": {
+  "min": [
+   -3.0,
+   -2.12
+  ],
+  "max": [
+   3.0,
+   2.12
+  ],
+  "size": [
+   6.0,
+   4.24
+  ],
+  "band": 0.6
+ },
+ "triangles": 192,
+ "triangle_budget": 1500,
+ "object_name": "SM_ENV_pier_deck",
+ "materials": [
+  {
+   "slot": "M_Trim",
+   "base_color_hex": "#6B5340",
+   "base_color_linear": [
+    0.14703,
+    0.0865,
+    0.05127
+   ],
+   "roughness": 0.52,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 0.0
+  },
+  {
+   "slot": "M_Timber",
+   "base_color_hex": "#A67E54",
+   "base_color_linear": [
+    0.38133,
+    0.20864,
+    0.08866
+   ],
+   "roughness": 0.74,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 0.0
+  }
+ ],
+ "material_slots": [
+  "M_Trim",
+  "M_Timber"
+ ],
+ "material_slot_count": 2,
+ "palettes": [
+  "cool",
+  "warm"
+ ],
+ "preview_palette": "warm",
+ "notes": [
+  "The deck only: the map stands it on pier_post pieces and sets its height."
+ ],
+ "build_seconds": 1.64,
+ "exports": {
+  "fbx": "export_env/pier_deck/pier_deck.fbx",
+  "glb": "export_env/pier_deck/pier_deck.glb"
+ },
+ "previews": {
+  "cool": "previews_env/cool/pier_deck.png",
+  "warm": "previews_env/warm/pier_deck.png"
+ },
+ "generator": {
+  "env_kit_sha256": "4f8523c94c58efb50716510b58a4b1b0e79aee14d6c5551d2d99a0e3df32ba14",
+  "piece_script": "blender/env/ground.py",
+  "piece_sha256": "fb382f3b7c26d2ccde182bf79342bfb1f9865b0179b43efa7165b7b6486993aa",
+  "dc_kit_sha256": "bb5a3473ce162fa2e6a00d5e1ebe7a22df324ed05eaf89d6de3aa7cd84bda4bc",
+  "blender": "5.2.3 LTS",
+  "built_utc": "2026-11-01T07:47:27Z"
+ }
+}

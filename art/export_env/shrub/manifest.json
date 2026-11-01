@@ -1,0 +1,113 @@
+{
+ "schema_version": 1,
+ "kind": "environment",
+ "id": "shrub",
+ "category": "planting",
+ "collision": "decoration",
+ "units": {
+  "authoring": "m",
+  "fbx": "cm",
+  "glb": "m",
+  "fbx_scale": 100.0,
+  "engine": "cm",
+  "engine_unit_scale": 1.0
+ },
+ "bounds": {
+  "min": [
+   -0.5716,
+   -0.5716,
+   0.0128
+  ],
+  "max": [
+   0.8184,
+   0.6184,
+   1.2272
+  ],
+  "size": [
+   1.39,
+   1.19,
+   1.2144
+  ]
+ },
+ "bounds_cm": {
+  "min": [
+   -57.16,
+   -57.16,
+   1.28
+  ],
+  "max": [
+   81.84,
+   61.84,
+   122.72
+  ],
+  "size": [
+   139.0,
+   119.0,
+   121.44
+  ]
+ },
+ "footprint": [
+  1.6,
+  1.4
+ ],
+ "ground_bounds": {
+  "min": [
+   -0.5716,
+   -0.5716
+  ],
+  "max": [
+   0.8184,
+   0.6184
+  ],
+  "size": [
+   1.39,
+   1.19
+  ],
+  "band": 0.6
+ },
+ "triangles": 64,
+ "triangle_budget": 4000,
+ "object_name": "SM_ENV_shrub",
+ "materials": [
+  {
+   "slot": "M_Foliage",
+   "base_color_hex": "#5E8A47",
+   "base_color_linear": [
+    0.11193,
+    0.25415,
+    0.06301
+   ],
+   "roughness": 0.86,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 0.0
+  }
+ ],
+ "material_slots": [
+  "M_Foliage"
+ ],
+ "material_slot_count": 1,
+ "palettes": [
+  "cool",
+  "warm"
+ ],
+ "preview_palette": "warm",
+ "notes": [],
+ "build_seconds": 0.45,
+ "exports": {
+  "fbx": "export_env/shrub/shrub.fbx",
+  "glb": "export_env/shrub/shrub.glb"
+ },
+ "previews": {
+  "cool": "previews_env/cool/shrub.png",
+  "warm": "previews_env/warm/shrub.png"
+ },
+ "generator": {
+  "env_kit_sha256": "4f8523c94c58efb50716510b58a4b1b0e79aee14d6c5551d2d99a0e3df32ba14",
+  "piece_script": "blender/env/props.py",
+  "piece_sha256": "2ec40c9d2202b41602a9f1c40bea58c80b984f182802fa6083140f5f9d0ac585",
+  "dc_kit_sha256": "bb5a3473ce162fa2e6a00d5e1ebe7a22df324ed05eaf89d6de3aa7cd84bda4bc",
+  "blender": "5.2.3 LTS",
+  "built_utc": "2026-11-01T07:47:37Z"
+ }
+}

@@ -1,0 +1,392 @@
+{
+ "schema_version": 1,
+ "material_slots": [
+  "M_Ground",
+  "M_Paving",
+  "M_PavingAlt",
+  "M_Kerb",
+  "M_Wall",
+  "M_WallAlt",
+  "M_Roof",
+  "M_Trim",
+  "M_Glass",
+  "M_Metal",
+  "M_Timber",
+  "M_Foliage",
+  "M_Trunk",
+  "M_Water",
+  "M_Emissive"
+ ],
+ "palettes": {
+  "warm": {
+   "name": "warm sandstone + terracotta (Game A, the plaza)",
+   "slots": {
+    "M_Ground": {
+     "base_color_hex": "#B9A98C",
+     "base_color_linear": [
+      0.48515,
+      0.39676,
+      0.26225
+     ],
+     "roughness": 0.92,
+     "metallic": 0.0,
+     "alpha": 1.0,
+     "emissive_strength": 0.0
+    },
+    "M_Paving": {
+     "base_color_hex": "#D9C8A6",
+     "base_color_linear": [
+      0.69387,
+      0.57758,
+      0.38133
+     ],
+     "roughness": 0.78,
+     "metallic": 0.0,
+     "alpha": 1.0,
+     "emissive_strength": 0.0
+    },
+    "M_PavingAlt": {
+     "base_color_hex": "#C2AC85",
+     "base_color_linear": [
+      0.53948,
+      0.41254,
+      0.23455
+     ],
+     "roughness": 0.74,
+     "metallic": 0.0,
+     "alpha": 1.0,
+     "emissive_strength": 0.0
+    },
+    "M_Kerb": {
+     "base_color_hex": "#A99579",
+     "base_color_linear": [
+      0.39676,
+      0.30054,
+      0.1912
+     ],
+     "roughness": 0.8,
+     "metallic": 0.0,
+     "alpha": 1.0,
+     "emissive_strength": 0.0
+    },
+    "M_Wall": {
+     "base_color_hex": "#E3D6BE",
+     "base_color_linear": [
+      0.76815,
+      0.67244,
+      0.51492
+     ],
+     "roughness": 0.66,
+     "metallic": 0.0,
+     "alpha": 1.0,
+     "emissive_strength": 0.0
+    },
+    "M_WallAlt": {
+     "base_color_hex": "#CDBB9C",
+     "base_color_linear": [
+      0.6105,
+      0.49693,
+      0.33245
+     ],
+     "roughness": 0.68,
+     "metallic": 0.0,
+     "alpha": 1.0,
+     "emissive_strength": 0.0
+    },
+    "M_Roof": {
+     "base_color_hex": "#A4573C",
+     "base_color_linear": [
+      0.37124,
+      0.09531,
+      0.04519
+     ],
+     "roughness": 0.7,
+     "metallic": 0.0,
+     "alpha": 1.0,
+     "emissive_strength": 0.0
+    },
+    "M_Trim": {
+     "base_color_hex": "#6B5340",
+     "base_color_linear": [
+      0.14703,
+      0.0865,
+      0.05127
+     ],
+     "roughness": 0.52,
+     "metallic": 0.0,
+     "alpha": 1.0,
+     "emissive_strength": 0.0
+    },
+    "M_Glass": {
+     "base_color_hex": "#CFE0E4",
+     "base_color_linear": [
+      0.62396,
+      0.7454,
+      0.77582
+     ],
+     "roughness": 0.06,
+     "metallic": 0.0,
+     "alpha": 0.22,
+     "emissive_strength": 0.0
+    },
+    "M_Metal": {
+     "base_color_hex": "#9C9890",
+     "base_color_linear": [
+      0.33245,
+      0.31399,
+      0.27889
+     ],
+     "roughness": 0.33,
+     "metallic": 0.85,
+     "alpha": 1.0,
+     "emissive_strength": 0.0
+    },
+    "M_Timber": {
+     "base_color_hex": "#A67E54",
+     "base_color_linear": [
+      0.38133,
+      0.20864,
+      0.08866
+     ],
+     "roughness": 0.74,
+     "metallic": 0.0,
+     "alpha": 1.0,
+     "emissive_strength": 0.0
+    },
+    "M_Foliage": {
+     "base_color_hex": "#5E8A47",
+     "base_color_linear": [
+      0.11193,
+      0.25415,
+      0.06301
+     ],
+     "roughness": 0.86,
+     "metallic": 0.0,
+     "alpha": 1.0,
+     "emissive_strength": 0.0
+    },
+    "M_Trunk": {
+     "base_color_hex": "#6E5940",
+     "base_color_linear": [
+      0.15593,
+      0.0999,
+      0.05127
+     ],
+     "roughness": 0.84,
+     "metallic": 0.0,
+     "alpha": 1.0,
+     "emissive_strength": 0.0
+    },
+    "M_Water": {
+     "base_color_hex": "#6E9BA8",
+     "base_color_linear": [
+      0.15593,
+      0.32778,
+      0.39157
+     ],
+     "roughness": 0.08,
+     "metallic": 0.0,
+     "alpha": 0.7,
+     "emissive_strength": 0.0
+    },
+    "M_Emissive": {
+     "base_color_hex": "#FFEFD0",
+     "base_color_linear": [
+      1.0,
+      0.86316,
+      0.63076
+     ],
+     "roughness": 0.4,
+     "metallic": 0.0,
+     "alpha": 1.0,
+     "emissive_strength": 5.0
+    }
+   }
+  },
+  "cool": {
+   "name": "slate + timber + blue water (Game B, the waterfront)",
+   "slots": {
+    "M_Ground": {
+     "base_color_hex": "#7E858A",
+     "base_color_linear": [
+      0.20864,
+      0.23455,
+      0.25415
+     ],
+     "roughness": 0.92,
+     "metallic": 0.0,
+     "alpha": 1.0,
+     "emissive_strength": 0.0
+    },
+    "M_Paving": {
+     "base_color_hex": "#9AA3A9",
+     "base_color_linear": [
+      0.32314,
+      0.36625,
+      0.39676
+     ],
+     "roughness": 0.74,
+     "metallic": 0.0,
+     "alpha": 1.0,
+     "emissive_strength": 0.0
+    },
+    "M_PavingAlt": {
+     "base_color_hex": "#7D868D",
+     "base_color_linear": [
+      0.20508,
+      0.2384,
+      0.26636
+     ],
+     "roughness": 0.72,
+     "metallic": 0.0,
+     "alpha": 1.0,
+     "emissive_strength": 0.0
+    },
+    "M_Kerb": {
+     "base_color_hex": "#69727A",
+     "base_color_linear": [
+      0.14126,
+      0.16827,
+      0.19462
+     ],
+     "roughness": 0.8,
+     "metallic": 0.0,
+     "alpha": 1.0,
+     "emissive_strength": 0.0
+    },
+    "M_Wall": {
+     "base_color_hex": "#C3CBD1",
+     "base_color_linear": [
+      0.54572,
+      0.5972,
+      0.6376
+     ],
+     "roughness": 0.62,
+     "metallic": 0.0,
+     "alpha": 1.0,
+     "emissive_strength": 0.0
+    },
+    "M_WallAlt": {
+     "base_color_hex": "#9BA7B0",
+     "base_color_linear": [
+      0.32778,
+      0.38643,
+      0.43415
+     ],
+     "roughness": 0.64,
+     "metallic": 0.0,
+     "alpha": 1.0,
+     "emissive_strength": 0.0
+    },
+    "M_Roof": {
+     "base_color_hex": "#3A454E",
+     "base_color_linear": [
+      0.04231,
+      0.05951,
+      0.07619
+     ],
+     "roughness": 0.66,
+     "metallic": 0.0,
+     "alpha": 1.0,
+     "emissive_strength": 0.0
+    },
+    "M_Trim": {
+     "base_color_hex": "#2E3940",
+     "base_color_linear": [
+      0.02732,
+      0.04092,
+      0.05127
+     ],
+     "roughness": 0.48,
+     "metallic": 0.0,
+     "alpha": 1.0,
+     "emissive_strength": 0.0
+    },
+    "M_Glass": {
+     "base_color_hex": "#C6D8E2",
+     "base_color_linear": [
+      0.56471,
+      0.68669,
+      0.76052
+     ],
+     "roughness": 0.05,
+     "metallic": 0.0,
+     "alpha": 0.2,
+     "emissive_strength": 0.0
+    },
+    "M_Metal": {
+     "base_color_hex": "#AEB5BA",
+     "base_color_linear": [
+      0.42327,
+      0.46208,
+      0.49102
+     ],
+     "roughness": 0.28,
+     "metallic": 0.9,
+     "alpha": 1.0,
+     "emissive_strength": 0.0
+    },
+    "M_Timber": {
+     "base_color_hex": "#8B7355",
+     "base_color_linear": [
+      0.25818,
+      0.17144,
+      0.09084
+     ],
+     "roughness": 0.78,
+     "metallic": 0.0,
+     "alpha": 1.0,
+     "emissive_strength": 0.0
+    },
+    "M_Foliage": {
+     "base_color_hex": "#4E7A63",
+     "base_color_linear": [
+      0.07619,
+      0.19462,
+      0.12477
+     ],
+     "roughness": 0.86,
+     "metallic": 0.0,
+     "alpha": 1.0,
+     "emissive_strength": 0.0
+    },
+    "M_Trunk": {
+     "base_color_hex": "#5A5247",
+     "base_color_linear": [
+      0.10224,
+      0.08438,
+      0.06301
+     ],
+     "roughness": 0.84,
+     "metallic": 0.0,
+     "alpha": 1.0,
+     "emissive_strength": 0.0
+    },
+    "M_Water": {
+     "base_color_hex": "#2E6B8F",
+     "base_color_linear": [
+      0.02732,
+      0.14703,
+      0.27468
+     ],
+     "roughness": 0.04,
+     "metallic": 0.0,
+     "alpha": 0.78,
+     "emissive_strength": 0.0
+    },
+    "M_Emissive": {
+     "base_color_hex": "#DCEBFF",
+     "base_color_linear": [
+      0.71569,
+      0.83077,
+      1.0
+     ],
+     "roughness": 0.4,
+     "metallic": 0.0,
+     "alpha": 1.0,
+     "emissive_strength": 5.0
+    }
+   }
+  }
+ }
+}

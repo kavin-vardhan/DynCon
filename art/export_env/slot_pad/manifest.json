@@ -1,0 +1,143 @@
+{
+ "schema_version": 1,
+ "kind": "environment",
+ "id": "slot_pad",
+ "category": "ground",
+ "collision": "blocking",
+ "units": {
+  "authoring": "m",
+  "fbx": "cm",
+  "glb": "m",
+  "fbx_scale": 100.0,
+  "engine": "cm",
+  "engine_unit_scale": 1.0
+ },
+ "bounds": {
+  "min": [
+   -7.0,
+   -7.0,
+   0.0
+  ],
+  "max": [
+   7.0,
+   7.0,
+   0.23
+  ],
+  "size": [
+   14.0,
+   14.0,
+   0.23
+  ]
+ },
+ "bounds_cm": {
+  "min": [
+   -700.0,
+   -700.0,
+   0.0
+  ],
+  "max": [
+   700.0,
+   700.0,
+   23.0
+  ],
+  "size": [
+   1400.0,
+   1400.0,
+   23.0
+  ]
+ },
+ "footprint": [
+  14.0,
+  14.0
+ ],
+ "ground_bounds": {
+  "min": [
+   -7.0,
+   -7.0
+  ],
+  "max": [
+   7.0,
+   7.0
+  ],
+  "size": [
+   14.0,
+   14.0
+  ],
+  "band": 0.6
+ },
+ "triangles": 108,
+ "triangle_budget": 1500,
+ "object_name": "SM_ENV_slot_pad",
+ "materials": [
+  {
+   "slot": "M_Paving",
+   "base_color_hex": "#D9C8A6",
+   "base_color_linear": [
+    0.69387,
+    0.57758,
+    0.38133
+   ],
+   "roughness": 0.78,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 0.0
+  },
+  {
+   "slot": "M_PavingAlt",
+   "base_color_hex": "#C2AC85",
+   "base_color_linear": [
+    0.53948,
+    0.41254,
+    0.23455
+   ],
+   "roughness": 0.74,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 0.0
+  },
+  {
+   "slot": "M_Kerb",
+   "base_color_hex": "#A99579",
+   "base_color_linear": [
+    0.39676,
+    0.30054,
+    0.1912
+   ],
+   "roughness": 0.8,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 0.0
+  }
+ ],
+ "material_slots": [
+  "M_Paving",
+  "M_Kerb",
+  "M_PavingAlt"
+ ],
+ "material_slot_count": 3,
+ "palettes": [
+  "cool",
+  "warm"
+ ],
+ "preview_palette": "warm",
+ "notes": [
+  "Scaled 0.5 in X and Y for an S slot. Never carries a brand or a marking."
+ ],
+ "build_seconds": 12.22,
+ "exports": {
+  "fbx": "export_env/slot_pad/slot_pad.fbx",
+  "glb": "export_env/slot_pad/slot_pad.glb"
+ },
+ "previews": {
+  "cool": "previews_env/cool/slot_pad.png",
+  "warm": "previews_env/warm/slot_pad.png"
+ },
+ "generator": {
+  "env_kit_sha256": "4f8523c94c58efb50716510b58a4b1b0e79aee14d6c5551d2d99a0e3df32ba14",
+  "piece_script": "blender/env/ground.py",
+  "piece_sha256": "fb39dcdceec558064f192f903a23d4835df57e2e60ed95cab6308e2b02d97cb8",
+  "dc_kit_sha256": "bb5a3473ce162fa2e6a00d5e1ebe7a22df324ed05eaf89d6de3aa7cd84bda4bc",
+  "blender": "5.2.3 LTS",
+  "built_utc": "2026-11-01T07:50:44Z"
+ }
+}

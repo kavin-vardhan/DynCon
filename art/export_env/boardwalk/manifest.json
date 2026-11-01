@@ -1,0 +1,129 @@
+{
+ "schema_version": 1,
+ "kind": "environment",
+ "id": "boardwalk",
+ "category": "ground",
+ "collision": "blocking",
+ "units": {
+  "authoring": "m",
+  "fbx": "cm",
+  "glb": "m",
+  "fbx_scale": 100.0,
+  "engine": "cm",
+  "engine_unit_scale": 1.0
+ },
+ "bounds": {
+  "min": [
+   -2.0,
+   -2.0,
+   0.0
+  ],
+  "max": [
+   2.0,
+   2.0,
+   0.15
+  ],
+  "size": [
+   4.0,
+   4.0,
+   0.15
+  ]
+ },
+ "bounds_cm": {
+  "min": [
+   -200.0,
+   -200.0,
+   0.0
+  ],
+  "max": [
+   200.0,
+   200.0,
+   15.0
+  ],
+  "size": [
+   400.0,
+   400.0,
+   15.0
+  ]
+ },
+ "footprint": [
+  4.0,
+  4.0
+ ],
+ "ground_bounds": {
+  "min": [
+   -2.0,
+   -2.0
+  ],
+  "max": [
+   2.0,
+   2.0
+  ],
+  "size": [
+   4.0,
+   4.0
+  ],
+  "band": 0.6
+ },
+ "triangles": 120,
+ "triangle_budget": 1500,
+ "object_name": "SM_ENV_boardwalk",
+ "materials": [
+  {
+   "slot": "M_Trim",
+   "base_color_hex": "#6B5340",
+   "base_color_linear": [
+    0.14703,
+    0.0865,
+    0.05127
+   ],
+   "roughness": 0.52,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 0.0
+  },
+  {
+   "slot": "M_Timber",
+   "base_color_hex": "#A67E54",
+   "base_color_linear": [
+    0.38133,
+    0.20864,
+    0.08866
+   ],
+   "roughness": 0.74,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 0.0
+  }
+ ],
+ "material_slots": [
+  "M_Trim",
+  "M_Timber"
+ ],
+ "material_slot_count": 2,
+ "palettes": [
+  "cool",
+  "warm"
+ ],
+ "preview_palette": "warm",
+ "notes": [
+  "Planks run along +X; lays edge to edge on a 4 m grid."
+ ],
+ "build_seconds": 1.01,
+ "exports": {
+  "fbx": "export_env/boardwalk/boardwalk.fbx",
+  "glb": "export_env/boardwalk/boardwalk.glb"
+ },
+ "previews": {
+  "cool": "previews_env/cool/boardwalk.png",
+  "warm": "previews_env/warm/boardwalk.png"
+ },
+ "generator": {
+  "env_kit_sha256": "4f8523c94c58efb50716510b58a4b1b0e79aee14d6c5551d2d99a0e3df32ba14",
+  "piece_script": "blender/env/ground.py",
+  "piece_sha256": "fb382f3b7c26d2ccde182bf79342bfb1f9865b0179b43efa7165b7b6486993aa",
+  "dc_kit_sha256": "bb5a3473ce162fa2e6a00d5e1ebe7a22df324ed05eaf89d6de3aa7cd84bda4bc",
+  "blender": "5.2.3 LTS",
+  "built_utc": "2026-11-01T07:47:26Z"
+ }
+}

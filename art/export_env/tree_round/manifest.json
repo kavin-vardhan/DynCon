@@ -1,0 +1,127 @@
+{
+ "schema_version": 1,
+ "kind": "environment",
+ "id": "tree_round",
+ "category": "planting",
+ "collision": "blocking",
+ "units": {
+  "authoring": "m",
+  "fbx": "cm",
+  "glb": "m",
+  "fbx_scale": 100.0,
+  "engine": "cm",
+  "engine_unit_scale": 1.0
+ },
+ "bounds": {
+  "min": [
+   -1.9734,
+   -2.0681,
+   0.0
+  ],
+  "max": [
+   2.1,
+   2.0681,
+   5.23
+  ],
+  "size": [
+   4.0734,
+   4.1362,
+   5.23
+  ]
+ },
+ "bounds_cm": {
+  "min": [
+   -197.34,
+   -206.81,
+   0.0
+  ],
+  "max": [
+   210.0,
+   206.81,
+   523.0
+  ],
+  "size": [
+   407.34,
+   413.62,
+   523.0
+  ]
+ },
+ "footprint": [
+  4.4,
+  4.4
+ ],
+ "ground_bounds": {
+  "min": [
+   -0.48,
+   -0.48
+  ],
+  "max": [
+   0.48,
+   0.48
+  ],
+  "size": [
+   0.96,
+   0.96
+  ],
+  "band": 0.6
+ },
+ "triangles": 226,
+ "triangle_budget": 4000,
+ "object_name": "SM_ENV_tree_round",
+ "materials": [
+  {
+   "slot": "M_Foliage",
+   "base_color_hex": "#5E8A47",
+   "base_color_linear": [
+    0.11193,
+    0.25415,
+    0.06301
+   ],
+   "roughness": 0.86,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 0.0
+  },
+  {
+   "slot": "M_Trunk",
+   "base_color_hex": "#6E5940",
+   "base_color_linear": [
+    0.15593,
+    0.0999,
+    0.05127
+   ],
+   "roughness": 0.84,
+   "metallic": 0.0,
+   "alpha": 1.0,
+   "emissive_strength": 0.0
+  }
+ ],
+ "material_slots": [
+  "M_Trunk",
+  "M_Foliage"
+ ],
+ "material_slot_count": 2,
+ "palettes": [
+  "cool",
+  "warm"
+ ],
+ "preview_palette": "warm",
+ "notes": [],
+ "build_seconds": 0.52,
+ "exports": {
+  "fbx": "export_env/tree_round/tree_round.fbx",
+  "glb": "export_env/tree_round/tree_round.glb"
+ },
+ "previews": {
+  "cool": "previews_env/cool/tree_round.png",
+  "warm": "previews_env/warm/tree_round.png"
+ },
+ "generator": {
+  "env_kit_sha256": "4f8523c94c58efb50716510b58a4b1b0e79aee14d6c5551d2d99a0e3df32ba14",
+  "piece_script": "blender/env/props.py",
+  "piece_sha256": "2ec40c9d2202b41602a9f1c40bea58c80b984f182802fa6083140f5f9d0ac585",
+  "dc_kit_sha256": "bb5a3473ce162fa2e6a00d5e1ebe7a22df324ed05eaf89d6de3aa7cd84bda4bc",
+  "blender": "5.2.3 LTS",
+  "built_utc": "2026-11-01T07:47:36Z"
+ }
+}
