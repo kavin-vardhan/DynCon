@@ -28,9 +28,12 @@ def test_the_portal_is_served_at_portal(env) -> None:
 
 
 def test_the_portal_files_are_all_there(env) -> None:
-    for path in ("app.js", "api.js", "input.js", "ui.js", "strings.js", "style.css",
+    for path in ("app.js", "api.js", "input.js", "ui.js", "strings.js", "menu.js",
+                 "style.css",
                  "screens/attract.js", "screens/brand.js", "screens/upload.js",
-                 "screens/games.js", "screens/slotmap.js",
+                 "screens/games.js", "screens/slotmap.js", "screens/regions.js",
+                 "screens/auction.js", "screens/live.js", "screens/report.js",
+                 "screens/update.js", "screens/summary.js",
                  "fonts/NotoSansJP-subset.woff2", "fonts/OFL.txt"):
         answer = env.client.get(f"/portal/{path}")
         assert answer.status_code == 200, path

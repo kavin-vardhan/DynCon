@@ -174,3 +174,31 @@ decisions. Each line: date · decision · why. Kavin can overturn any of these; 
   booth never uses, and three of the four layout bugs found in brief 014 were invisible to a screenshot.
 - 2026-11-01 · The exit test's per-screen PNGs are **git-ignored; only the contact sheet is committed** — same rule as
   the art previews. · 5 MB a run, and `booth\portal_exit_test.py` rebuilds all of them in under a minute.
+- 2026-11-01 · A lot is tracked by **`lot_id`, never by region**: the moment a lot closes the server opens the next
+  block's lot for the same slot and region, and `/lots` answers with both. · Matching on the region silently moved the
+  auction screen onto the next block's auction, so it never saw its own result (found by the exit test, brief 015).
+  The regions screen deliberately does the opposite — it takes the newest lot per region, which is what "book the next
+  block" means.
+- 2026-11-01 · The **Live screen shows four steps but only claims two**: resolve (from `/status/live`) and mount (the
+  game's own telemetry, counted per region by `/report`) are the server's facts; download and verify are labelled as
+  happening on the player's machine and complete when the mount is reported. · The portal cannot see the game's
+  download, and the game's own status strip on the other monitor can; a fake progress bar for it would be the one
+  dishonest thing on the screen.
+- 2026-11-01 · The **push-an-update screen compares mount counts**: it snapshots `/report`'s mount count for the region
+  before the v2 upload and treats an increase as the game having swapped. · Telemetry is matched to a block by slot,
+  region and time, so an increase inside the visitor's own block is their content being mounted again — which is the
+  swap.
+- 2026-11-01 · **Tour step 8 (the region check) lives in the Start menu**, which also holds pause and the summary. ·
+  The spec gives Start a menu and gives the region check no screen of its own; the preview *window*'s show/hide is the
+  pad helper's job and arrives with the preview brief.
+- 2026-11-01 · The Summary is reached by **the block ending or the Start menu**, not by a button on the Report. · The
+  tour reaches it when the three demo hours run out; a booth rehearsal (and the exit test) cannot wait three minutes,
+  and staff need a way to show it on demand.
+- 2026-11-01 · The hint bar **drops the "demo credits — not real money" line on screens with five or more button
+  hints**, and those screens carry it in the panel where the credits are. · The spec wants it under every credit
+  figure; a crowded bar had it overlapping the hints.
+- 2026-11-01 · Every cell of a bid or report row lays its two parts out **side by side, never stacked**. · A stacked
+  cell is two bilingual blocks deep, which is four lines, which is a 186px row: three of them do not fit on a 1080p
+  screen with a header and a hint bar.
+- 2026-11-01 · The attract screen **re-opens the lots whenever `/lots` comes back empty**. · A reset wipes them, and
+  the next visitor's attract screen would otherwise show an empty auction panel until somebody bid.

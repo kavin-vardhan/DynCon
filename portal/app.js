@@ -11,13 +11,21 @@ import { Input } from './input.js';
 import * as ui from './ui.js';
 import { STRINGS } from './strings.js';
 
+import * as menu from './menu.js';
 import attract from './screens/attract.js';
 import brand from './screens/brand.js';
 import upload from './screens/upload.js';
 import games from './screens/games.js';
 import slotmap from './screens/slotmap.js';
+import regions from './screens/regions.js';
+import auction from './screens/auction.js';
+import live from './screens/live.js';
+import report from './screens/report.js';
+import update from './screens/update.js';
+import summary from './screens/summary.js';
 
-const SCREENS = { attract, brand, upload, games, slotmap };
+const SCREENS = { attract, brand, upload, games, slotmap,
+                  regions, auction, live, report, update, summary };
 
 const appNode = document.getElementById('app');
 const headerNode = document.getElementById('header');
@@ -33,6 +41,8 @@ export const state = {
   content: [],             // my content, from /content
   contentId: null,         // the piece the visitor is campaigning with
   game: null,              // the game id picked on screen 3
+  slot: null,              // the slot being campaigned on, from screen 4 onwards
+  bidRegions: null,        // the regions the visitor bid in, for the auction screen
   padOnline: false,
   controllers: [],
 };
@@ -67,6 +77,8 @@ const ctx = {
   chosenContent() {
     return state.content.find((c) => c.content_id === state.contentId) || null;
   },
+  afterReset: () => afterReset(),
+  restoreHints: () => restoreHints(),
 };
 
 // --------------------------------------------------------------------- the header
@@ -125,8 +137,20 @@ function tickClockDisplay() {
 function setHints(hints, note = null) {
   ui.clear(hintNode);
   for (const [button, key] of hints) hintNode.append(ui.hint(button, key));
-  hintNode.append(ui.el('span', { class: 'note' },
-    note ? ui.bi(note) : ui.bi('demo_credits_note')));
+  // The "demo credits — not real money" line lives at the right of the bar, but a screen
+  // with five button hints has no room for it; those screens carry it in the panel where
+  // the credits are, which is where the spec wants it anyway.
+  if (note || hints.length <= 4) {
+    hintNode.append(ui.el('span', { class: 'note' },
+      note ? ui.bi(note) : ui.bi('demo_credits_note')));
+  }
+}
+
+/** Put back the hints the live screen asked for (after the menu borrowed the bar). */
+function restoreHints() {
+  if (!current) return;
+  setHints(typeof current.hints === 'function' ? current.hints(ctx) : (current.hints || []),
+           current.hintNote);
 }
 
 // --------------------------------------------------------------------- routing
@@ -176,6 +200,15 @@ function onButton(event) {
   lastInputAt = performance.now();
   if (!current) return;
   try {
+    // The Start menu is modal while it is up: it owns the pad and the hint bar.
+    if (menu.isOpen()) {
+      Promise.resolve(menu.pad(event.button, ctx)).catch((p) => console.error(p));
+      return;
+    }
+    if (event.button === 'START' && current.showHeader !== false) {
+      Promise.resolve(menu.show(ctx)).catch((p) => console.error(p));
+      return;
+    }
     current.pad(event.button, ctx, event);
   } catch (problem) {
     console.error(problem);
@@ -202,10 +235,13 @@ function onConnection(online, controllers) {
 // --------------------------------------------------------------------- the reset
 
 async function afterReset() {
+  if (menu.isOpen()) menu.hide(ctx);
   state.brand = null;
   state.content = [];
   state.contentId = null;
   state.game = null;
+  state.slot = null;
+  state.bidRegions = null;
   state.wallet = { available: state.config ? state.config.wallet : 0, held: 0, charged: 0 };
   await go('attract');
 }
@@ -251,7 +287,12 @@ async function boot() {
     } catch (problem) { /* the next tick will do */ }
   }, 5000);
 
-  const idleSeconds = Number((state.config && state.config.idle_reset_s) || 60);
+  // `?idle=5` shortens the idle reset so a test (or a rehearsal) can watch it happen
+  // without standing there for a minute. The booth URL has no query and gets the
+  // server's own 60 seconds.
+  const asked = Number(new URLSearchParams(location.search).get('idle') || 0);
+  const idleSeconds = asked > 0 ? asked
+    : Number((state.config && state.config.idle_reset_s) || 60);
   setInterval(() => {
     if (!current || current.id === 'attract') { lastInputAt = performance.now(); return; }
     if ((performance.now() - lastInputAt) / 1000 >= idleSeconds) idleReset();

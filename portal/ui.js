@@ -4,6 +4,17 @@
 
 import { STRINGS, REGION_JP, japaneseFor } from './strings.js';
 
+/** The Japanese line for a sentence the server wrote. */
+export const japanese = japaneseFor;
+
+// The bid keys, in one place because two screens use them (spec §2): the shoulders step
+// by the auction's own minimum raise, the triggers by four of them.
+const BID_STEPS = { LB: -25, RB: 25, LT: -100, RT: 100 };
+
+export function bidStep(button) {
+  return BID_STEPS[button] || 0;
+}
+
 export function el(tag, attrs = {}, ...children) {
   const node = document.createElement(tag);
   for (const [key, value] of Object.entries(attrs || {})) {
@@ -41,6 +52,11 @@ export function biServer(sentence, cls = '') {
 /** A region, named as the server names it, with Japanese when this build knows it. */
 export function biRegion(label, cls = '') {
   return biText(REGION_JP[label] || label, label, cls);
+}
+
+/** The Japanese name of a region, for building a sentence around it. */
+export function regionJp(label) {
+  return REGION_JP[label] || label;
 }
 
 export function heading(key, level = 'h2') {

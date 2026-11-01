@@ -48,6 +48,19 @@ export const api = {
   liveStatus: () => get('/status/live'),
   reset: () => post('/admin/reset'),
 
+  // ---- the auction, the report and the preview window --------------------------------
+  lot: (id) => get(`/lots/${encodeURIComponent(id)}`),
+  splitBid: (slot, total, regions) => get(
+    `/bids/split?slot=${encodeURIComponent(slot)}&total=${total}`
+    + `&regions=${encodeURIComponent(regions.join(','))}`),
+  placeBids: (slot, contentId, bids) => post('/bids', {
+    slot, content_id: contentId, bids,
+  }),
+  report: () => get('/report'),
+  previewRegion: () => get('/preview/region'),
+  setPreviewRegion: (region) => post('/preview/region', { region }),
+  setPaused: (paused) => post('/campaign/pause', { paused }),
+
   /** The bytes of one file on "the brand's computer", with real read progress. */
   async readDemoFile(name, onProgress) {
     const response = await fetch(`/demo-files/${encodeURIComponent(name)}`, { cache: 'no-store' });

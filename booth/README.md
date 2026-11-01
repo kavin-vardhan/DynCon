@@ -1,13 +1,13 @@
 # The booth's plumbing
 
 *The bits that sit between the hardware on the table and the two screens. **DONE**: the pad
-helper and the portal's exit test (brief 014). **FUTURE**: the region-preview window's placement
-and the watchdog that restarts things (plan v6 §10).*
+helper (brief 014) and the portal's exit test, now the whole tour (brief 015). **FUTURE**: the
+region-preview window's placement and the watchdog that restarts things (plan v6 §10).*
 
 | File | What |
 |---|---|
 | `pad_helper.py` | reads **controller 2** and relays it to the brand portal; runs the staff combos |
-| `portal_exit_test.py` | brief 014's exit test: the whole of tour steps 0–4 driven by a simulated pad |
+| `portal_exit_test.py` | the whole visitor tour, the express version and the idle reset, driven by a simulated pad |
 
 ## The pad helper
 
@@ -73,20 +73,34 @@ as much about the hardware as a run at the booth.
 
 ```powershell
 server\.venv\Scripts\python.exe booth\portal_exit_test.py
-server\.venv\Scripts\python.exe booth\portal_exit_test.py --headed   # watch it happen
-server\.venv\Scripts\python.exe booth\portal_exit_test.py --keep     # leave it all running
+server\.venv\Scripts\python.exe booth\portal_exit_test.py --headed       # watch it happen
+server\.venv\Scripts\python.exe booth\portal_exit_test.py --keep         # leave it all running
+server\.venv\Scripts\python.exe booth\portal_exit_test.py --only express # one tour only
 ```
 
-It starts its own demo server (port 8796, its own temporary data folder) and its own pad helper
-(port 8702), so it can run while the booth's server and helper are up and touch neither.
+It starts its own demo server (port 8796, its own temporary data folder), its own pad helper
+(port 8702) **and a real game client** (`server/tools/fake_client.py` against the same server),
+so it can run while the booth's server and helper are up and touch neither.
 
-Everything it does, it does by writing lines to `pad_helper.py --simulate --stdin`: attract →
-create a brand → upload Content 1 and watch it approved → upload the engine-5.3 file and watch
-it rejected with the server's own sentence → pick Game A → the slot map, A1's card filled in,
-then A3 greyed out because the content is too tall for it. Nothing is clicked, so what is tested
-is the booth's real input path.
+Everything it does, it does by writing lines to `pad_helper.py --simulate --stdin`. Nothing is
+clicked, so what is tested is the booth's real input path — and the game side is a real client,
+so the Live screen's mount step and the Report's counted views are real events rather than a
+story the portal tells itself.
 
-Every screen is screenshotted at 1920×1080 into `portal/_shots/014/` and audited in the page:
+**Tour 1, the full visit.** Attract → brand → Content 1 approved → the engine-5.3 file rejected
+with the server's own sentence → Game A → the slot map, A1's card filled in and A3 greyed out →
+Japan and India ticked and bid → the rival's counter-bid, the "Outbid in India" banner and the
+cursor jumping → raise Japan → **the staff close-auction combo, held for three seconds** → Won in
+Japan, Lost in India → Live, waiting for the game and then mounted → the Report → the Start
+menu's region check → push version 2 and watch the platform serve it and the game swap it → the
+Summary → the twenty-second automatic reset back to Attract.
+
+**Tour 2, the express visit** (the 90-second version for a crowd): preset brand, Content 1, one
+slot, Japan only, and staff closing the auction before the rival ever answers.
+
+**Then the idle reset**, with `?idle=5` so it takes five seconds instead of sixty.
+
+Every screen is screenshotted at 1920×1080 into `portal/_shots/015/` and audited in the page:
 
 * every bilingual block really has both languages, and no text is drawn outside one (numbers,
   slot ids, file names and button faces are marked `data-datum` and exempt — they are the same

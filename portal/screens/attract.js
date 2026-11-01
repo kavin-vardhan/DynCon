@@ -11,7 +11,20 @@ const MAX_AUCTION_ROWS = 5;
 
 let showingPanel = null;
 let auctionPanel = null;
-let openedLots = false;
+let opening = false;
+
+/** Lots are opened on demand; this is what puts the other brands' auctions on the
+ *  attract screen before anybody has touched the pad. */
+async function openEveryLot(ctx) {
+  if (opening) return;
+  opening = true;
+  try {
+    const slots = Object.values(ctx.state.config.games).flatMap((g) => g.slots);
+    await Promise.all(slots.map((s) => ctx.api.lots({ slot: s.id }).catch(() => null)));
+  } finally {
+    opening = false;
+  }
+}
 
 function whoKey(kind) {
   if (kind === 'visitor') return 'showing_you';
@@ -92,13 +105,7 @@ export default {
         ui.el('span', { class: 'ring' }, ui.glyph('A'), ui.bi('attract_start'))),
     );
 
-    // Lots are opened on demand, so ask for each slot's once: that is what puts the other
-    // brands' auctions on the attract screen before anybody has touched the pad.
-    if (!openedLots) {
-      openedLots = true;
-      const slots = Object.values(ctx.state.config.games).flatMap((g) => g.slots);
-      await Promise.all(slots.map((s) => ctx.api.lots({ slot: s.id }).catch(() => null)));
-    }
+    await openEveryLot(ctx);
     await this.refresh(ctx);
   },
 
@@ -106,6 +113,10 @@ export default {
     const [live, lots] = await Promise.all([ctx.api.liveStatus(), ctx.api.lots()]);
     drawShowing(ctx, live.showing || []);
     drawAuctions(lots.lots || []);
+    // A reset wipes the lots, and the next visitor's attract screen would then have an
+    // empty auction panel until somebody opened one by bidding. Asking again when the
+    // list comes back empty is what keeps the booth's idle screen alive.
+    if (!(lots.lots || []).length) await openEveryLot(ctx);
   },
 
   pad(button, ctx) {

@@ -1,9 +1,9 @@
 # The brand portal — what is here and how to run it
 
 *The right-hand monitor of the booth, driven by controller 2. Built to `specs/portal_spec_v1.md`.
-**DONE**: the app shell, the input path and tour steps 0–4 (attract · brand · upload · pick a game ·
-slot map), brief 014. **QUEUED**: steps 5–11 (regions and bid · auction · live · region check ·
-report · push an update · summary) — part 2.*
+**DONE**: the whole tour — the app shell and steps 0–4 (brief 014), and steps 5–11 plus the Start
+menu and the idle reset (brief 015). Nothing here is QUEUED; what is left is the game side of the
+deferred swap (plan v6 §14 step 6) and the preview window's own placement, both outside the portal.*
 
 ## Run it
 
@@ -19,7 +19,8 @@ the API — so no CORS, no base URL to configure, and one process at the booth i
 Noto Sans JP is bundled in `fonts/`; nothing is fetched from the internet at runtime.
 
 Open it with `?pad=8702` to listen to a pad helper on another port (that is what the exit test
-does, so it can run while the booth's own helper is up).
+does, so it can run while the booth's own helper is up), and with `?idle=5` to shorten the idle
+reset from sixty seconds to five while rehearsing. The booth URL has no query at all.
 
 ## What is in here
 
@@ -27,14 +28,15 @@ does, so it can run while the booth's own helper is up).
 |---|---|
 | `index.html` | the shell: a header, a main area and the button-hint bar |
 | `app.js` | state, routing, the header, the hint bar, the demo clock, the 60-second idle reset |
+| `menu.js` | the Start menu: the region preview control (tour step 8), pause, summary |
 | `strings.js` | **every word the portal can draw**, Japanese and English. One file so a native speaker can review the JP in one sitting |
 | `ui.js` | the only way text gets on screen (`bi()`), plus emblems, button glyphs, toasts |
 | `api.js` | every call to the server, including the real upload with progress |
 | `input.js` | the pad WebSocket client and the keyboard fallback |
-| `screens/` | one module per screen: `attract` `brand` `upload` `games` `slotmap` |
+| `screens/` | one module per screen: `attract` `brand` `upload` `games` `slotmap` `regions` `auction` `live` `report` `update` `summary` |
 | `style.css` | the whole look. 1rem = 16px at 1080p, so every size reads as "px at 1080p" |
 | `fonts/` | the bundled Noto Sans JP subset + `OFL.txt` + `make_subset.py` that cuts it |
-| `_shots/014/` | the exit test's contact sheet (the per-screen PNGs are git-ignored and rebuilt by the test) |
+| `_shots/014/`, `_shots/015/` | the exit tests' contact sheets (the per-screen PNGs are git-ignored and rebuilt by the test) |
 
 ## The rules this app keeps
 
@@ -86,6 +88,31 @@ does, so it can run while the booth's own helper is up).
    highest bid and who holds it, the countdown, and credits per 1,000 views. A slot the chosen
    content does not fit is greyed out and the card says why, in the server's words.
 
+5. **Regions and bid** — one row per region: tick, footfall, the highest bid and who holds it,
+   your bid (LB/RB ±25, LT/RT ±100), status. A total across the ticked regions is split by
+   footfall by the server (`/bids/split`) and then any row can be adjusted by hand. Y places
+   every ticked bid at once, and the header's held credits move.
+6. **Auction** — polled twice a second, because both of the things it exists to show are sudden:
+   the rival's single counter-bid three seconds after your first bid (a banner, and the cursor
+   jumps to that row) and the soft close (a bid inside the last ten seconds puts the clock back
+   to ten, and the row shows "+10 s"). It ends in a Won / Lost card per region. The server has
+   no timers: this screen's own polling is what makes a due counter-bid or a due close happen.
+7. **Live** — there is no publish button. Four steps: resolve (the platform now answers this slot
+   with your signed manifest — from `/status/live`), download and verify (on the player's
+   machine; the portal cannot see them and says so), and mount (the game's own telemetry, counted
+   per region by `/report`). Beside it, what each region is showing right now.
+8. **Region check** — in the Start menu: pick the region the second copy of the game plays as,
+   and it says in plain words "this is the same game, for a player in India".
+9. **Report** — per region: views as two columns, simulated and counted, never added up into one
+   number; visits, dwell, interactions, credits charged and credits per 1,000 views; the time
+   left in the block; Pause (which takes your content down and puts the game's own back); "book
+   the next block", which is screen 5 again one sequence number later.
+10. **Push an update** — version 2 of what is live: the same four checks, then "it will swap when
+    the player walks out", then "swapped — lights, door and screen kept as they were" when the
+    game reports the mount. The portal never claims the swap happened on its own.
+11. **Summary** — what the block spent and bought, then the booth resets itself: twenty seconds,
+    or A.
+
 Sixty seconds without a press on any screen after the attract one resets the demo and goes back
 to Attract.
 
@@ -95,8 +122,9 @@ to Attract.
 server\.venv\Scripts\python.exe booth\portal_exit_test.py
 ```
 
-It starts its own server and its own pad helper, walks the whole of steps 0–4 **through the pad
-helper's `--simulate`** (not by clicking), screenshots every screen at 1920×1080 into
-`_shots/014/`, builds the contact sheet, and audits each screen: every bilingual block really
-has both languages, nothing is clipped or off screen or spilling out of its box, and nothing is
-smaller than 20px. See `booth/README.md`.
+It starts its own server, its own pad helper **and a real game client**, walks the whole tour
+**through the pad helper's `--simulate`** (not by clicking) plus the 90-second express version
+and the idle reset, screenshots every screen at 1920×1080 into `_shots/015/`, builds a contact
+sheet per tour, and audits each screen: every bilingual block really has both languages, nothing
+is clipped or off screen or spilling out of its box, and nothing is smaller than 20px. See
+`booth/README.md`.

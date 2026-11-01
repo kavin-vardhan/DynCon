@@ -244,6 +244,16 @@ export default {
       return;
     }
     if (button === 'B') { ctx.go('games'); return; }
-    if (button === 'Y' || button === 'A') ctx.toastKey('map_next_step');
+    if (button === 'Y' || button === 'A') {
+      const slot = slots.find((s) => s.id === focusId);
+      const fit = slot ? fitFor(ctx, slot) : null;
+      if (!ctx.state.contentId) { ctx.toastKey('map_no_content', 'bad'); return; }
+      if (fit && fit.ok === false) {
+        ui.toast(japaneseFor(fit.reason), fit.reason, 'bad', 5000);
+        return;
+      }
+      ctx.state.slot = focusId;
+      ctx.go('regions', { slot: focusId, game: game.id });
+    }
   },
 };
