@@ -38,6 +38,16 @@ public:
 	virtual void BeginPlay() override;
 
 private:
+	/**
+	 * -DCMap=<package path>: travel there instead of running the spike.
+	 *
+	 * A Shipping build ignores a map named on the command line, so every run of the packaged
+	 * game starts in GameDefaultMap - which is this map. Travelling out of it is a client
+	 * travel, which is not gated, and it is how the runtime client's own map is reached.
+	 * Returns true when it has started a travel and this game mode should do nothing else.
+	 */
+	bool RedirectToRequestedMap();
+
 	/** -DCSpikeMount="<dir>[;<class path>[;<size class>]][+ ...]" */
 	void ParseCommandLine();
 

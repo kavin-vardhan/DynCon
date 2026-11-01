@@ -60,3 +60,27 @@ decisions. Each line: date · decision · why. Kavin can overturn any of these; 
   to end; the visitor feels time, not megabytes.
 - 2026-10-26 · Report "views" = simulated + live (shown split), and cost per view divides by that total. · The plan labels
   footfall "simulated + live"; the report must agree with the slot card's credits per 1,000 views.
+- 2026-10-26 · Private remote `github.com/kavin-vardhan/DynCon` (Kavin's ask; he made it private first). Code commits **and
+  pushes** at the end of every brief, checks the repo is still private before each push, never force-pushes. · Off-PC backup
+  after every step; the project is patent-pending, so privacy is checked rather than assumed.
+- 2026-11-01 · RS256 in the client = the **PlatformCrypto** plugin's OpenSSL context:
+  `IPlatformCrypto::CreateContext` → `FEncryptionContext::{GetPublicKey_RSA, CalcSHA256, DigestVerify_RS256}`. ·
+  It is what the engine's own `FRSA` facade (pak signing) is built on, it parses the server's PEM as-is, and
+  `FPlatformMisc::GetSHA256Signature` has no Windows implementation. Link needs `PlatformCryptoContext` and
+  `PlatformCryptoTypes` named as well, not just `PlatformCrypto`.
+- 2026-11-01 · Every pack file is downloaded as **byte ranges** (256 kB, `-DCRangeBytes=`), not as one whole-file GET. ·
+  Resuming is then the normal path rather than a special case, memory is bounded, and a dropped connection always leaves
+  the `.part` file on a clean boundary.
+- 2026-11-01 · A swap leaves the old pack **mounted** and only destroys the actor; the LRU cache is what eventually
+  removes the bytes, and it never evicts a pack that is on screen. · Unmounting a container whose objects are still
+  referenced is how a swap turns into a crash, and a mounted pak costs a file handle.
+- 2026-11-01 · The runtime client's map is reached with **`-DCMap=`** (a client travel out of the default map), not by
+  naming the map on the command line. · A Shipping build throws a command-line map away
+  (`UE_ALLOW_MAP_OVERRIDE_IN_SHIPPING` in `UGameInstance::StartGameInstance`) and an installed engine cannot be made to
+  define that. Keeps `GameDefaultMap` — and therefore brief 006's `run_all_packs.ps1` — exactly as it was.
+- 2026-11-01 · The status strip is drawn on the **HUD canvas** (`ADCStatusHud : AHUD`), not in UMG. · No .uasset, no UMG
+  module, works in Shipping, and it is inside the viewport render target, so `FScreenshotRequest` with `bShowUI=false`
+  carries it — which is what makes every screenshot self-describing.
+- 2026-11-01 · The game writes a small **status JSON** (`-DCStatusFile=`) four times a second: per-slot state plus a
+  history of activations and fallbacks with their timings. · It is how a test script knows what the game can see without
+  parsing a log, and it is the same data the booth's watchdog will want.

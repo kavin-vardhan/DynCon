@@ -16,7 +16,21 @@ public class DynamicContents : ModuleRules
 			// Runtime pak + IoStore container mounting (FPakPlatformFile).
 			"PakFile",
 			"Projects",
-			"RenderCore"
+			"RenderCore",
+
+			// The client half: talking to the backend, reading its answers, and checking
+			// them. PlatformCrypto is the engine's own crypto (OpenSSL underneath) and is
+			// what FRSA - the facade pak signing uses - is built on; see DCCrypto.h for
+			// exactly which calls are used.
+			"HTTP",
+			"Json",
+			// PlatformCrypto is the entry point (IPlatformCrypto::CreateContext); the
+			// context class itself lives in PlatformCryptoContext and the result enum in
+			// PlatformCryptoTypes, and both have to be named here or the link does not find
+			// FEncryptionContextOpenSSL's exports even though the headers resolve.
+			"PlatformCrypto",
+			"PlatformCryptoContext",
+			"PlatformCryptoTypes"
 		});
 
 		// Same reason as in DCDemo.Build.cs (KeepLiveCodingAbiOfPrecompiledEngine): the game

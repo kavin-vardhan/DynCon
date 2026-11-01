@@ -1,0 +1,289 @@
+// The client half of the invention: the thing that asks a backend what belongs in a slot and
+// puts it there while the game is running.
+//
+// One UDCSubsystem per game instance. It owns
+//
+//   * the backend address and the region (command line, `-DCBackend=` / `-DCRegion=`);
+//   * GET /client-config once, for the poll interval and the RS256 **public key**;
+//   * GET /changes on a loop - a slot whose alloc_key changed is the only slot that needs
+//     resolving, so a quiet booth makes one small request every 1.5 s and nothing else;
+//   * GET /resolve, and the signature check over the exact bytes the server signed;
+//   * the downloads (every file fetched as byte ranges, so resuming is the normal path),
+//     the SHA-256 of each file, the LRU pack cache and the mounting;
+//   * telemetry batching (mount, view).
+//
+// It does not own the slot lifecycle - ADCSlot does. This class decides *when* a slot has to
+// change and does the I/O; the slot decides what is on screen and when it is safe to swap.
+//
+// Nothing here starts by itself: ADCRuntimeGameMode calls Start(). That is what keeps the
+// brief-006 pack round-trip run (ADCSpikeGameMode, which has no backend) exactly as it was.
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "Containers/Ticker.h"
+#include "DCManifest.h"
+#include "DCPackCache.h"
+#include "Interfaces/IHttpRequest.h"
+#include "Subsystems/GameInstanceSubsystem.h"
+
+#include "DCSubsystem.generated.h"
+
+class ADCSlot;
+class UTexture2D;
+enum class EDCSlotState : uint8;
+
+/** One queued telemetry event. Batched: the booth never needs a request per event. */
+struct FDCTelemetryEvent
+{
+	FString Type;
+	FString SlotId;
+	FString AllocKey;
+	double Value = 1.0;
+	FString TimestampUtc;
+};
+
+/** Everything in flight for one slot. One job at a time per slot. */
+struct FDCSlotJob
+{
+	TWeakObjectPtr<ADCSlot> Slot;
+	FString SlotId;
+
+	/** The key that started this job. If /changes moves on, the job is stale. */
+	FString AllocKey;
+
+	FDCManifest Manifest;
+	FString CacheDir;
+
+	/** Which file of the pack, and how much of it is already on disk. */
+	int32 FileIndex = 0;
+	int64 FileHave = 0;
+
+	double StartedSeconds = 0.0;
+	double ResolveMs = 0.0;
+	double DownloadMs = 0.0;
+	double VerifyMs = 0.0;
+	double MountMs = 0.0;
+	double LoadMs = 0.0;
+	double DownloadStartSeconds = 0.0;
+
+	int64 NetworkBytes = 0;
+	int32 CachedFiles = 0;
+	int32 RangeRequests = 0;
+	int32 Resumes = 0;
+
+	FHttpRequestPtr InFlight;
+	bool bCancelled = false;
+};
+
+UCLASS()
+class DYNAMICCONTENTS_API UDCSubsystem : public UGameInstanceSubsystem
+{
+	GENERATED_BODY()
+
+public:
+	/** The subsystem for whatever world this object is in, or nullptr. */
+	static UDCSubsystem* Get(const UObject* WorldContext);
+
+	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
+	virtual void Deinitialize() override;
+
+	/** Reads the command line, checks the crypto, and starts polling. Safe to call twice. */
+	void Start();
+	bool IsStarted() const { return bStarted; }
+
+	// ---------------------------------------------------------------- slots
+
+	void RegisterSlot(ADCSlot* Slot);
+	void UnregisterSlot(ADCSlot* Slot);
+	TArray<ADCSlot*> GetSlots() const;
+
+	// ---------------------------------------------------------------- what the UI reads
+
+	const FString& GetBackendUrl() const { return BackendUrl; }
+	const FString& GetRegion() const { return Region; }
+	const FString& GetGame() const { return Game; }
+
+	/** "ok", "waiting for the backend", or the last sentence that went wrong. */
+	const FString& GetBackendStatus() const { return BackendStatus; }
+
+	double GetUptimeSeconds() const;
+
+	/** Both of these are the point of the status strip, and both are always zero. */
+	int32 GetRestartCount() const { return 0; }
+	int32 GetLoadingScreenCount() const { return 0; }
+
+	static const TCHAR* GetBuildConfigName();
+
+	const FString& GetCryptoApi() const { return CryptoApi; }
+	bool IsCryptoAvailable() const { return bCryptoOk; }
+
+	float GetRetryBaseSeconds() const { return RetryBaseSeconds; }
+	float GetRetryMaxSeconds() const { return RetryMaxSeconds; }
+	int32 GetMountedPackCount() const { return MountedPaks.Num(); }
+	float GetPollIntervalSeconds() const { return PollIntervalSeconds; }
+	int32 GetPollCount() const { return PollCount; }
+	int32 GetChangeCount() const { return ChangeCount; }
+
+	/** The lines ADCStatusHud draws. */
+	TArray<FString> GetStatusLines() const;
+
+	// ---------------------------------------------------------------- services for the slot
+
+	/** The base game owns the eight emblems; a brand picks one by name. */
+	UTexture2D* GetEmblemTexture(const FString& Emblem);
+
+	void QueueTelemetry(const FString& Type, const FString& SlotId, const FString& AllocKey,
+		double Value);
+
+	// ---------------------------------------------------------------- hooks for the game mode
+
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FDCSlotActiveSignature, ADCSlot*, const FDCManifest&);
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FDCSlotFallbackSignature, ADCSlot*, const FString&);
+
+	/** A slot just put something new on screen. */
+	FDCSlotActiveSignature OnSlotActive;
+
+	/** A slot kept what it had and will try again. */
+	FDCSlotFallbackSignature OnSlotFallback;
+
+	/** The game mode says which screenshot belongs to which activation. */
+	void NoteShot(int32 ActivationSeq, const FString& ShotFile);
+
+	/** The sequence number of the activation that has just been broadcast. */
+	int32 GetLastActivationSeq() const { return Activations.Num() > 0 ? Activations.Last().Seq : 0; }
+
+	/** -DCStatusFile=<path>: a JSON file a test script can watch. Empty = off. */
+	const FString& GetStatusFilePath() const { return StatusFilePath; }
+	void WriteStatusFile();
+
+	/** Everything that has happened, newest last - also what goes into the status file. */
+	struct FActivation
+	{
+		int32 Seq = 0;
+		FString SlotId;
+		FString Piece;
+		FString Version;
+		FString AllocKey;
+		FString BrandColour;
+		FString BrandEmblem;
+		FString Kind;
+		FString Source;
+		FString PackId;
+		FString VisibleUtc;
+		FString Shot;
+		double ResolveMs = 0.0;
+		double DownloadMs = 0.0;
+		double VerifyMs = 0.0;
+		double MountMs = 0.0;
+		double LoadMs = 0.0;
+		double SpawnMs = 0.0;
+		double TotalMs = 0.0;
+		int64 NetworkBytes = 0;
+		int32 CachedFiles = 0;
+		int32 RangeRequests = 0;
+	};
+	const TArray<FActivation>& GetActivations() const { return Activations; }
+
+	struct FFallbackNote
+	{
+		int32 Seq = 0;
+		FString SlotId;
+		FString Reason;
+		FString Utc;
+	};
+	const TArray<FFallbackNote>& GetFallbacks() const { return Fallbacks; }
+
+private:
+	// ---- plumbing
+	bool Tick(float DeltaSeconds);
+	void ParseCommandLine();
+	FHttpRequestRef MakeRequest(const FString& PathOrUrl, const FString& Verb) const;
+
+	/** A manifest's file links are relative ("/files/…"); this makes them absolute. */
+	FString AbsoluteUrl(const FString& PathOrUrl) const;
+	void SetBackendStatus(const FString& Status);
+
+	// ---- the loop
+	void FetchClientConfig();
+	void OnClientConfig(FHttpResponsePtr Response, bool bOk);
+	void Poll();
+	void OnChanges(FHttpResponsePtr Response, bool bOk);
+	void PollPreviewRegion();
+	void OnPreviewRegion(FHttpResponsePtr Response, bool bOk);
+	void SetRegion(const FString& NewRegion, const FString& Why);
+
+	// ---- one slot's pipeline
+	void StartJob(ADCSlot* Slot, const FString& AllocKey);
+	void StartResolve(TSharedPtr<FDCSlotJob> Job);
+	void OnResolved(TSharedPtr<FDCSlotJob> Job, FHttpResponsePtr Response, bool bOk);
+	void StartDownloads(TSharedPtr<FDCSlotJob> Job);
+	void NextFile(TSharedPtr<FDCSlotJob> Job);
+	void RequestRange(TSharedPtr<FDCSlotJob> Job);
+	void OnRange(TSharedPtr<FDCSlotJob> Job, FHttpResponsePtr Response, bool bOk);
+	void VerifyPack(TSharedPtr<FDCSlotJob> Job);
+	void MountAndSpawn(TSharedPtr<FDCSlotJob> Job);
+	void FailJob(TSharedPtr<FDCSlotJob> Job, const FString& Reason);
+	void FinishJob(const FString& SlotId);
+	bool IsJobStale(const TSharedPtr<FDCSlotJob>& Job) const;
+
+	// ---- mounting
+	bool EnsurePackMounted(const FString& PackDir, double& OutMountMs, FString& OutError);
+
+	// ---- telemetry
+	void FlushTelemetry(bool bForce);
+
+	static FString PartPathFor(const FString& FinalPath) { return FinalPath + TEXT(".part"); }
+
+	// ---- configuration
+	FString BackendUrl = TEXT("http://127.0.0.1:8700");
+	FString Region = TEXT("r1");
+	FString Game = TEXT("A");
+	FString StatusFilePath;
+	bool bFollowPreviewRegion = false;
+	int32 RangeBytes = 256 * 1024;
+	float RetryBaseSeconds = 2.0f;
+	float RetryMaxSeconds = 15.0f;
+	float PollIntervalSeconds = 1.5f;
+	float TelemetryFlushSeconds = 2.0f;
+	int32 TelemetryBatchSize = 16;
+
+	// ---- state
+	bool bStarted = false;
+	bool bCryptoOk = false;
+	FString CryptoApi;
+	FString PublicKeyPem;
+	FString BackendStatus = TEXT("not started");
+	double StartSeconds = 0.0;
+	double LastPollSeconds = 0.0;
+	double LastTelemetrySeconds = 0.0;
+	double LastStatusSeconds = 0.0;
+	bool bPollInFlight = false;
+	bool bPreviewRegionInFlight = false;
+	bool bConfigInFlight = false;
+	double NextConfigAttemptSeconds = 0.0;
+	int32 ConfigAttempts = 0;
+	int32 PollCount = 0;
+	int32 ChangeCount = 0;
+	int32 ResetGeneration = -1;
+
+	TArray<TWeakObjectPtr<ADCSlot>> Slots;
+	TMap<FString, TSharedPtr<FDCSlotJob>> Jobs;
+	TSet<FString> MountedPaks;
+	TSet<FString> MountedPackIds;
+
+	TArray<FDCTelemetryEvent> Telemetry;
+	bool bTelemetryInFlight = false;
+	int32 TelemetrySent = 0;
+
+	TArray<FActivation> Activations;
+	TArray<FFallbackNote> Fallbacks;
+	int32 EventSeq = 0;
+
+	UPROPERTY(Transient)
+	TMap<FString, TObjectPtr<UTexture2D>> Emblems;
+
+	FDCPackCache Cache;
+
+	FTSTicker::FDelegateHandle TickerHandle;
+};

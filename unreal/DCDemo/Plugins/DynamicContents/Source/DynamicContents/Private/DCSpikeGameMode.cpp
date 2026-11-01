@@ -16,6 +16,7 @@
 #include "HAL/PlatformProcess.h"
 #include "HAL/IConsoleManager.h"
 #include "HAL/PlatformTime.h"
+#include "Kismet/GameplayStatics.h"
 #include "Misc/CommandLine.h"
 #include "Misc/FileHelper.h"
 #include "Misc/PackageName.h"
@@ -88,9 +89,46 @@ ADCSpikeGameMode::ADCSpikeGameMode()
 	DefaultPawnClass = ADefaultPawn::StaticClass();
 }
 
+bool ADCSpikeGameMode::RedirectToRequestedMap()
+{
+	FString Wanted;
+	if (!FParse::Value(FCommandLine::Get(), TEXT("DCMap="), Wanted, false) || Wanted.IsEmpty())
+	{
+		return false;
+	}
+	Wanted = Wanted.TrimQuotes();
+
+	// Already there: never travel in a circle if the target map's own game mode override
+	// failed to take and we ended up back in this one.
+	const FString Here = FPaths::GetBaseFilename(GetWorld()->GetMapName());
+	const FString There = FPaths::GetBaseFilename(Wanted);
+	if (Here.EndsWith(There))
+	{
+		DC_LOG(Warning, TEXT("-DCMap=%s but this map IS %s and it is still running the spike "
+			"game mode - the map's GameMode Override did not take"), *Wanted, *Here);
+		return false;
+	}
+
+	DC_LOG(Log, TEXT("-DCMap=%s: travelling there (this build is Shipping, and a Shipping build "
+		"ignores a map named on the command line - see unreal\\README.md)"), *Wanted);
+	UGameplayStatics::OpenLevel(this, FName(*Wanted), true,
+		TEXT("game=/Script/DynamicContents.DCRuntimeGameMode"));
+	return true;
+}
+
 void ADCSpikeGameMode::BeginPlay()
 {
 	Super::BeginPlay();
+
+	// The one job this game mode has before its own: a Shipping build throws away the map
+	// named on the command line (UGameInstance::StartGameInstance, guarded by
+	// UE_ALLOW_MAP_OVERRIDE_IN_SHIPPING, which an installed engine cannot be made to define),
+	// so every run starts in GameDefaultMap - the spike map. -DCMap= travels out of it, which
+	// is a client travel and is not gated. A run with no -DCMap is brief 006's run, unchanged.
+	if (RedirectToRequestedMap())
+	{
+		return;
+	}
 
 	RunStart = FPlatformTime::Seconds();
 

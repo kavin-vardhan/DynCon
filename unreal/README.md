@@ -1,8 +1,9 @@
 # The Unreal side — what is here and how to run it
 
-*Written 2026-10-26 (brief 004), rewritten the same day for brief 006. Plain-words guide for a
-cold reader. Status of each item is marked **DONE / QUEUED / FUTURE**. The spec this implements
-is `specs/unreal_spec_v1.md`.*
+*Written 2026-10-26 (brief 004), rewritten the same day for brief 006, and extended
+2026-11-01 (brief 011) with the runtime client. Plain-words guide for a cold reader. Status of
+each item is marked **DONE / QUEUED / FUTURE**. The spec this implements is
+`specs/unreal_spec_v1.md`.*
 
 ## What this folder is
 
@@ -19,15 +20,17 @@ round's screenshots showed was wrong.
 | `DCDemo/DCDemo.uproject` | the project; plugin list, module list | DONE |
 | `DCDemo/Config/` | map + game mode, the chunk settings that make content packs | DONE |
 | `DCDemo/Source/DCDemo/` | the renamed third-person template (character, controller, game mode) | DONE |
-| `DCDemo/Plugins/DynamicContents/` | the runtime plugin: file log, pack mounter, slot, content actor, run driver | DONE (pack subset) |
+| `DCDemo/Plugins/DynamicContents/` | the runtime plugin: file log, pack mounter, slot lifecycle, content actor, backend client, status strip, two run drivers | DONE |
 | `DCDemo/Content/DCCore/` | what the base game owns: master materials, the 8 emblems, the sample screen image | DONE |
 | `DCDemo/Content/DCContent/<id>_<v>/` | one folder per piece-version = one content pack | DONE, all 13 |
-| `DCDemo/Content/Maps/Spike` | the test map: ground, sun, sky, player start, one slot per size class | DONE |
+| `DCDemo/Content/Maps/Spike` | brief 006's pack round-trip map: ground, sun, sky, player start, one slot per size class | DONE |
+| `DCDemo/Content/Maps/DCRuntime` | brief 011's runtime-client map: the same ground and light, slots **A1 (L), A2 (T), A3 (S)** | DONE |
 | `Tools/` | the scripts below, plus `chunk_ids.json` | DONE |
 | `_build/` | build outputs and logs (not in git, rebuilt by `package.ps1`) | — |
 | `_packs/` | the content packs cut out of the build (not in git) | — |
-| `spike/shots/engine_contact.png` | the contact sheet one run produces (the individual shots are git-ignored) | DONE |
+| `spike/shots/engine_contact.png` | the contact sheet one pack round-trip run produces (the individual shots are git-ignored) | DONE |
 | `spike/shots/004/` | brief 004's two screenshots and result file, kept as they were | — |
+| `spike/shots/011/runtime_contact.png` | the contact sheet of brief 011's exit-test run | DONE |
 
 ## The five steps, in order
 
@@ -57,6 +60,11 @@ Each script is in `unreal/Tools/` and takes no arguments for the normal case.
 5. **`run_all_packs.ps1`** — runs the packaged game once, hands it every pack on the command
    line, and collects the log, the screenshots and the contact sheet. The game quits itself
    when it is done. **DONE**
+
+Three more scripts belong to the runtime client (the section further down):
+**`make_runtime_map.py`** builds `/Game/Maps/DCRuntime`, **`run_runtime.ps1`** runs the game
+against the demo server, and **`ue_exit_test.py`** is the stage-1 exit test.
+**`make_runtime_sheet.py`** turns a run's screenshots into one contact sheet.
 
 ## How a content pack works
 
@@ -186,13 +194,181 @@ every time.
 
 The picture of all of it is `spike/shots/engine_contact.png`.
 
+---
+
+# The runtime client (brief 011): the game talks to the server
+
+Brief 006 proved a pack can be mounted when it is handed to the game on the command line.
+Brief 011 is the real thing: the game **asks a backend what belongs in a slot**, downloads it,
+checks it and puts it there, while it is running. Nothing is handed to it.
+
+## The classes
+
+| Class | Job | Status |
+|---|---|---|
+| `UDCSubsystem` (GameInstanceSubsystem) | backend address and region from the command line; `GET /client-config` once; `GET /changes` every 1.5 s; `GET /resolve` and the signature check; the downloads, the SHA-256 of every file, the LRU pack cache, the mounting; telemetry batching; the status file | DONE |
+| `ADCSlot` | the slot lifecycle exactly as the figure — IDLE → RESOLVING → DOWNLOADING → VERIFYING → MOUNTING → ACTIVE, with SWAP PENDING while the Player is inside the bounds box and ERROR / FALLBACK with backoff | DONE |
+| `ADCRuntimeGameMode` | starts the client, draws the status strip, and (for a test) photographs every change | DONE |
+| `ADCStatusHud` | the status strip: build · uptime · restarts · content loading screens, plus a line per slot | DONE |
+| `FDCCrypto` | RS256 over the signed payload, SHA-256 per file | DONE |
+| `FDCPackCache` | one folder per pack under `Saved\DCPacks\`, least-recently-used eviction, purge on a booth reset | DONE |
+| `FDCManifest` | the parsed, verified manifest | DONE |
+| `UDCStateStore`, interaction, X-ray view, preview mode | plan v6 §14 steps 5–6 | FUTURE |
+
+`ADCSpikeGameMode` is untouched apart from one guard (see "A Shipping build ignores the map"
+below), so `run_all_packs.ps1` still does exactly what brief 006 reported.
+
+## Run it
+
+```powershell
+# the plain runner: server + game, no allocations, so the slots show the attract rotation
+powershell -ExecutionPolicy Bypass -File unreal\Tools\run_runtime.ps1 -Seconds 60
+
+# the stage-1 exit test: ten hand-written allocations, a pass/fail table and a shot per round
+server\.venv\Scripts\python.exe unreal\Tools\ue_exit_test.py
+
+# the contact sheet of whatever the last exit test did
+python unreal\Tools\make_runtime_sheet.py
+```
+
+Both start the server themselves on a clean data folder, run the packaged game against it, and
+stop everything. The command line the game takes:
+
+| Switch | What |
+|---|---|
+| `-DCBackend=http://127.0.0.1:8700` | where the backend is (this is the default) |
+| `-DCGame=A  -DCRegion=r1` | which game and region this copy plays as (defaults) |
+| `-DCFollowRegion` | follow `GET /preview/region`, so the portal can move this copy live |
+| `-DCMap=/Game/Maps/DCRuntime` | which map (**not** a bare map name — see below) |
+| `-DCCacheDir=<dir>` | the pack cache; default `Saved\DCPacks\` |
+| `-DCStatusFile=<path>` | a JSON file, rewritten 4× a second, that a test script can watch |
+| `-DCShotDir=<dir>` | photograph every change into this folder |
+| `-DCQuitWhenFileExists=<path>` · `-DCRunSeconds=<n>` | how the run ends without killing a process |
+| `-DCRangeBytes=<n>` | bytes per range request (default 262144; 0 = whole files) |
+| `-DCUiScale=<f>` · `-DCNoStrip` | the status strip |
+
+## What the exit test proved (brief 011, 2026-11-01)
+
+Ten allocations written by hand through `POST /admin/allocate`, against **one** packaged
+Shipping build that contains none of the content, in **one run with no restart and no loading
+screen**: **10 / 10**.
+
+| # | slot | region | what | what appeared | s to visible |
+|---|---|---|---|---|---|
+| 1 | A1 | r1 | hand allocation, large slot | content1 v1 `#E23D3D` star | 4.3 |
+| 2 | A2 | r1 | tall piece in the tall slot | content3 v1 `#E23D3D` star | 5.2 |
+| 3 | A3 | r1 | small piece in the small slot | content4 v1 `#E23D3D` star | 4.4 |
+| 4 | A1 | r1 | swap: another piece into a full slot | content2 v1 `#E23D3D` star | 4.4 |
+| 5 | A1 | r2 | second region, pack already cached | content1 v1 `#E23D3D` star | 0.3 |
+| 6 | A2 | r2 | tall piece, second region | content3 v1 `#E23D3D` star | 0.4 |
+| 7 | A1 | r2 | push version 2 onto the live allocation | content1 **v2** `#E23D3D` star | 5.2 |
+| 8 | A1 | r2 | new brand on the same allocation | content1 v2 **`#2F6FEB` chevron** | 0.3 |
+| 9 | A3 | r2 | corrupt pack | the **default stayed up**, then content4 v2 `#2F6FEB` chevron | 7.5 |
+| 10 | A3 | r2 | rival block (identity from server config) | rivalsmall v1 `#F28C28` ring | 1.3 |
+
+**Allocation written → visible in game** splits cleanly in two, because the server paces every
+download to about four seconds whatever the pack weighs:
+
+- a pack the game has never seen: **4.3 – 5.2 s** (poll + resolve + ~4 s paced download +
+  verify + mount + spawn);
+- a pack already in the cache: **0.3 – 1.3 s**, which is almost all poll latency — the work
+  itself is 20–45 ms.
+
+Round 9 is 7.5 s because it is two attempts: a ~4 s download whose `.pak` fails its SHA-256, a
+two-second backoff, and a retry that only has to re-fetch the 339-byte file the first attempt
+threw away. The default was on screen the whole time — `16_A3_default_v1.png` catches the
+status strip reading `A3 S DOWNLOADING default v1 no-brand`.
+
+The picture of all of it is `spike/shots/011/runtime_contact.png`.
+
+## How a slot gets its content
+
+1. `GET /changes?game=A&region=r1` every 1.5 s returns one short key per slot. **A slot whose
+   key has not changed is not asked about** — a quiet booth makes one small request and
+   nothing else.
+2. `GET /resolve?game=&slot=&region=` returns the **signed-payload envelope**
+   (`server/README.md`): the manifest as a string, plus RS256 over the exact UTF-8 bytes of
+   that string. The client verifies the bytes, *then* parses them; it never has to reproduce
+   the server's canonical JSON.
+3. Every file of the pack is fetched as **byte ranges** (256 kB by default), appended to a
+   `.part` file. Resuming is therefore the normal path and not a special case: a dropped
+   connection leaves the `.part` at a clean boundary and the next attempt carries on from
+   exactly there. A file already in the cache at the right size is not fetched at all.
+4. **VERIFYING** hashes every file of the pack with SHA-256 and compares it to the manifest —
+   including the cached ones, so a cached file that has gone bad is caught too. A mismatch
+   deletes that file (so the retry is a real download), and the slot falls back.
+5. **MOUNTING** is brief 006's `UDCPackMounter`, then `StaticLoadClass` on the manifest's
+   class path. A pack is mounted once per run however many slots use it.
+6. The piece is spawned **deferred**, so the brand colour and emblem are set before
+   `BeginPlay` builds it — otherwise the first frame would show the pack's own identity.
+7. `mount` and `view` telemetry are batched and posted to `/telemetry`. A view is content on
+   screen, within 30 m, for at least a second, with a line check — plan v6 §9.
+
+Failures never reach the visitor: the slot keeps whatever is on screen, logs why, and retries
+with a doubling backoff (2, 4, 8 … capped at 15 s).
+
+## Which crypto, exactly
+
+`specs/unreal_spec_v1.md` §3 said "RS256 via the engine's platform crypto" and left the API
+open. It is the **PlatformCrypto** plugin (`Engine/Plugins/Experimental/PlatformCrypto`,
+`EnabledByDefault`, OpenSSL underneath) — the same modular feature the engine's own `FRSA`
+facade, the one pak signing uses, is built on:
+
+```
+IPlatformCrypto::Get().CreateContext()            -> TUniquePtr<FEncryptionContext>
+FEncryptionContext::GetPublicKey_RSA(pem)         PEM_read_bio_RSA_PUBKEY - the server's
+                                                  "BEGIN PUBLIC KEY" block is read as it is
+FEncryptionContext::CalcSHA256(payload, digest)   and FSHA256Hasher Init/Update/Finalize for
+                                                  files, a megabyte at a time
+FEncryptionContext::DigestVerify_RS256(digest,    RSA_verify with NID_sha256, i.e. PKCS#1 v1.5
+                                 signature, key)  + SHA-256
+```
+
+Two things are worth knowing. `DigestVerify_RS256` takes the **digest**, not the message — the
+32 bytes of SHA-256 over the payload — which is why `FDCCrypto::VerifyRs256` is two steps. And
+`FPlatformMisc::GetSHA256Signature` exists in `Core` but **has no Windows implementation**
+(the generic one asserts and returns false), so the hashing goes through the same context.
+
+`FDCCrypto::IsAvailable` runs a known-answer SHA-256 self-test at startup and logs the result,
+so "the crypto is there" is never a guess.
+
+Naming `PlatformCrypto` in `DynamicContents.Build.cs` is not enough: the headers resolve
+through its public dependencies, but the link does not find `FEncryptionContextOpenSSL`'s
+exports unless **`PlatformCryptoContext`** and **`PlatformCryptoTypes`** are named as well.
+
+## A Shipping build ignores the map on the command line
+
+`DCDemo.exe /Game/Maps/DCRuntime` silently loads the *default* map instead.
+`UGameInstance::StartGameInstance` throws the command line away before it looks for a map:
+
+```cpp
+#if UE_BUILD_SHIPPING && !UE_SERVER && !UE_ALLOW_MAP_OVERRIDE_IN_SHIPPING && !ENABLE_PGO_PROFILE
+	// In shipping don't allow a map override unless on server, or running PGO profiling
+	Tmp = TEXT("");
+#endif
+```
+
+`UE_ALLOW_MAP_OVERRIDE_IN_SHIPPING` would fix it, but it has to be defined when the *engine's*
+`GameInstance.cpp` is compiled, and an installed engine ships that object precompiled. So:
+every run starts in `GameDefaultMap`, which is the spike map, and **`-DCMap=<package path>`**
+makes `ADCSpikeGameMode` travel straight out of it with
+`UGameplayStatics::OpenLevel`. A client travel is not gated, and the target map's own
+*GameMode Override* (World Settings) picks up `ADCRuntimeGameMode`. A run with no `-DCMap` is
+brief 006's run, unchanged. The map is built by `unreal\Tools\make_runtime_map.py`, which sets
+that override.
+
+While chasing this: a Shipping build's "project saved dir" is **`%LOCALAPPDATA%\DCDemo\Saved`**,
+not a folder next to the build. That is correct for a shipped game, and it is why the runners
+pass `-DCLogFile=`, `-DCCacheDir=` and `-DCStatusFile=` explicitly — so the evidence of a run
+lands next to the build instead of in the user profile.
+
 ## Things worth knowing about this PC
 
 - The engine is the launcher install at `E:\EpicGames\UE_5.7` (5.7.4) and is **read-only**.
 - The C++ toolchain is the weak point, and it is why everything runs a **Shipping** build and
   not a Development one. UE 5.7.4 wants MSVC **14.44.35207**; this PC has 14.36, 14.38 and
-  14.42, and UnrealBuildTool bans 14.40–14.43 and rejects anything below 14.38 — so it
-  compiles with 14.38. The editor links fine (it links against the engine's DLL import
+  14.42 (checked again 2026-11-01 — 14.44 is still not installed), and UnrealBuildTool bans
+  14.40–14.43 and rejects anything below 14.38 — so it compiles with 14.38. The editor links fine (it links against the engine's DLL import
   libraries), but the **monolithic game executable** does not: the engine's precompiled
   objects call vectorised STL helpers that 14.38's CRT does not contain.
   - Four of the seven missing helpers are in 14.42's `msvcprt.lib`, which
