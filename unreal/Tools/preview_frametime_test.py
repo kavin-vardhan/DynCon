@@ -221,7 +221,12 @@ class FrameTimeTest:
             print(f"  game exit {code} after {time.time() - started:.0f}s", flush=True)
         finally:
             if preview is not None and preview.poll() is None:
-                preview.terminate()
+                # /T, because the archived DCDemo.exe is a **launcher**: it starts
+                # DCDemo-Win64-Shipping.exe and terminating the parent leaves the real
+                # game running. Brief 018 found a preview copy still up twenty minutes
+                # after the run that started it had finished.
+                subprocess.run(["taskkill", "/PID", str(preview.pid), "/T", "/F"],
+                               capture_output=True, check=False)
                 try:
                     preview.wait(timeout=30)
                 except subprocess.TimeoutExpired:
