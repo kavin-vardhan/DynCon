@@ -2,16 +2,16 @@
 ============================================================================================================
 rd  slot rgn  what                                                 appeared                                s  shot
 ------------------------------------------------------------------------------------------------------------
- 1  A1   r1   hand allocation, large slot                          content1 v1 #E23D3D star              4.3  04_A1_content1_v1.png
- 2  A2   r1   tall piece in the tall slot                          content3 v1 #E23D3D star              5.2  05_A2_content3_v1.png
+ 1  A1   r1   hand allocation, large slot                          content1 v1 #E23D3D star              4.7  04_A1_content1_v1.png
+ 2  A2   r1   tall piece in the tall slot                          content3 v1 #E23D3D star              5.3  05_A2_content3_v1.png
  3  A3   r1   small piece in the small slot                        content4 v1 #E23D3D star              4.4  06_A3_content4_v1.png
  4  A1   r1   swap: another piece into a slot that is already full content2 v1 #E23D3D star              4.4  07_A1_content2_v1.png
- 5  A1   r2   second region, and the pack is a cache hit           content1 v1 #E23D3D star              0.3  11_A1_content1_v1.png
- 6  A2   r2   tall piece, second region                            content3 v1 #E23D3D star              0.4  12_A2_content3_v1.png
- 7  A1   r2   push version 2 onto the live allocation              content1 v2 #E23D3D star              5.2  13_A1_content1_v2.png
- 8  A1   r2   new brand on the same allocation                     content1 v2 #2F6FEB chevron           0.3  15_A1_content1_v2.png
- 9  A3   r2   corrupt pack: the default stays up, then a clean ret content4 v2 #2F6FEB chevron           7.5  17_A3_content4_v2.png
-10  A3   r2   rival block written by hand (identity from config)   rivalsmall v1 #F28C28 ring            1.3  18_A3_rivalsmall_v1.png
+ 5  A1   r2   second region, and the pack is a cache hit           content1 v1 #E23D3D star              0.4  11_A1_content1_v1.png
+ 6  A2   r2   tall piece, second region                            content3 v1 #E23D3D star              0.5  12_A2_content3_v1.png
+ 7  A1   r2   push version 2 onto the live allocation              content1 v2 #E23D3D star              5.3  13_A1_content1_v2.png
+ 8  A1   r2   new brand on the same allocation                     content1 v2 #2F6FEB chevron           0.2  15_A1_content1_v2.png
+ 9  A3   r2   corrupt pack: the default stays up, then a clean ret content4 v2 #2F6FEB chevron           7.4  17_A3_content4_v2.png
+10  A3   r2   rival block written by hand (identity from config)   rivalsmall v1 #F28C28 ring            1.2  18_A3_rivalsmall_v1.png
 ============================================================================================================
 UE STAGE-1 EXIT TEST: 10/10 in 74s
-allocation written -> visible in game: min 0.3s  median 4.4s  max 7.5s  over 10 rounds
+allocation written -> visible in game: min 0.2s  median 4.4s  max 7.4s  over 10 rounds

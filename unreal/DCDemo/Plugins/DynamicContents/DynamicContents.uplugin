@@ -21,5 +21,12 @@
 			"Type": "Runtime",
 			"LoadingPhase": "Default"
 		}
+	],
+	"Plugins": [
+		{
+			"_comment": "The engine's own crypto: IPlatformCrypto::CreateContext gives the OpenSSL-backed FEncryptionContext this plugin verifies RS256 manifests and hashes pack files with (see Public/DCCrypto.h). It is EnabledByDefault, but saying so here is what stops UnrealBuildTool warning that a module dependency crosses a plugin boundary the descriptor does not declare.",
+			"Name": "PlatformCrypto",
+			"Enabled": true
+		}
 	]
 }

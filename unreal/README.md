@@ -255,26 +255,26 @@ screen**: **10 / 10**.
 
 | # | slot | region | what | what appeared | s to visible |
 |---|---|---|---|---|---|
-| 1 | A1 | r1 | hand allocation, large slot | content1 v1 `#E23D3D` star | 4.3 |
-| 2 | A2 | r1 | tall piece in the tall slot | content3 v1 `#E23D3D` star | 5.2 |
+| 1 | A1 | r1 | hand allocation, large slot | content1 v1 `#E23D3D` star | 4.7 |
+| 2 | A2 | r1 | tall piece in the tall slot | content3 v1 `#E23D3D` star | 5.3 |
 | 3 | A3 | r1 | small piece in the small slot | content4 v1 `#E23D3D` star | 4.4 |
 | 4 | A1 | r1 | swap: another piece into a full slot | content2 v1 `#E23D3D` star | 4.4 |
-| 5 | A1 | r2 | second region, pack already cached | content1 v1 `#E23D3D` star | 0.3 |
-| 6 | A2 | r2 | tall piece, second region | content3 v1 `#E23D3D` star | 0.4 |
-| 7 | A1 | r2 | push version 2 onto the live allocation | content1 **v2** `#E23D3D` star | 5.2 |
-| 8 | A1 | r2 | new brand on the same allocation | content1 v2 **`#2F6FEB` chevron** | 0.3 |
-| 9 | A3 | r2 | corrupt pack | the **default stayed up**, then content4 v2 `#2F6FEB` chevron | 7.5 |
-| 10 | A3 | r2 | rival block (identity from server config) | rivalsmall v1 `#F28C28` ring | 1.3 |
+| 5 | A1 | r2 | second region, pack already cached | content1 v1 `#E23D3D` star | 0.4 |
+| 6 | A2 | r2 | tall piece, second region | content3 v1 `#E23D3D` star | 0.5 |
+| 7 | A1 | r2 | push version 2 onto the live allocation | content1 **v2** `#E23D3D` star | 5.3 |
+| 8 | A1 | r2 | new brand on the same allocation | content1 v2 **`#2F6FEB` chevron** | 0.2 |
+| 9 | A3 | r2 | corrupt pack | the **default stayed up**, then content4 v2 `#2F6FEB` chevron | 7.4 |
+| 10 | A3 | r2 | rival block (identity from server config) | rivalsmall v1 `#F28C28` ring | 1.2 |
 
 **Allocation written → visible in game** splits cleanly in two, because the server paces every
 download to about four seconds whatever the pack weighs:
 
-- a pack the game has never seen: **4.3 – 5.2 s** (poll + resolve + ~4 s paced download +
+- a pack the game has never seen: **4.4 – 5.3 s** (poll + resolve + ~4 s paced download +
   verify + mount + spawn);
-- a pack already in the cache: **0.3 – 1.3 s**, which is almost all poll latency — the work
+- a pack already in the cache: **0.2 – 1.2 s**, which is almost all poll latency — the work
   itself is 20–45 ms.
 
-Round 9 is 7.5 s because it is two attempts: a ~4 s download whose `.pak` fails its SHA-256, a
+Round 9 is 7.4 s because it is two attempts: a ~4 s download whose `.pak` fails its SHA-256, a
 two-second backoff, and a retry that only has to re-fetch the 339-byte file the first attempt
 threw away. The default was on screen the whole time — `16_A3_default_v1.png` catches the
 status strip reading `A3 S DOWNLOADING default v1 no-brand`.
