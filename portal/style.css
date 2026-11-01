@@ -1,0 +1,618 @@
+/* The brand portal — one stylesheet, no framework, no build step.
+ *
+ * Designed for a 1920 x 1080 screen seen from about two metres with a game pad in your
+ * hands, not a mouse: dark navy ground, one cyan accent, large type, exactly one focus
+ * ring on screen at a time, and a button-hint bar that is always visible.
+ *
+ * Sizes are in rem and 1rem is 16px at 1080p, so the whole layout scales with the window:
+ * every number below can be read as "px at 1080p" by multiplying by 16.
+ */
+
+@font-face {
+  font-family: 'Noto Sans JP';
+  /* One variable subset covering 100-900, cut to the glyphs strings.js can draw.
+     portal/fonts/make_subset.py rebuilds it; OFL.txt next to it is its licence. */
+  src: url('fonts/NotoSansJP-subset.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --ground:     #070c14;
+  --ground-2:   #0b1220;
+  --panel:      #101b2b;
+  --panel-2:    #16243a;
+  --line:       #22364f;
+  --line-soft:  #1a2a3f;
+  --ink:        #eaf2fb;
+  --ink-dim:    #90a6c0;
+  --ink-faint:  #5f7593;
+  --accent:     #6fe3ff;
+  --accent-ink: #052330;
+  --ok:         #3ddc84;
+  --warn:       #f2c230;
+  --bad:        #ff6b6b;
+  --low:        #2ea44f;
+  --mid:        #f2c230;
+  --high:       #e23d3d;
+  --radius:     1rem;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html {
+  /* 16px at 1920x1080, and proportional on any other kiosk resolution. */
+  font-size: min(calc(100vw / 120), calc(100vh / 67.5));
+}
+
+body {
+  background: var(--ground);
+  color: var(--ink);
+  font-family: 'Noto Sans JP', 'Yu Gothic UI', 'Meiryo', system-ui, sans-serif;
+  font-size: 1.875rem;            /* 30px — the body size for a two-metre read */
+  line-height: 1.3;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  cursor: none;                   /* a kiosk with no mouse */
+  -webkit-font-smoothing: antialiased;
+}
+
+/* A faint cyan wash from the top so the dark ground is not flat. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(120vw 60vh at 50% -18vh, rgba(111, 227, 255, 0.10), transparent 70%),
+    radial-gradient(60vw 60vh at 110% 120%, rgba(47, 111, 235, 0.08), transparent 70%);
+  pointer-events: none;
+}
+
+#app { position: relative; display: flex; flex-direction: column; height: 100vh; }
+
+/* ------------------------------------------------------------------ bilingual text */
+/* Every string is Japanese on top, English under it. .bi is the only way text gets on
+   screen in this app, which is what keeps the rule honest. */
+.bi { display: block; }
+.bi > .jp { display: block; font-weight: 500; letter-spacing: 0.01em; }
+.bi > .en { display: block; color: var(--ink-dim); font-weight: 400; font-size: 0.8em;
+            margin-top: 0.1em; letter-spacing: 0.005em; }
+.bi.inline { display: inline-block; vertical-align: top; }
+
+h1.bi > .jp { font-size: 2.75rem; font-weight: 700; }
+h1.bi > .en { font-size: 2rem; }
+h2.bi > .jp { font-size: 2.125rem; font-weight: 700; }
+h2.bi > .en { font-size: 1.625rem; }
+.label.bi > .jp { font-size: 1.625rem; color: var(--ink-dim); font-weight: 500; }
+.label.bi > .en { font-size: 1.375rem; color: var(--ink-faint); }
+.small.bi > .jp { font-size: 1.625rem; }
+.small.bi > .en { font-size: 1.375rem; }
+
+.value { font-size: 2.75rem; font-weight: 700; line-height: 1.1; }
+.value.big { font-size: 3.5rem; }
+.mono { font-variant-numeric: tabular-nums; }
+
+/* ------------------------------------------------------------------ header */
+header {
+  flex: 0 0 6.5rem;
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  padding: 0 3rem;
+  border-bottom: 2px solid var(--line-soft);
+  background: linear-gradient(180deg, rgba(16, 27, 43, 0.9), rgba(7, 12, 20, 0.4));
+  position: relative;
+  z-index: 2;
+}
+header.hidden { display: none; }
+
+.wordmark { display: flex; align-items: center; gap: 0.875rem; }
+.wordmark .dot { width: 1rem; height: 1rem; border-radius: 50%; background: var(--accent);
+                 box-shadow: 0 0 1rem var(--accent); flex: 0 0 auto; }
+/* The product's own wordmark: the JP reading on top (the rule is the rule), the Latin
+   wordmark under it at the size it is meant to be read at. */
+.wordmark .name > .jp { font-size: 1.25rem; color: var(--ink-dim); font-weight: 500;
+                        letter-spacing: 0.04em; }
+.wordmark .name > .en { font-size: 1.75rem; font-weight: 700; letter-spacing: 0.08em;
+                        text-transform: uppercase; color: var(--ink); margin-top: 0; }
+
+.header-spacer { flex: 1; }
+
+.brand-chip {
+  display: flex; align-items: center; gap: 1rem;
+  padding: 0.5rem 1.25rem 0.5rem 0.75rem;
+  border: 2px solid var(--line); border-radius: 3rem; background: var(--panel);
+}
+.brand-chip .swatch {
+  width: 3rem; height: 3rem; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.25);
+}
+.brand-chip .swatch svg { width: 1.75rem; height: 1.75rem; }
+
+.wallet { display: flex; align-items: center; gap: 1.75rem; }
+.wallet .cell { text-align: right; }
+.wallet .cell .value { font-size: 2.25rem; }
+.wallet .cell.held .value { color: var(--warn); }
+
+.clock { text-align: right; }
+.clock .value { font-size: 2.25rem; color: var(--accent); }
+
+.pad-light { width: 0.875rem; height: 0.875rem; border-radius: 50%;
+             background: var(--warn); box-shadow: 0 0 0.75rem rgba(242, 194, 48, 0.6); }
+#app[data-pad="online"] .pad-light { background: var(--accent);
+             box-shadow: 0 0 0.75rem rgba(111, 227, 255, 0.6); }
+
+/* ------------------------------------------------------------------ main */
+main {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 1.75rem 2.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  position: relative;
+  z-index: 1;
+}
+
+.screen-head { flex: 0 0 auto; display: flex; align-items: flex-end; gap: 2rem; }
+.screen-head > h1 { flex: 0 0 auto; }          /* the title never wraps for the sub */
+.screen-head .sub { margin-left: auto; text-align: right; max-width: 54rem;
+                    min-width: 0; }
+
+.columns { display: flex; gap: 2rem; flex: 1 1 auto; min-height: 0; }
+.col { display: flex; flex-direction: column; gap: 1.5rem; min-height: 0; }
+.col.grow { flex: 1 1 auto; }
+
+.panel {
+  background: var(--panel);
+  border: 2px solid var(--line-soft);
+  border-radius: var(--radius);
+  padding: 1.5rem 1.75rem;
+  display: flex; flex-direction: column; gap: 1.25rem;
+  min-height: 0;
+}
+.panel.flush { padding: 0; overflow: hidden; }
+.panel h2 { flex: 0 0 auto; }
+.panel .body { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column;
+               gap: 0.875rem; }
+
+.divider { height: 2px; background: var(--line-soft); }
+
+/* ------------------------------------------------------------------ focus */
+/* One ring, and it is the same ring everywhere. */
+.focusable { position: relative; transition: transform 90ms ease-out; }
+.focusable.focused {
+  outline: 0.25rem solid var(--accent);
+  outline-offset: 0.25rem;
+  box-shadow: 0 0 2.5rem rgba(111, 227, 255, 0.35);
+  background-color: var(--panel-2);
+  transform: scale(1.01);
+  z-index: 3;
+}
+.focusable.focused.no-scale { transform: none; }
+
+/* ------------------------------------------------------------------ buttons */
+.button {
+  display: flex; align-items: center; justify-content: center; gap: 1rem;
+  padding: 0.875rem 1.75rem;
+  border: 2px solid var(--line);
+  border-radius: 0.75rem;
+  background: var(--panel-2);
+  text-align: center;
+}
+.button.primary { border-color: rgba(111, 227, 255, 0.5);
+                  background: linear-gradient(180deg, rgba(111, 227, 255, 0.16), rgba(111, 227, 255, 0.05)); }
+.button.focused { background: var(--accent); }
+.button.focused .jp, .button.focused .en { color: var(--accent-ink); }
+.button .glyph { flex: 0 0 auto; }
+
+.glyph {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 2.75rem; height: 2.75rem; border-radius: 50%;
+  border: 2px solid var(--ink-dim); color: var(--ink);
+  font-size: 1.5rem; font-weight: 700; line-height: 1;
+}
+.glyph.wide { width: auto; min-width: 3.5rem; border-radius: 1.375rem; padding: 0 0.75rem;
+              font-size: 1.375rem; }
+.glyph.a { border-color: #6ee7a0; color: #6ee7a0; }
+.glyph.b { border-color: #ff8f8f; color: #ff8f8f; }
+.glyph.y { border-color: #ffd86e; color: #ffd86e; }
+.glyph.x { border-color: #7fb6ff; color: #7fb6ff; }
+.glyph.dpad { border-color: var(--accent); color: var(--accent); }
+
+/* ------------------------------------------------------------------ hint bar */
+.hintbar {
+  flex: 0 0 5.75rem;
+  display: flex; align-items: center; gap: 2.5rem;
+  padding: 0 3rem;
+  border-top: 2px solid var(--line-soft);
+  background: linear-gradient(0deg, rgba(16, 27, 43, 0.95), rgba(7, 12, 20, 0.3));
+  position: relative; z-index: 2;
+}
+.hintbar .hint { display: flex; align-items: center; gap: 0.875rem; }
+.hintbar .hint .bi > .jp { font-size: 1.5rem; }
+.hintbar .hint .bi > .en { font-size: 1.25rem; }
+.hintbar .note { margin-left: auto; text-align: right; }
+.hintbar .note .bi > .jp { font-size: 1.5rem; color: var(--ink-faint); }
+.hintbar .note .bi > .en { font-size: 1.25rem; color: var(--ink-faint); }
+
+/* ------------------------------------------------------------------ attract */
+.attract { align-items: stretch; justify-content: flex-start; gap: 1.25rem; }
+/* The hero is one line across the top: the wordmark, then what the thing does. Height is
+   the scarce resource on this screen — the two live panels under it are the point. */
+.attract .hero { flex: 0 0 auto; display: flex; align-items: center;
+                 justify-content: center; gap: 2.5rem; padding-bottom: 0.25rem; }
+.attract .hero .mark > .jp { font-size: 1.625rem; letter-spacing: 0.05em;
+                             color: var(--accent); font-weight: 500; }
+.attract .hero .mark > .en { font-size: 2.875rem; font-weight: 700; letter-spacing: 0.09em;
+                             text-transform: uppercase; color: var(--ink); margin-top: 0;
+                             line-height: 1.1; }
+.attract .hero .tagline { max-width: 62rem; }
+.attract .hero .tagline .jp { font-size: 1.625rem; }
+.attract .hero .tagline .en { font-size: 1.375rem; }
+.attract .columns { flex: 1 1 auto; min-height: 0; }
+.attract .panel { overflow: hidden; gap: 0.625rem; padding: 1rem 1.25rem; }
+.attract .panel > .body { gap: 0.3125rem; }
+.region-chip .who > .bi > .en { margin-top: 0; }
+.attract .panel > h2.bi > .jp { font-size: 1.75rem; }
+.attract .panel > h2.bi > .en { font-size: 1.375rem; }
+.region-head .cell .bi > .jp { font-size: 1.5rem; }
+.region-head .cell .bi > .en { font-size: 1.25rem; }
+
+.ticker-row {
+  display: flex; align-items: center; gap: 1rem;
+  padding: 0.1875rem 0.875rem; border-radius: 0.625rem; background: var(--ground-2);
+  border: 2px solid var(--line-soft);
+}
+.ticker-row .slot-id { font-size: 2rem; font-weight: 700; min-width: 4.5rem; }
+.ticker-row .where { min-width: 11rem; }
+.ticker-row .spacer { flex: 1; }
+.region-chips { display: flex; gap: 0.75rem; flex: 1; }
+.region-chip {
+  flex: 1; display: flex; align-items: center; gap: 0.75rem;
+  padding: 0.25rem 0.5rem; border-radius: 0.5rem; background: var(--panel);
+  border: 2px solid var(--line-soft);
+}
+.region-chip .mark { width: 2rem; height: 2rem; border-radius: 50%;
+                     display: flex; align-items: center; justify-content: center; }
+.region-chip .mark svg { width: 1.375rem; height: 1.375rem; }
+.region-chip .who > .bi > .jp { font-size: 1.5rem; }
+.region-chip .who > .bi > .en { font-size: 1.25rem; }
+/* The region each column stands for is said once, in the header row above the chips,
+   rather than on all fifteen of them — it buys the chips two sizes of type. */
+.region-head { display: flex; gap: 0.75rem; padding: 0 1rem 0 6.75rem; }
+.region-head .cell { flex: 1; padding-left: 0.875rem; }
+.region-head .cell .bi > .jp { font-size: 1.625rem; color: var(--ink-dim); }
+.region-head .cell .bi > .en { font-size: 1.375rem; }
+
+.start-cue { text-align: center; flex: 0 0 auto; }
+.start-cue .ring {
+  display: inline-flex; align-items: center; gap: 1.25rem;
+  padding: 0.625rem 2.25rem; border-radius: 4rem;
+  border: 0.25rem solid var(--accent);
+  animation: pulse 2.2s ease-in-out infinite;
+}
+.start-cue .ring .jp { font-size: 1.875rem; font-weight: 700; }
+.start-cue .ring .en { font-size: 1.5rem; }
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(111, 227, 255, 0.45); }
+  50%      { box-shadow: 0 0 3rem 0.5rem rgba(111, 227, 255, 0.2); }
+}
+
+/* ------------------------------------------------------------------ brand screen */
+.swatch-grid { display: flex; gap: 1.125rem; }
+.swatch-grid .cell {
+  flex: 1; aspect-ratio: 1 / 1; border-radius: 0.875rem;
+  border: 2px solid var(--line);
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+}
+.swatch-grid .cell.colour { box-shadow: inset 0 0 0 0.25rem rgba(0, 0, 0, 0.25); }
+.swatch-grid .cell.emblem { background: var(--panel-2); }
+.swatch-grid .cell.emblem svg { width: 55%; height: 55%; }
+.swatch-grid .cell .tick {
+  position: absolute; right: -0.5rem; top: -0.5rem;
+  width: 2rem; height: 2rem; border-radius: 50%;
+  background: var(--accent); color: var(--accent-ink);
+  font-size: 1.25rem; font-weight: 700;
+  display: none; align-items: center; justify-content: center;
+}
+.swatch-grid .cell.chosen .tick { display: flex; }
+
+.sign-preview {
+  flex: 1 1 auto; display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(180deg, #16243a, #0b1220);
+  border-radius: 0.875rem; border: 2px solid var(--line-soft);
+  min-height: 0; padding: 2rem;
+}
+.sign-plate {
+  width: 100%; max-width: 34rem; max-height: 100%; aspect-ratio: 16 / 9;
+  border-radius: 0.75rem;
+  display: flex; align-items: center; justify-content: center; gap: 1.5rem;
+  box-shadow: 0 1.5rem 3rem rgba(0, 0, 0, 0.45), inset 0 0 0 0.375rem rgba(255, 255, 255, 0.18);
+}
+.sign-plate svg { width: 9rem; height: 9rem; }
+
+/* ------------------------------------------------------------------ upload */
+.file-row {
+  display: flex; align-items: center; gap: 0.875rem;
+  padding: 0.5rem 0.875rem; border-radius: 0.75rem;
+  border: 2px solid var(--line-soft); background: var(--ground-2);
+}
+.file-row .name { flex: 0 0 auto; }
+.file-row .name .bi > .jp { font-size: 1.625rem; }
+.file-row .name .bi > .en { font-size: 1.25rem; }
+.file-row .tag {
+  flex: 0 0 auto; padding: 0.25rem 0.875rem; border-radius: 0.5rem;
+  border: 2px solid var(--line); font-size: 1.25rem; color: var(--ink-dim);
+}
+.file-row .tag.bad { border-color: rgba(255, 107, 107, 0.6); color: var(--bad); }
+.file-row .size { flex: 0 0 auto; font-size: 1.625rem; color: var(--ink-dim);
+                  font-variant-numeric: tabular-nums; }
+
+#app[data-screen="upload"] .panel { gap: 0.5rem; padding: 1.125rem 1.5rem; }
+#app[data-screen="upload"] .panel > h2.bi > .jp { font-size: 1.875rem; }
+#app[data-screen="upload"] .panel > h2.bi > .en { font-size: 1.5rem; }
+.stage { flex: 1 1 auto; display: flex; flex-direction: column; gap: 0.5rem;
+         min-height: 0; }
+.stage .idle { flex: 1; display: flex; flex-direction: column; align-items: center;
+               justify-content: center; gap: 1rem; text-align: center; color: var(--ink-dim); }
+
+.progress { display: flex; flex-direction: column; gap: 0.625rem; }
+.progress .track { height: 1.5rem; border-radius: 0.75rem; background: var(--ground-2);
+                   border: 2px solid var(--line-soft); overflow: hidden; }
+.progress .fill { height: 100%; width: 0%; border-radius: 0.75rem;
+                  background: linear-gradient(90deg, #2f6feb, var(--accent));
+                  transition: width 120ms linear; }
+.progress .meta { display: flex; justify-content: space-between; align-items: baseline; }
+.progress .meta .pct { font-size: 1.875rem; font-weight: 700;
+                       font-variant-numeric: tabular-nums; }
+
+.checks { display: flex; flex-direction: column; gap: 0.375rem; }
+.check-row {
+  display: flex; align-items: center; gap: 1rem;
+  padding: 0.125rem 1rem; border-radius: 0.625rem;
+  border: 2px solid var(--line-soft); background: var(--ground-2);
+  opacity: 0.45; transition: opacity 160ms ease-out;
+}
+.check-row.done { opacity: 1; }
+.check-row .mark {
+  flex: 0 0 auto; width: 2.75rem; height: 2.75rem; border-radius: 50%;
+  border: 2px solid var(--line); display: flex; align-items: center; justify-content: center;
+  font-size: 1.5rem; font-weight: 700; color: var(--ink-faint);
+}
+.check-row.ok .mark { border-color: var(--ok); color: var(--ok); }
+.check-row.failed .mark { border-color: var(--bad); color: var(--bad); }
+.check-row.failed { border-color: rgba(255, 107, 107, 0.45); }
+.check-row .what { flex: 0 0 12rem; }
+.check-row .what .bi > .jp, .check-row .what .bi > .en { white-space: nowrap; }
+.check-row .detail { flex: 1; min-width: 0; }
+.check-row .detail .bi > .jp { font-size: 1.375rem; }
+.check-row .detail .bi > .en { font-size: 1.25rem; }
+
+.verdict {
+  display: flex; align-items: center; gap: 1.25rem; flex: 0 0 auto;
+  padding: 0.5rem 1.125rem; border-radius: 0.875rem;
+  border: 0.25rem solid var(--ok); background: rgba(61, 220, 132, 0.08);
+}
+.verdict.bad { border-color: var(--bad); background: rgba(255, 107, 107, 0.08); }
+.verdict .badge {
+  flex: 0 0 auto; width: 4.5rem; height: 4.5rem; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2.5rem; font-weight: 700;
+  background: var(--ok); color: #04301a;
+}
+.verdict.bad .badge { background: var(--bad); color: #3a0b0b; }
+.verdict-slot { flex: 0 0 auto; }
+.verdict .what { flex: 0 0 auto; }
+.verdict .what > .bi > .jp { font-size: 1.75rem; font-weight: 700; }
+.verdict .what > .bi > .en { font-size: 1.5rem; }
+.verdict > .bi.tail { margin-left: auto; text-align: right; }
+.verdict > .bi.tail > .jp { font-size: 1.375rem; }
+.verdict > .bi.tail > .en { font-size: 1.25rem; }
+
+/* "My content" is the third column of the upload screen: what the brand ends up owning,
+   each piece with the slots it fits. */
+.mine-cards { display: flex; flex-direction: column; gap: 0.75rem; }
+.content-card {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 0.375rem;
+  padding: 0.5rem 0.875rem; border-radius: 0.75rem;
+  border: 2px solid var(--line-soft); background: var(--ground-2);
+}
+.content-card .piece .bi > .jp { font-size: 1.625rem; }
+.content-card .piece .bi > .en { font-size: 1.25rem; }
+.content-card .fits { display: flex; gap: 0.375rem; flex-wrap: wrap; }
+.fit-pill {
+  padding: 0.25rem 0.75rem; border-radius: 0.5rem; font-size: 1.375rem;
+  border: 2px solid var(--ok); color: var(--ok);
+}
+.fit-pill.no { border-color: rgba(255, 107, 107, 0.5); color: var(--bad); opacity: 0.8; }
+
+/* ------------------------------------------------------------------ games */
+.game-tiles { display: flex; gap: 2rem; flex: 1 1 auto; min-height: 0; }
+.game-tile {
+  flex: 1; border-radius: var(--radius); border: 2px solid var(--line-soft);
+  background: var(--panel); overflow: hidden;
+  display: flex; flex-direction: column; min-height: 0;
+}
+.game-tile .shot {
+  flex: 1 1 auto; min-height: 0; background-size: cover; background-position: center;
+  filter: brightness(0.75) saturate(0.85); position: relative;
+}
+.game-tile .shot::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(7, 12, 20, 0.1), rgba(7, 12, 20, 0.85));
+}
+.game-tile .foot { flex: 0 0 auto; padding: 1.5rem 1.75rem; display: flex;
+                   align-items: flex-end; gap: 2rem; }
+.game-tile .foot .stat { text-align: right; }
+.game-tile .badge-row { padding: 0 1.75rem 1.25rem; }
+.badge {
+  display: inline-flex; align-items: center; gap: 0.75rem;
+  padding: 0.5rem 1.125rem; border-radius: 2rem;
+  background: rgba(111, 227, 255, 0.14); border: 2px solid rgba(111, 227, 255, 0.55);
+}
+.badge .jp { font-size: 1.5rem; color: var(--accent); }
+.badge .en { font-size: 1.25rem; color: var(--accent); opacity: 0.8; }
+.badge.quiet { background: transparent; border-color: var(--line); }
+.badge.quiet .jp, .badge.quiet .en { color: var(--ink-dim); }
+
+/* ------------------------------------------------------------------ slot map */
+.map-wrap {
+  flex: 1 1 auto; min-height: 0; position: relative; border-radius: var(--radius);
+  border: 2px solid var(--line-soft); overflow: hidden; background: var(--ground-2);
+}
+.map-wrap img.map {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain;
+  filter: brightness(0.82) saturate(0.85) contrast(1.05);
+}
+.map-wrap .tint { position: absolute; inset: 0; background: rgba(7, 18, 34, 0.35);
+                  pointer-events: none; }
+.pin {
+  position: absolute; transform: translate(-50%, -50%);
+  display: flex; flex-direction: column; align-items: center; gap: 0.375rem;
+}
+.pin .dot {
+  width: 2.5rem; height: 2.5rem; border-radius: 50%;
+  border: 0.25rem solid rgba(7, 12, 20, 0.85);
+  box-shadow: 0 0 0 0.25rem rgba(255, 255, 255, 0.35), 0 0.5rem 1rem rgba(0, 0, 0, 0.5);
+}
+.pin .tag {
+  padding: 0.125rem 0.625rem; border-radius: 0.5rem;
+  background: rgba(7, 12, 20, 0.88); border: 2px solid var(--line);
+  font-size: 1.5rem; font-weight: 700; letter-spacing: 0.04em;
+}
+.pin.greyed .dot { filter: grayscale(1) brightness(0.7); }
+.pin.greyed .tag { color: var(--ink-faint); }
+.pin.focused .dot {
+  outline: 0.25rem solid var(--accent); outline-offset: 0.3rem;
+  animation: ping 1.6s ease-out infinite;
+}
+.pin.focused .tag { border-color: var(--accent); color: var(--accent); }
+@keyframes ping {
+  0%   { box-shadow: 0 0 0 0 rgba(111, 227, 255, 0.55); }
+  100% { box-shadow: 0 0 0 2.5rem rgba(111, 227, 255, 0); }
+}
+
+.legend { display: flex; gap: 1.5rem; align-items: center; }
+.legend .item { display: flex; align-items: center; gap: 0.625rem; }
+.legend .item .dot { width: 1.25rem; height: 1.25rem; border-radius: 50%; }
+.legend .item .bi > .jp { font-size: 1.5rem; }
+.legend .item .bi > .en { font-size: 1.25rem; }
+
+/* The slot contract, in one card. Two columns inside it: the photograph and the verdict
+   on the left, the numbers on the right — one column of ten bilingual rows is taller than
+   a 1080p screen has room for. */
+.slot-card { flex: 0 0 52rem; gap: 0.5rem; padding: 0.875rem 1.25rem; }
+.slot-card .card-split { display: flex; gap: 1rem; align-items: flex-start; }
+/* Nothing in the card may be squeezed smaller than its contents: a squeezed flex child
+   does not scroll, it paints over whatever is under it. If it no longer fits, the panel
+   overflows instead — which the exit test's audit catches. */
+.slot-card > .body > * { flex: 0 0 auto; }
+.slot-card > .body > * { flex: 0 0 auto; }
+.slot-card .card-left { flex: 0 0 19rem; display: flex; flex-direction: column;
+                        gap: 0.5rem; }
+.slot-card .card-right { flex: 1 1 auto; display: flex; flex-direction: column;
+                         gap: 0.5rem; min-width: 0; }
+.slot-card .thumb {
+  width: 100%; aspect-ratio: 16 / 9; border-radius: 0.75rem; border: 2px solid var(--line);
+  object-fit: cover; background: var(--ground-2); flex: 0 0 auto;
+}
+.stack { display: flex; flex-direction: column; gap: 0.1875rem; }
+.slot-card .rule .bi > .jp { font-size: 1.5rem; }
+.slot-card .rule .bi > .en { font-size: 1.25rem; }
+
+.footfall-strip { display: flex; gap: 0.5rem; }
+.footfall-strip .cell {
+  flex: 1; min-width: 0; padding: 0.3125rem 0.625rem; border-radius: 0.5rem;
+  background: var(--ground-2); border: 2px solid var(--line-soft);
+}
+.footfall-strip .cell .bi > .jp { font-size: 1.5rem; white-space: nowrap; }
+.footfall-strip .cell .bi > .en { font-size: 1.25rem; white-space: nowrap; }
+.footfall-strip .cell .n { display: block; font-size: 1.75rem; font-weight: 700;
+                           font-variant-numeric: tabular-nums; }
+.footfall-strip .cell .n small { font-size: 1.25rem; color: var(--ink-dim);
+                                 font-weight: 400; }
+
+/* The three numbers that matter for a bid, side by side under the picture. */
+.stat-strip { display: flex; gap: 0.75rem; flex: 0 0 auto; }
+.stat-strip .cell {
+  flex: 1; min-width: 0; padding: 0.3125rem 0.875rem; border-radius: 0.625rem;
+  background: var(--ground-2); border: 2px solid var(--line-soft);
+  display: flex; flex-direction: column; gap: 0.125rem;
+}
+.stat-strip .cell .row { align-items: baseline; gap: 0.625rem; }
+.stat-strip .cell .val { font-size: 2.125rem; font-weight: 700; line-height: 1.1; }
+.stat-strip .cell .val.accent { color: var(--accent); }
+.card-row .val { text-align: right; font-size: 2rem; font-weight: 700;
+                 font-variant-numeric: tabular-nums; }
+.card-row .val.accent { color: var(--accent); }
+.card-row .val small { font-size: 1.375rem; font-weight: 400; color: var(--ink-dim); }
+
+.region-table { display: flex; flex-direction: column; gap: 0.5rem; }
+.region-table .r {
+  display: flex; align-items: center; gap: 1rem;
+  padding: 0.5rem 0.75rem; border-radius: 0.5rem; background: var(--ground-2);
+  border: 2px solid var(--line-soft);
+}
+.region-table .r .name { flex: 1; }
+.region-table .r .name .jp { font-size: 1.5rem; }
+.region-table .r .name .en { font-size: 1.25rem; }
+.region-table .r .n { font-size: 1.75rem; font-weight: 700;
+                      font-variant-numeric: tabular-nums; }
+.region-table .r .n small { font-size: 1.25rem; color: var(--ink-dim); font-weight: 400; }
+
+.refusal, .fits-note {
+  flex: 0 0 auto; padding: 0.375rem 1rem; border-radius: 0.75rem;
+  display: flex; align-items: center; gap: 1.25rem;
+}
+.refusal > .bi:last-child, .fits-note > .bi:last-child { margin-left: auto;
+                                                         text-align: right; }
+.refusal { border: 2px solid rgba(255, 107, 107, 0.5); background: rgba(255, 107, 107, 0.08); }
+.fits-note { border: 2px solid rgba(61, 220, 132, 0.45); background: rgba(61, 220, 132, 0.08); }
+
+/* ------------------------------------------------------------------ toast */
+.toast-layer { position: fixed; left: 0; right: 0; bottom: 7.5rem; display: flex;
+               justify-content: center; pointer-events: none; z-index: 9; }
+.toast {
+  padding: 1rem 2rem; border-radius: 0.875rem;
+  background: rgba(16, 27, 43, 0.96); border: 2px solid var(--accent);
+  box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.6);
+  animation: rise 220ms ease-out;
+}
+.toast .jp { font-size: 1.75rem; }
+.toast .en { font-size: 1.375rem; }
+.toast.staff { border-color: var(--warn); }
+.toast.bad { border-color: var(--bad); }
+@keyframes rise { from { transform: translateY(1rem); opacity: 0; } }
+
+/* A heading-sized bilingual pair used inside cards and tiles. */
+.bi.h2-like > .jp { font-size: 2.125rem; font-weight: 700; }
+.bi.h2-like > .en { font-size: 1.625rem; }
+
+.file-row .filename {
+  flex: 1 1 auto; min-width: 0; text-align: right;
+  font-size: 1.25rem; color: var(--ink-faint); letter-spacing: 0.02em;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* ------------------------------------------------------------------ odds and ends */
+.scroll { overflow: hidden; }
+.muted { color: var(--ink-dim); }
+.hidden { display: none !important; }
+.credit-note { color: var(--ink-faint); }
+.credit-note .bi > .jp { font-size: 1.5rem; }
+.credit-note .bi > .en { font-size: 1.25rem; }
+.row { display: flex; align-items: center; gap: 1rem; }
+.row.wrap { flex-wrap: wrap; }
+.grow { flex: 1 1 auto; }
+
+/* the stat strip's own type tiers, one notch under .label and .small, so that a cell a
+   third of the card wide still says "another brand leads" on one line */
+.stat-strip .cell > .bi.label > .jp { font-size: 1.5rem; }
+.stat-strip .cell > .bi.label > .en { font-size: 1.25rem; }
+.stat-strip .cell > .bi.small > .jp { font-size: 1.375rem; white-space: nowrap; }
+.stat-strip .cell > .bi.small > .en { font-size: 1.25rem; white-space: nowrap; }

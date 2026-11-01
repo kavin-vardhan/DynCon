@@ -148,3 +148,29 @@ decisions. Each line: date · decision · why. Kavin can overturn any of these; 
   kerb band and the inlay with it, and the pad read as a model of a pad.
 - 2026-11-01 · The mannequin wears **one** plain material instance, not two. · Two tones put a darker patch exactly
   where the engine's chest logo used to be, which still read as a badge.
+- 2026-11-01 · The portal is **served by the demo server itself** at `/portal/` (a static mount in `app.py`), not by a
+  second web server. · Same origin as the API, so no CORS and no base URL to configure, and one process at the booth.
+- 2026-11-01 · **Noto Sans JP is bundled as a subset cut to exactly the glyphs `strings.js` can draw** (149 KB, one
+  variable woff2), rebuilt by `portal/fonts/make_subset.py`. · The kiosk must not fetch a font at runtime and the full
+  CJK face is tens of megabytes; the CSS stack falls back to the system Japanese font if a glyph is ever missing.
+- 2026-11-01 · **No text reaches the screen except through `bi()`**, which always draws both languages; numbers, slot
+  ids, file names and button faces are marked `data-datum` and are the exemption. · It makes CLAUDE.md rule 3 true by
+  construction instead of by review, and gives the exit test something exact to check.
+- 2026-11-01 · Sentences the **server** writes (check details, rejections, fit refusals) stay the server's words in
+  English; a pattern table at the bottom of `strings.js` puts a Japanese line above them. · One wording of a rule, not
+  two: the portal, the game client and the tests all quote the same sentence.
+- 2026-11-01 · Type tiers: body 30px, labels 26/22, smallest caption 24/20 at 1080p — **nothing under 20px**. · The
+  spec asks for body ≥ 28px; a bilingual screen needs a second, smaller tier for the English line and for labels that
+  sit over big numbers, and 20px is what still reads at two metres on a 27" 1080p panel.
+- 2026-11-01 · The upload's progress bar is paced to a floor of ~0.9 s (read) and ~1.4 s (send) but **never shows more
+  progress than has really happened** — it takes the lower of the real fraction and the elapsed fraction. · A 0.7 MB
+  file over loopback finishes faster than an eye can follow; the bar lags the truth, it never leads it.
+- 2026-11-01 · The pad helper is **pure standard library**: XInput through `ctypes`, and a ~100-line WebSocket server
+  in plain sockets. · It has to run on the booth PC from a clean checkout with nothing installed.
+- 2026-11-01 · While **LB and RB are both held, no other button is relayed** to the portal. · The staff combos all
+  start with LB+RB; this is what stops one leaking into the visitor's screen as a stray press.
+- 2026-11-01 · The exit test drives the portal **only** through `pad_helper.py --simulate --stdin` and audits each
+  screen in the page (bilingual, nothing clipped or spilling, nothing under 20px). · Clicking would test a path the
+  booth never uses, and three of the four layout bugs found in brief 014 were invisible to a screenshot.
+- 2026-11-01 · The exit test's per-screen PNGs are **git-ignored; only the contact sheet is committed** — same rule as
+  the art previews. · 5 MB a run, and `booth\portal_exit_test.py` rebuilds all of them in under a minute.

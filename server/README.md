@@ -2,8 +2,9 @@
 
 *The stand-in cloud for the Tokyo demo, built to `specs/server_spec_v1.md`. **DONE**: the
 game-facing delivery path and uploads (brief 007); the auctions, the portal API and the
-report (brief 008); and `POST /games/register` with the real map and thumbnails the UE
-slot-map tool captures (brief 013). Nothing here is QUEUED.*
+report (brief 008); `POST /games/register` with the real map and thumbnails the UE
+slot-map tool captures (brief 013); and serving the brand portal itself at `/portal/`
+(brief 014). Nothing here is QUEUED.*
 
 ## Run it
 
@@ -25,10 +26,12 @@ First run generates the RS256 key pair and the URL secret into `server\data\keys
 default pack it finds in `server\demo_files\`. It binds to **127.0.0.1 only**.
 
 `GET /` lists the routes, `/docs` is the generated API page, `GET /admin/health` is the
-one-line "is it alive and what does it have" check.
+one-line "is it alive and what does it have" check, and **`/portal/` is the brand portal**
+— the `portal/` folder next to this one, mounted as static files so the booth runs one
+process and the portal needs no CORS (`portal/README.md`).
 
 ```powershell
-.\server\.venv\Scripts\python.exe -m pytest           # from server\ — 143 tests
+.\server\.venv\Scripts\python.exe -m pytest           # from server\ — 169 tests
 .\server\.venv\Scripts\python.exe tools\make_fake_packs.py          # the demo packs
 .\server\.venv\Scripts\python.exe tools\fake_client.py --game A --region r1 --once
 .\server\.venv\Scripts\python.exe tools\stage1_exit_test.py         # plan v6 §14 step 1
@@ -52,6 +55,7 @@ one-line "is it alive and what does it have" check.
 | `dcserver/auction.py` | lots, the scripted rival, the clock, credits, the block won on close |
 | `dcserver/service.py` | everything the routes do, with no HTTP in it |
 | `dcserver/routes.py` | the HTTP surface: game client · portal · admin |
+| `dcserver/app.py` | builds the app, and mounts `portal/` at `/portal/` when it is there |
 | `tools/make_fake_packs.py` | builds the demo packs; `--real` wraps the real cooked packs |
 | `tools/fake_client.py` | the game's side without Unreal: poll → resolve → verify → download → MOUNT |
 | `tools/stage1_exit_test.py` | ten hand-written allocations, ten right MOUNT lines |
@@ -150,6 +154,10 @@ client keeps the default up and retries — `tools/fake_client.py` is the worked
 
 **Admin** — `/admin/health` · `POST /admin/reset` · `POST /admin/sabotage` ·
 `POST /admin/allocate` · `POST /admin/close-auction`
+
+**Static** — `/portal/` is the brand portal (the `portal/` folder, served as-is). It is
+mounted last so it can never shadow an API route, and a checkout without the folder still
+starts: `GET /` then reports `portal_ui: null` and `/portal/` is a 404.
 
 `POST /admin/allocate` stays: it is how a block gets written by hand when the auction is not
 involved.

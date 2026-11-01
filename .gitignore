@@ -50,3 +50,11 @@ server/.venv/
 server/data/
 server/demo_files/*.dcpack
 server/.pytest_cache/
+
+# the portal's exit-test screenshots: same rule as the art previews — the per-screen PNGs
+# are 5 MB a run and `booth\portal_exit_test.py` rebuilds all of them in under a minute,
+# so only the contact sheet goes in git.
+portal/_shots/*/[0-9]*.png
+portal/_shots/*/*.log
+portal/_shots/*/audit.txt
+!portal/_shots/*/contact_sheet.png
