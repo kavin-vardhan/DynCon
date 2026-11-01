@@ -1,0 +1,175 @@
+{
+ "schema_version": 1,
+ "game": "A",
+ "registered_utc": "2026-11-01T10:57:24.371222Z",
+ "image": "A.png",
+ "image_px": {
+  "w": 2048,
+  "h": 1316
+ },
+ "slot_order": [
+  "A1",
+  "A2",
+  "A3"
+ ],
+ "slots": {
+  "A1": {
+   "size_class": "L",
+   "px": {
+    "x": 0.4257,
+    "y": 0.5463
+   },
+   "thumb": "A_A1.png",
+   "thumb_px": {
+    "w": 960,
+    "h": 540
+   },
+   "limits_m": {
+    "x": 14.0,
+    "y": 14.0,
+    "z": 9.0
+   },
+   "rating_rule": "all",
+   "prefetch_radius_m": 60.0,
+   "world_m": {
+    "x": 0.0,
+    "y": 12.0,
+    "z": 0.8200000000000001
+   },
+   "facing_deg": -90.00000000000001,
+   "thumb_camera": {
+    "file": "A_A1.png",
+    "width": 960,
+    "height": 540,
+    "fov_deg": 70,
+    "eye_height_m": 1.7000000476837158,
+    "stand_off_m": 11.49659152448345,
+    "camera_m": {
+     "x": -2.552756123038391e-15,
+     "y": 0.5034084755165487,
+     "z": 1.840000047683716
+    },
+    "aim_m": {
+     "x": 0,
+     "y": 12,
+     "z": 3.0700000000000003
+    },
+    "content_hidden": true
+   }
+  },
+  "A2": {
+   "size_class": "T",
+   "px": {
+    "x": 0.8418,
+    "y": 0.4537
+   },
+   "thumb": "A_A2.png",
+   "thumb_px": {
+    "w": 960,
+    "h": 540
+   },
+   "limits_m": {
+    "x": 14.0,
+    "y": 14.0,
+    "z": 20.0
+   },
+   "rating_rule": "all",
+   "prefetch_radius_m": 60.0,
+   "world_m": {
+    "x": 84.0,
+    "y": 0.0,
+    "z": 0.31
+   },
+   "facing_deg": 180.0,
+   "thumb_camera": {
+    "file": "A_A2.png",
+    "width": 960,
+    "height": 540,
+    "fov_deg": 70,
+    "eye_height_m": 1.7000000476837158,
+    "stand_off_m": 11.49659152448345,
+    "camera_m": {
+     "x": 72.50340847551655,
+     "y": 1.4079264011563242e-15,
+     "z": 1.844000043869021
+    },
+    "aim_m": {
+     "x": 84,
+     "y": 0,
+     "z": 2.81
+    },
+    "content_hidden": true
+   }
+  },
+  "A3": {
+   "size_class": "S",
+   "px": {
+    "x": 0.1681,
+    "y": 0.7621
+   },
+   "thumb": "A_A3.png",
+   "thumb_px": {
+    "w": 960,
+    "h": 540
+   },
+   "limits_m": {
+    "x": 7.0,
+    "y": 7.0,
+    "z": 5.0
+   },
+   "rating_rule": "all",
+   "prefetch_radius_m": 60.0,
+   "world_m": {
+    "x": -52.0,
+    "y": 40.0,
+    "z": 0.31
+   },
+   "facing_deg": -90.00000000000001,
+   "thumb_camera": {
+    "file": "A_A3.png",
+    "width": 960,
+    "height": 540,
+    "fov_deg": 70,
+    "eye_height_m": 1.7000000476837158,
+    "stand_off_m": 8,
+    "camera_m": {
+     "x": -52,
+     "y": 32,
+     "z": 1.844000043869021
+    },
+    "aim_m": {
+     "x": -52,
+     "y": 40,
+     "z": 1.56
+    },
+    "content_hidden": true
+   }
+  }
+ },
+ "source": {
+  "map": "/Game/Maps/GameA",
+  "captured_utc": "2026-11-01T10:57:24.312Z",
+  "engine_version": "5.7.4-51494982+++UE5+Release-5.7",
+  "tool": "DynamicContentsEditor.DCSlotMapTool",
+  "world": {
+   "playable_area_from": "4 actor(s) tagged DCPlayableArea",
+   "projection": "orthographic",
+   "width_m": 201.87999986857176,
+   "height_m": 129.7236717905471,
+   "camera_m": {
+    "x": 15,
+    "y": 6,
+    "z": 134
+   },
+   "camera_yaw_deg": -90,
+   "measured_rect_m": {
+    "min_x": -83,
+    "min_y": -57,
+    "max_x": 113,
+    "max_y": 69
+   }
+  },
+  "schema_version": 1
+ },
+ "warnings": []
+}

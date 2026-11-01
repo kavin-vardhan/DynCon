@@ -108,6 +108,14 @@ public:
 	float PrefetchRadius = 6000.0f;
 
 	/**
+	 * Which content ratings the developer will let into this slot ("all" in the demo). The
+	 * slot-map tool records it with the slot; it is the developer's rule, not the platform's,
+	 * which is the whole reason it lives on the actor in the map.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DC|Slot")
+	FName RatingRule = FName(TEXT("all"));
+
+	/**
 	 * World-space waypoints a walker follows to reach this slot's door, set by the map
 	 * builder. Only X and Y are used. It is a route, not a path-finder: the demo's maps are
 	 * built by a script, so the way round the arcades and down the avenue is known when the
@@ -137,6 +145,16 @@ public:
 	/** Middle of whatever is on screen, or of the bounds box when nothing is. */
 	UFUNCTION(BlueprintCallable, Category = "DC|Slot")
 	FVector GetContentCentre() const;
+
+	/**
+	 * World-space box of whatever is on screen, or the class-limit box when nothing is.
+	 *
+	 * The view-telemetry radius is measured from **this**, not from the centre: the tall
+	 * slot's piece is 20 m high, so standing 25 m from its door puts the Player 32 m from
+	 * the middle of it, and measuring to the middle would have thrown that view away.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "DC|Slot")
+	FBox GetContentBounds() const;
 
 	/**
 	 * Where a walker should stand to be in front of the door, `Extra` centimetres clear of

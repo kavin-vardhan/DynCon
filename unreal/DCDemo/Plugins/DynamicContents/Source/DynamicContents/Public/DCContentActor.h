@@ -119,9 +119,8 @@ public:
 	// These are room fixtures in a 6-14 m building, not stadium lights. The numbers below are
 	// lumens, the unit a real fitting is sold in: a bright domestic ceiling light is about
 	// 1200 lm and a wall lamp about 300. The attenuation radius is deliberately shorter than
-	// the building is wide, so a fixture lights its own corner and not the whole piece, and
-	// every fixture casts a shadow - without that the interior lights shine straight through
-	// the walls and wash the facade out.
+	// the building is wide, so a fixture lights its own corner and not the whole piece. Only
+	// group A casts shadows; see the two flags below for why.
 
 	/** Ceiling fixtures, lumens. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DC|Lights")
@@ -143,9 +142,21 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DC|Lights")
 	float LightSourceRadius = 8.0f;
 
-	/** Shadows cost frames but are what keeps interior light inside the building. */
+	/**
+	 * Group A casts shadows: without them the ceiling fixtures shine straight through the
+	 * walls and wash the facade out, which is the whole reason they were turned on.
+	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DC|Lights")
 	bool bLightsCastShadows = true;
+
+	/**
+	 * Group B does not. The wall lamps are 320 lm with a 3.2 m reach - too weak to leak
+	 * through a wall and be noticed - but there are more of them than of group A and a
+	 * visitor turning them on used to be visible in the **worst 1 % frame time** rather than
+	 * on screen. Shadowless is the trade: nobody can see the difference in the picture.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DC|Lights")
+	bool bLightBCastsShadows = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DC|Lights")
 	FLinearColor LightColor = FLinearColor(1.0f, 0.90f, 0.73f);

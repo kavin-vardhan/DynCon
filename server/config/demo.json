@@ -1,4 +1,4 @@
-{
+﻿{
   "_comment": [
     "The demo server's single source of truth. Values from specs/server_spec_v1.md §2",
     "(which comes from demo plan v6 §9). Nothing tunable belongs in code.",
@@ -34,7 +34,6 @@
       "label": "Game A",
       "live_at_booth": true,
       "players_online": 1840,
-      "map_image": "maps/A.png",
       "slots": {
         "A1": { "size_class": "L", "px": { "x": 0.31, "y": 0.44 } },
         "A2": { "size_class": "T", "px": { "x": 0.58, "y": 0.27 } },
@@ -45,7 +44,6 @@
       "label": "Game B",
       "live_at_booth": false,
       "players_online": 970,
-      "map_image": "maps/B.png",
       "slots": {
         "B1": { "size_class": "L", "px": { "x": 0.38, "y": 0.61 } },
         "B2": { "size_class": "S", "px": { "x": 0.64, "y": 0.35 } }
@@ -114,5 +112,11 @@
 
   "sabotage": { "freeze_seconds": 5.0 },
   "idle_reset_s": 60,
-  "client_cache_packs": 8
+
+  "_client_cache_packs_comment": [
+    "How many packs a game copy keeps in its own LRU cache. 12 is every piece-version in",
+    "the demo (13) bar one, so a booth run never evicts a pack it is about to be asked for",
+    "again - and the whole set is 8.9 MB of real cooked packs, which is nothing."
+  ],
+  "client_cache_packs": 12
 }

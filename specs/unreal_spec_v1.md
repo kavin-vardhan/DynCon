@@ -10,7 +10,8 @@ slot lifecycle) and `server_spec_v1.md` / `content_assets_spec_v1.md`. Status: D
   renamed. Enhanced Input. Git: commit sources, config, `Content/` (binary .uasset is fine — local repo); ignore `Binaries/`,
   `Intermediate/`, `Saved/`, `DerivedDataCache/`, packaged builds.
 - **Plugin:** `unreal/DCDemo/Plugins/DynamicContents/` — runtime module `DynamicContents` (everything the shipped game needs) +
-  editor module `DynamicContentsEditor` (slot-map tool, content import helpers).
+  editor module `DynamicContentsEditor` (the slot-map tool; the content import stayed as editor Python in `unreal/Tools/`,
+  which is where it was already working).
 - **Content packs = cook chunks.** Each piece-version lives in `/Game/DCContent/<id>_<v>/` with a `PrimaryAssetLabel` that puts
   the folder in its own chunk (ChunkId 100 + n). Packaging with chunks + IoStore yields `pakchunkN-Windows.{pak,utoc,ucas}` per
   piece-version. Those files are **removed from the packaged game's Paks folder** and wrapped into `.dcpack` files for the server;
@@ -59,10 +60,17 @@ screenshots' paths.
 Day-1 checks from plan §11 (pad 1 only, background pad 2 untouched, two copies side by side, keeps running unfocused) are the
 first acceptance tests once the plugin exists.
 
-## 4. Editor module (FUTURE)
+## 4. Editor module (DONE — brief 013)
 
 The slot-map tool (plan §6): orthographic top capture → image; every `ADCSlot` → id, pixel position, limits, rules, pre-fetch
 radius; eye-level thumbnail per slot; `POST /games/register`.
+
+Built as `DynamicContentsEditor` in the same plugin, with one function — `UDCSlotMapTool::RegisterCurrentLevel` — behind
+three doors: the Tools menu entry *"Register this game with Dynamic Contents…"*, the commandlet
+`DCRegisterGameCommandlet`, and editor Python (`unreal/Tools/register_games.py`, which does both maps in one session).
+The captures are `USceneCaptureComponent2D` into a transient render target and the tool needs **`-AllowCommandletRendering`**
+on the command line. Pixel positions come out of the capture camera's own transform, and the playable area out of the
+actors the map builder tagged `DCPlayableArea`. `unreal/README.md` has the long version.
 
 ## 5. Maps (FUTURE)
 

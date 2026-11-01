@@ -6,6 +6,7 @@ instance (or a test run against a real socket) stays out of the way of the booth
     DCSERVER_CONFIG      path to demo.json          (default server/config/demo.json)
     DCSERVER_DATA        the data folder            (default server/data)
     DCSERVER_DEMO_FILES  "the brand's computer"     (default server/demo_files)
+    DCSERVER_MAPS        the registered slot maps   (default server/config/maps)
 """
 from __future__ import annotations
 
@@ -21,4 +22,5 @@ app = create_app(
     os.environ.get("DCSERVER_CONFIG") or DEFAULT_CONFIG,
     data_dir=os.environ.get("DCSERVER_DATA") or None,
     demo_files=os.environ.get("DCSERVER_DEMO_FILES") or None,
+    maps_dir=os.environ.get("DCSERVER_MAPS") or None,
 )

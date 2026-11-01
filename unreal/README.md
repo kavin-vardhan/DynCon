@@ -1,9 +1,9 @@
 # The Unreal side — what is here and how to run it
 
 *Written 2026-10-26 (brief 004), rewritten the same day for brief 006, and extended
-2026-11-01 with the runtime client (brief 011) and the two maps and the Player (brief 012).
-Plain-words guide for a cold reader. Status of each item is marked **DONE / QUEUED / FUTURE**.
-The spec this implements is `specs/unreal_spec_v1.md`.*
+2026-11-01 with the runtime client (brief 011), the two maps and the Player (brief 012), and
+the slot-map tool (brief 013). Plain-words guide for a cold reader. Status of each item is
+marked **DONE / QUEUED / FUTURE**. The spec this implements is `specs/unreal_spec_v1.md`.*
 
 ## What this folder is
 
@@ -20,14 +20,14 @@ round's screenshots showed was wrong.
 | `DCDemo/DCDemo.uproject` | the project; plugin list, module list | DONE |
 | `DCDemo/Config/` | map + game mode, the chunk settings that make content packs | DONE |
 | `DCDemo/Source/DCDemo/` | the renamed third-person template (character, controller, game mode) | DONE |
-| `DCDemo/Plugins/DynamicContents/` | the runtime plugin: file log, pack mounter, slot lifecycle, content actor, backend client, status strip, two run drivers | DONE |
+| `DCDemo/Plugins/DynamicContents/` | the plugin. Two modules: the **runtime** one (file log, pack mounter, slot lifecycle, content actor, backend client, status strip, two run drivers) and the **editor** one (the slot-map tool) | DONE |
 | `DCDemo/Content/DCCore/` | what the base game owns: master materials, the 8 emblems, the sample screen image | DONE |
 | `DCDemo/Content/DCContent/<id>_<v>/` | one folder per piece-version = one content pack | DONE, all 13 |
 | `DCDemo/Content/Maps/Spike` | brief 006's pack round-trip map: ground, sun, sky, player start, one slot per size class | DONE |
 | `DCDemo/Content/Maps/DCRuntime` | brief 011's runtime-client map: the same ground and light, slots **A1 (L), A2 (T), A3 (S)** | DONE |
 | `DCDemo/Content/Maps/GameA` · `GameB` | the demo's two maps: a warm plaza and a cool waterfront | DONE |
 | `DCDemo/Content/DCEnv/` | the environment kit in the engine: 23 meshes and the two palettes' material instances | DONE |
-| `DCDemo/Content/Player/` | `BP_DCPlayer`, `BP_DCPlayerController` and the character's two materials | DONE |
+| `DCDemo/Content/Player/` | `BP_DCPlayer`, `BP_DCPlayerController` and the character's one neutral material | DONE |
 | `DCDemo/Content/Mannequin/` | the engine's UE4 mannequin, mesh and animations only (6.6 MB, no textures, no logo) | DONE |
 | `Tools/` | the scripts below, plus `chunk_ids.json` | DONE |
 | `_build/` | build outputs and logs (not in git, rebuilt by `package.ps1`) | — |
@@ -36,6 +36,7 @@ round's screenshots showed was wrong.
 | `spike/shots/004/` | brief 004's two screenshots and result file, kept as they were | — |
 | `spike/shots/011/runtime_contact.png` | the contact sheet of brief 011's exit-test run | DONE |
 | `spike/shots/012/maps_contact.png` | the contact sheet of both maps' walk-and-photograph runs | DONE |
+| `spike/shots/013/` | the slot-map tool's evidence: both captures with the pins drawn on them, the five thumbnails, and the frame times before and after | DONE |
 
 ## The five steps, in order
 
@@ -74,6 +75,10 @@ against the demo server, and **`ue_exit_test.py`** is the stage-1 exit test.
 And four belong to the two maps: **`make_maps.ps1`** (which copies the mannequin in and then
 runs **`make_maps.py`**, which calls **`env_import.py`**), **`map_check.py`** (walk and
 photograph one map with the server up) and **`make_maps_sheet.py`**.
+
+Three more belong to the slot-map tool: **`register_games.ps1`** (server up, both maps
+captured and registered), **`register_games.py`** (the editor Python it runs) and
+**`make_slotmap_sheet.py`** (draw the pins on the captures and look at them).
 
 ## How a content pack works
 
@@ -311,7 +316,12 @@ The picture of all of it is `spike/shots/011/runtime_contact.png`.
 6. The piece is spawned **deferred**, so the brand colour and emblem are set before
    `BeginPlay` builds it — otherwise the first frame would show the pack's own identity.
 7. `mount` and `view` telemetry are batched and posted to `/telemetry`. A view is content on
-   screen, within 30 m, for at least a second, with a line check — plan v6 §9.
+   screen, within 30 m, for at least a second, with a line check — plan v6 §9. The 30 m is
+   measured to the nearest point of the **piece's own bounds**, not to the middle of it: a T
+   slot's content is 20 m tall, so a Player standing a comfortable 25 m from its door is 32 m
+   from its centre, and measuring to the centre quietly threw that view away (fixed in brief
+   013). The line-of-sight check still aims at the middle, which is the right place to ask
+   "can it be seen from here".
 
 Failures never reach the visitor: the slot keeps whatever is on screen, logs why, and retries
 with a doubling backoff (2, 4, 8 … capped at 15 s).
@@ -384,7 +394,7 @@ nothing had to be modelled twice.
 Name-agnostic, as CLAUDE.md rule 3 requires: **no text, no signs, no logos and no names** are
 placed anywhere in either map. The only lettering the demo ever shows is the status strip the
 plugin draws. The engine's mannequin wears the engine's logo on its chest, so the Player's
-materials are replaced with two plain neutral ones and the logo asset is never copied into
+materials are replaced with one plain neutral one and the logo asset is never copied into
 this repo at all.
 
 ## Game A — the plaza (warm)
@@ -425,11 +435,14 @@ different building rhythm, a different shape of place.
 - **invisible bounds**: hidden, shadowless, blocking boxes round the playable area. Game B's
   ring deliberately has **no south wall** - the quay wall and the pier's own side walls do that
   job, and a ring wall across the waterfront would also have walled off the pier;
-- every slot is an `ADCSlot` of its size class, standing on a **`slot_pad`**. The packaged
+- every slot is an `ADCSlot` of its size class, standing on a pad of its own size -
+  **`slot_pad`** (14 m) for an L or a T, **`slot_pad_s`** (7 m) for an S. The packaged
   build contains **none** of the content, so between the map loading and the backend's first
   answer a slot is empty: the pad is what makes that read as a place waiting for something.
   What then fills it is the server - the attract rotation serves the developer's `default` (or
-  a rival) within a few seconds of the first poll, over HTTP, exactly as at the booth;
+  a rival) within a few seconds of the first poll, over HTTP, exactly as at the booth.
+  (An S slot used to stand on the 14 m pad scaled to 0.5, which halved the width of its kerb
+  band with it and made the pad read as a model of a pad; brief 013 gave it its own piece.);
 - the maps are built by **`unreal/Tools/make_maps.py`**, data plus small loops, so a layout
   change is a number and both maps are reproducible from the repo with no hand editing. The
   slot ids match `server/config/demo.json`.
@@ -440,8 +453,14 @@ Third person with a visible character: the engine's **UE4 mannequin** out of the
 `Mannequin` template content pack. Only the mesh, its skeleton, its physics asset and the ten
 animation assets are copied - **6.6 MB, no materials and no textures**, because the mannequin's
 chest-logo material is a logo and `env_import.dress_mannequin` replaces both of its material
-slots with plain neutral ones anyway. That also keeps 30 MB of 4K textures and 25 MB of the
-second character out of the repo.
+slots anyway. That also keeps 30 MB of 4K textures and 25 MB of the second character out of
+the repo.
+
+Both slots get the **same** material instance - `MI_DC_Char_Neutral`, a light warm grey with
+a slight sheen. Brief 012 gave them two different tones, which turned the Player into a
+two-tone figure whose darker patch sat exactly where the engine's logo used to be: it still
+read as a badge. One tone over the whole figure reads as a deliberately neutral character
+rather than as an asset that has lost its textures.
 
 `BP_DCPlayer` (a child of the template's `ADCDemoCharacter`, which carries the Enhanced Input
 actions) and `BP_DCPlayerController` (which adds the input mapping contexts) are built by
@@ -496,6 +515,111 @@ awkward to place from Python, and nothing in the demo needs path-finding at runt
 It is also a real collision test, and it found three things a camera never would: a flight of
 steps with a wall across it every four metres, a background block sitting on the garden path,
 and a boundary wall across the mouth of the pier. All three are fixed in the data.
+
+---
+
+# The slot-map tool (brief 013): the developer's half of the plugin
+
+Everything above is the *player's* side and the *brand's* side. Plan v6 §6 is the third actor
+in the story: **the game developer**, who registers the game, its slots and the rule for each
+slot. Until that happens the portal can only draw a picture of a slot map; afterwards a brand
+is looking at a photograph of the spot it is bidding on.
+
+It is a second module in the same plugin, `DynamicContentsEditor`, type **Editor** — so none
+of it is compiled into the game, let alone shipped in it.
+
+| Class | Job | Status |
+|---|---|---|
+| `UDCSlotMapTool::RegisterCurrentLevel` | the whole tool: the captures, the measurements, the JSON, the upload | DONE |
+| `FDynamicContentsEditorModule` | the menu entry *Tools → "Register this game with Dynamic Contents…"* | DONE |
+| `UDCRegisterGameCommandlet` | the headless entry, one map per run | DONE |
+| `unreal/Tools/register_games.py` | editor Python: both maps in one editor session | DONE |
+| `unreal/Tools/register_games.ps1` | server up, both maps captured and registered, server down | DONE |
+| `unreal/Tools/make_slotmap_sheet.py` | draws the pins on the captures so a human can check them | DONE |
+
+One function behind three doors, because plan v6 §6 asks for a button *and* a headless run:
+the thing a developer presses has to be the thing that was tested.
+
+## What one run does
+
+```powershell
+powershell -ExecutionPolicy Bypass -File unreal\Tools\register_games.ps1
+powershell -ExecutionPolicy Bypass -File unreal\Tools\register_games.ps1 -NoPost   # look first
+python unreal\Tools\make_slotmap_sheet.py
+```
+
+For the level that is open:
+
+1. a straight-down **orthographic** capture of the playable area, 2048 px on the long side;
+2. every `ADCSlot` read off the map: id, size class and class limits, **rating rule**,
+   pre-fetch radius, world position;
+3. each slot's **pixel position** on that capture;
+4. an **eye-level thumbnail** per slot (1.7 m, 16:9, 960 px) with the slot's content hidden;
+5. `POST /games/register` as one multipart request.
+
+It spawns nothing into the level: the capture component and the fill lights are outered to
+the world and transient, no asset is saved and no package is marked dirty.
+
+## Five things that are not obvious
+
+**`-AllowCommandletRendering` is not optional.** A commandlet runs with rendering switched
+off unless it is asked for, and this tool's whole job is to render two kinds of picture.
+Without it `FApp::CanEverRender()` is false and the tool refuses rather than writing a black
+PNG. The first headless run also pays a one-off ten-minute bill compiling the editor's SM5
+and SM6 shader maps into the DDC; the second takes about a minute.
+
+**The playable area is a tag, not a guess.** `make_maps.py` puts the actor tag
+**`DCPlayableArea`** on every invisible bound it builds, and the capture rectangle is the
+union of those. The walls round where the Player can go *are* the playable area. A level that
+has never heard of this plugin falls back to "every visible primitive under 400 m across",
+which throws away the 600 m ground plane and keeps the buildings.
+
+**Pixel positions come out of the camera, not out of a formula.** The tool asks the capture
+camera's own transform where a slot is (`InverseTransformPosition` → u, v), so the number and
+the picture cannot drift apart — and it picks the camera yaw that makes the long axis of the
+level the long axis of the image, so a capture is landscape whichever way round the level was
+built. `make_slotmap_sheet.py` then draws those numbers back onto the picture, which is the
+only honest way to check them.
+
+**There is no Lumen in a headless editor, so the tool lights its own subject.** This project's
+ambient light *is* Lumen (see "Detail Tracing" above), Lumen's scene is built and maintained
+by the main renderer across frames, and a commandlet has no viewport and therefore no frame
+for it to live in. A scene capture on its own gets direct light and nothing else: the first
+run of this tool produced pictures in which every surface the sun did not reach was **pure
+black**, and Game B's low afternoon sun made a near-black photograph of a perfectly well-lit
+promenade. The sky light does not rescue it either — its real-time capture belongs to the
+same missing frame. So the tool adds three shadowless directional lights for the duration,
+sized against the map's own sun: one overhead, one into the shadow side, one across. They are
+destroyed when it returns.
+
+**The two pictures are lit for two different jobs.** A thumbnail keeps the fog, the sky and
+the cast shadows, because it has to look like the place. The **plan view turns the cast
+shadows off**, which is both a necessity and a kindness: Lumen does not support an
+orthographic projection at all, and Game B's sun sits at 21° above the horizon, so with
+shadows on the map is mostly 60 m streaks of black. What is left is a site plan — evenly lit,
+every roof and every path legible. Both let the exposure adapt (pinning it blows out the
+midday plaza or blacks out the evening waterfront) but wind the adaptation speed right up, so
+it settles inside the four warm-up captures instead of drifting.
+
+## What the run produced (2026-11-01)
+
+| | Game A | Game B |
+|---|---|---|
+| playable area | 196.0 × 126.0 m, from 4 tagged bounds | 94.0 × 74.2 m, from 8 tagged bounds |
+| capture | 2048 × 1316 px of 201.9 × 129.7 m | 2048 × 1616 px of 96.8 × 76.4 m |
+| camera | 134 m up, orthographic | 134 m up, orthographic |
+| slots | A1 L (0.426, 0.546) · A2 T (0.842, 0.454) · A3 S (0.168, 0.762) | B1 L (0.376, 0.658) · B2 S (0.665, 0.109) |
+| thumbnails | 3 × 960 × 540, eye level 1.7 m, 11 / 11 / 8 m out | 2 × 960 × 540, eye level 1.7 m, 11 / 8 m out |
+| `POST /games/register` | **200** | **200** |
+
+Every pin sits on its slot — `spike/shots/013/A_map_pins.png` and `B_map_pins.png` are the
+captures with the registered positions and the class footprints drawn on top, and
+`slotmap_contact.png` is both of them with all five thumbnails.
+
+What the server did with it is `server/README.md`: the files land in `server/config/maps/`,
+**committed**, so a clean checkout serves the real map and the real thumbnails with no Unreal
+anywhere in sight, and the registered pin positions replace the hand-guessed `px` values that
+were in `demo.json`.
 
 ## Things worth knowing about this PC
 

@@ -15,6 +15,7 @@ before it prints MOUNT, so a passing round means the whole delivery path worked.
 from __future__ import annotations
 
 import argparse
+import json
 import subprocess
 import sys
 import time
@@ -146,9 +147,11 @@ class ExitTest:
             written = self.allocate("A", "A3", "r1", "sys_rivalsmall")
             # the rotation would put the same piece here, so prove the *allocation* is
             # what is showing rather than the attract rotation
-            showing = self.api("GET", "/resolve",
-                               params={"game": "A", "slot": "A3", "region": "r1",
-                                       "format": "flat"})["showing"]
+            # /resolve serves the envelope and only the envelope (brief 013), so open it
+            # the way the client does: the payload is the exact signed bytes as a string.
+            envelope = self.api("GET", "/resolve",
+                                params={"game": "A", "slot": "A3", "region": "r1"})
+            showing = json.loads(envelope["signed_payload"])["showing"]
             if showing["source"] != f"alloc:{written['allocation_id']}":
                 raise RuntimeError(f"A3/r1 is showing {showing['source']}, not the "
                                    f"allocation that was just written")

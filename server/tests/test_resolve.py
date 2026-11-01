@@ -43,16 +43,13 @@ def test_the_envelope_is_what_resolve_serves(env) -> None:
                                             body["signature"])
 
 
-def test_the_flat_shape_is_still_served_for_one_brief(env) -> None:
-    import json
-
-    flat = env.resolve("A", "A1", "r1", shape="flat")
-    envelope = env.envelope("A", "A1", "r1")
-    assert flat["signature"] == envelope["signature"]
-    assert {k: v for k, v in flat.items() if k != "signature"} == \
-        json.loads(envelope["signed_payload"])
-    assert env.client.get("/resolve", params={"game": "A", "slot": "A1", "region": "r1",
-                                              "format": "nonsense"}).status_code == 422
+def test_the_envelope_is_the_only_shape(env) -> None:
+    """There is one way to sign an answer. The old `?format=flat` shape went away in brief
+    013 now that the UE client verifies the envelope; `format` is not a parameter any
+    more, so asking for it changes nothing rather than serving a second signing scheme."""
+    body = env.ok(env.client.get("/resolve", params={
+        "game": "A", "slot": "A1", "region": "r1", "format": "flat"}))
+    assert sorted(body) == ["signature", "signature_alg", "signed_payload"]
 
 
 def test_the_signature_verifies_with_nothing_but_the_public_key(env) -> None:

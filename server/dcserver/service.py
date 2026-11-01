@@ -19,6 +19,7 @@ from .blobs import Blobs, FsBlobs
 from .clock import Clock, DemoClock, RealClock, iso, parse_iso
 from .config import Config
 from .packs import AXIS_WORDS, ParsedPack, fit_failure, fits_slots, peek_dcpack, run_checks
+from .registry import Registry, RegistryError
 from .repo import Repo, SqliteRepo
 from .signing import KeyStore, canonical_json, sha256_hex
 
@@ -41,6 +42,10 @@ class ServiceError(Exception):
 class Paths:
     data_dir: Path
     demo_files: Path
+    # Where the slot-map tool's captures live. In `config/`, not in `data/`, on purpose: a
+    # game registration belongs to the developer, so a reset between visitors must not touch
+    # it and a clean checkout has to serve the real pictures. See `registry.py`.
+    maps_dir: Path
 
     @property
     def db(self) -> Path:
@@ -59,11 +64,13 @@ class Service:
     def __init__(self, config: Config, *, clock: Clock | None = None, repo: Repo | None = None,
                  blobs: Blobs | None = None, keys: KeyStore | None = None,
                  data_dir: str | Path | None = None, demo_files: str | Path | None = None,
-                 base_url: str = ""):
+                 maps_dir: str | Path | None = None, base_url: str = ""):
         here = Path(__file__).resolve().parent.parent          # server/
+        config_dir = config.path.parent if config.path else here / "config"
         self.paths = Paths(
             data_dir=Path(data_dir) if data_dir else here / "data",
             demo_files=Path(demo_files) if demo_files else here / "demo_files",
+            maps_dir=Path(maps_dir) if maps_dir else config_dir / "maps",
         )
         self.config = config
         self.clock = clock or RealClock()
@@ -71,6 +78,7 @@ class Service:
         self.keys.ensure()
         self.repo = repo or SqliteRepo(self.paths.db)
         self.blobs = blobs or FsBlobs(self.paths.packs, self.keys.url_signer, base_url=base_url)
+        self.registry = Registry(self.paths.maps_dir)
         self._lock = threading.RLock()
 
     # ------------------------------------------------------------------ lifecycle
@@ -428,14 +436,30 @@ class Service:
         rows = []
         for game in self.config.games:
             data = self.config.game(game)
+            record = self.registry.record(game)
             rows.append({
                 "id": game, "label": self.config.game_label(game),
                 "slot_count": len(self.config.slots_of(game)),
                 "players_online": self.players_online(game),
                 "live_at_booth": bool(data.get("live_at_booth")),
                 "map_image_url": f"/games/{game}/map",
+                "registered": record is not None,
+                "registered_utc": (record or {}).get("registered_utc"),
             })
         return {"games": rows, "clock": self.clock_block()}
+
+    def slot_px(self, game: str, slot: str) -> dict[str, float]:
+        """Where the portal puts this slot's pin.
+
+        The registered position wins over the one in `demo.json`: the config's `px` values
+        are hand-guessed stand-ins for a map nobody had captured yet, and the registered one
+        was measured off the capture the pin is drawn on.
+        """
+        entry = self.registry.slot(game, slot)
+        if entry and isinstance(entry.get("px"), dict):
+            return {"x": float(entry["px"]["x"]), "y": float(entry["px"]["y"])}
+        definition = self.config.slot(slot)
+        return {"x": definition.px[0], "y": definition.px[1]}
 
     def game_card(self, game: str) -> dict[str, Any]:
         if game not in self.config.games:
@@ -443,16 +467,22 @@ class Service:
         ctx = self.tick()
         mine = self.my_content()["content"]
         slots = []
+        registered = self.registry.record(game)
         for slot in self.config.slots_of(game):
             limits = self.config.limits(slot.size_class)
             lots = {region: auction.lot_card(ctx, lot) for region, lot
                     in auction.lots_for_slot(ctx, game, slot.id).items()}
+            entry = (registered or {}).get("slots", {}).get(slot.id) or {}
             slots.append({
                 "id": slot.id, "size_class": slot.size_class, "limits": limits,
                 "limits_words": (f"up to {limits['x']:.0f} x {limits['y']:.0f} m on the ground "
                                  f"and {limits['z']:.0f} m tall"),
-                "px": {"x": slot.px[0], "y": slot.px[1]},
+                "px": self.slot_px(game, slot.id),
                 "thumb_url": f"/games/{game}/slots/{slot.id}/thumb",
+                # What the developer declared in the map, when it has been registered.
+                "registered": bool(entry),
+                "rating_rule": entry.get("rating_rule"),
+                "prefetch_radius_m": entry.get("prefetch_radius_m"),
                 "footfall": self.footfall_card(slot.id),
                 "fits": {c["content_id"]: c["fits"].get(slot.id) for c in mine if c["fits"]},
                 "lots": lots,
@@ -465,20 +495,54 @@ class Service:
             "live_at_booth": bool(data.get("live_at_booth")),
             "players_online": self.players_online(game),
             "map_image_url": f"/games/{game}/map",
+            "registered": registered is not None,
+            "registered_utc": (registered or {}).get("registered_utc"),
             "slots": slots, "regions": {r: self.config.region_label(r)
                                         for r in self.config.regions},
             "wallet": auction.wallet(ctx), "clock": self.clock_block(),
         }
 
+    # ------------------------------------------------------------------ the slot map
+
     def map_file(self, game: str) -> Path | None:
-        """The real map image once the UE slot-map tool has made one."""
+        """The map image the UE slot-map tool captured, or None if it never ran.
+
+        The registration is the only source. `demo.json` used to name a `map_image` as a
+        place to drop a picture by hand; that is gone, because a map image with no slot
+        positions measured on it is a picture the portal cannot put a pin on.
+        """
         if game not in self.config.games:
             raise ServiceError(404, f"There is no game {game}.")
-        name = self.config.game(game).get("map_image")
-        if not name:
-            return None
-        path = (self.config.path.parent / name) if self.config.path else None
-        return path if path and path.is_file() else None
+        return self.registry.map_image(game)
+
+    def thumb_file(self, game: str, slot: str) -> Path | None:
+        """The eye-level thumbnail of one slot, or None when it was never registered."""
+        if not self.config.has_slot(slot) or self.config.slot(slot).game != game:
+            raise ServiceError(404, f"Game {game} has no slot {slot}.")
+        return self.registry.thumb(game, slot)
+
+    def register_game(self, payload: dict[str, Any], map_blob: bytes,
+                      thumbs: dict[str, bytes]) -> dict[str, Any]:
+        """`POST /games/register` — the developer's slot-map tool, arriving.
+
+        The platform's own slot table stays the authority on which slots exist, what class
+        they are and what they cost; what the registration brings is everything only the map
+        knows: the picture, the pin positions measured on it, a thumbnail per slot, and the
+        developer's own rule for each slot.
+        """
+        game = str(payload.get("game") or "").strip()
+        if game and game not in self.config.games:
+            raise ServiceError(404, f"There is no game {game} on this platform.")
+        known = {s.id: s.size_class for s in self.config.slots_of(game)} if game else {}
+        try:
+            with self._lock:
+                result = self.registry.register(
+                    payload, map_blob, thumbs, known_slots=known, now_iso=iso(self.now()))
+        except RegistryError as bad:
+            raise ServiceError(400, bad.sentence)
+        log.info("registered game %s: %d slot(s), map %s", result["game"],
+                 len(result["slots"]), result["image"]["file"])
+        return result
 
     # ------------------------------------------------------------------ the report
 
@@ -619,21 +683,20 @@ class Service:
             "purge_packs": list(self.repo.meta_get("purge_packs") or []),
         }
 
-    def resolve(self, game: str, slot: str, region: str, envelope: bool = True) -> dict[str, Any]:
-        """The signed manifest, in one of two shapes.
+    def resolve(self, game: str, slot: str, region: str) -> dict[str, Any]:
+        """The signed manifest, as the **signed-payload envelope**.
 
-        **envelope** (the default, and what the UE client will use):
         `{signed_payload: "<the canonical JSON as a string>", signature: "<RS256 over
-        exactly those UTF-8 bytes>"}` — verify the string, then parse it, so no client has
-        to reproduce canonical JSON to check a signature.
+        exactly those UTF-8 bytes>"}` — verify the string, then parse it, so no client ever
+        has to reproduce canonical JSON to check a signature.
 
-        **flat** (`?format=flat`): the manifest's fields with `signature` alongside them,
-        which is what part 1 served. Kept for one brief so nothing breaks mid-way.
+        One shape, since brief 013. The `?format=flat` alternative existed so that a client
+        and a server could be one brief apart; the UE client has verified the envelope since
+        brief 011, and leaving a second signing shape in is leaving a second way to get it
+        wrong.
         """
         payload = self.manifest(game, slot, region)
         signature = self.keys.sign(payload)
-        if not envelope:
-            return {**payload, "signature": signature}
         return {"signed_payload": canonical_json(payload).decode("utf-8"),
                 "signature": signature,
                 "signature_alg": payload["signature_alg"]}
@@ -796,8 +859,10 @@ class Service:
             "key_fingerprint": self.keys.fingerprint(),
             "system_packs": seeded,
             "demo_files": len(self.demo_files()),
+            "registered_games": {g: self.registry.is_registered(g) for g in self.config.games},
             "paths": {"config": str(self.config.path), "data": str(self.paths.data_dir),
-                      "demo_files": str(self.paths.demo_files)},
+                      "demo_files": str(self.paths.demo_files),
+                      "maps": str(self.paths.maps_dir)},
         }
 
     # ------------------------------------------------------------------ client config
@@ -832,8 +897,9 @@ class Service:
             "auction": d["auction"],
             "footfall": d["footfall"],
             "games": {g: {"label": self.config.game_label(g),
+                          "registered": self.registry.is_registered(g),
                           "slots": [{"id": s.id, "size_class": s.size_class,
-                                     "px": {"x": s.px[0], "y": s.px[1]}}
+                                     "px": self.slot_px(g, s.id)}
                                     for s in self.config.slots_of(g)]}
                       for g in self.config.games},
             "clock": self.clock_block(),

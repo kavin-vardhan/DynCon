@@ -2,6 +2,8 @@
  "schema_version": 1,
  "material_slots": [
   "M_Ground",
+  "M_GroundAlt",
+  "M_Grass",
   "M_Paving",
   "M_PavingAlt",
   "M_Kerb",
@@ -29,6 +31,30 @@
       0.26225
      ],
      "roughness": 0.92,
+     "metallic": 0.0,
+     "alpha": 1.0,
+     "emissive_strength": 0.0
+    },
+    "M_GroundAlt": {
+     "base_color_hex": "#9C8763",
+     "base_color_linear": [
+      0.33245,
+      0.24228,
+      0.12477
+     ],
+     "roughness": 0.94,
+     "metallic": 0.0,
+     "alpha": 1.0,
+     "emissive_strength": 0.0
+    },
+    "M_Grass": {
+     "base_color_hex": "#6F8F4D",
+     "base_color_linear": [
+      0.15896,
+      0.27468,
+      0.07421
+     ],
+     "roughness": 0.95,
      "metallic": 0.0,
      "alpha": 1.0,
      "emissive_strength": 0.0
@@ -214,6 +240,30 @@
       0.25415
      ],
      "roughness": 0.92,
+     "metallic": 0.0,
+     "alpha": 1.0,
+     "emissive_strength": 0.0
+    },
+    "M_GroundAlt": {
+     "base_color_hex": "#646C72",
+     "base_color_linear": [
+      0.12744,
+      0.14996,
+      0.16827
+     ],
+     "roughness": 0.94,
+     "metallic": 0.0,
+     "alpha": 1.0,
+     "emissive_strength": 0.0
+    },
+    "M_Grass": {
+     "base_color_hex": "#56785F",
+     "base_color_linear": [
+      0.09306,
+      0.18782,
+      0.11444
+     ],
+     "roughness": 0.95,
      "metallic": 0.0,
      "alpha": 1.0,
      "emissive_strength": 0.0

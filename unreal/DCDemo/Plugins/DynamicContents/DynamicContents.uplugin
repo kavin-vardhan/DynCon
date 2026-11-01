@@ -20,6 +20,12 @@
 			"Name": "DynamicContents",
 			"Type": "Runtime",
 			"LoadingPhase": "Default"
+		},
+		{
+			"_comment": "The developer's half of the plugin: the slot-map tool. Type Editor means it is never compiled into, let alone shipped in, the game.",
+			"Name": "DynamicContentsEditor",
+			"Type": "Editor",
+			"LoadingPhase": "Default"
 		}
 	],
 	"Plugins": [

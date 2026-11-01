@@ -73,8 +73,10 @@ All JSON. Times are ISO-8601 UTC plus `demo_time` where the portal shows it.
   `signature` = RS256 over the canonical JSON (sorted keys, no whitespace) of everything else. URLs are signed + expiring.
 - `GET /files/{pack_id}/{name}?exp=…&sig=…` → the bytes, Range supported, paced in local mode.
 - `POST /telemetry` → batch `[{game, region, slot, alloc_key, type: view|visit|dwell|interaction, value, ts}]`.
-- `POST /games/register` → from the UE slot-map tool: map image, thumbnails, slot list with pixel positions. Until that tool
-  exists, games are seeded from config with a placeholder map image + pin positions in `server/config/maps/`.
+- `POST /games/register` → from the UE slot-map tool: map image, thumbnails, slot list with pixel positions. **DONE in brief
+  013** — it is a portal/developer route rather than a game-client one, and it stores the capture in `server/config/maps/`,
+  committed, so a clean checkout serves the real pictures. The registered pin positions replace `demo.json`'s `px` values.
+  A game that was never registered keeps the drawn SVG placeholders.
 
 **Portal**
 - `GET /config/public` — regions, presets, labels, clock.

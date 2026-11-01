@@ -24,14 +24,15 @@ DEFAULT_CONFIG = SERVER_DIR / "config" / "demo.json"
 def create_app(config: Config | str | Path | None = None, *, clock: Clock | None = None,
                repo: Repo | None = None, blobs: Blobs | None = None,
                keys: KeyStore | None = None, data_dir: str | Path | None = None,
-               demo_files: str | Path | None = None) -> FastAPI:
+               demo_files: str | Path | None = None,
+               maps_dir: str | Path | None = None) -> FastAPI:
     if config is None:
         config = DEFAULT_CONFIG
     if not isinstance(config, Config):
         config = Config.load(config)
 
     svc = Service(config, clock=clock, repo=repo, blobs=blobs, keys=keys,
-                  data_dir=data_dir, demo_files=demo_files).startup()
+                  data_dir=data_dir, demo_files=demo_files, maps_dir=maps_dir).startup()
 
     app = FastAPI(title="DynamicContents demo server", version=VERSION,
                   summary="The stand-in cloud: allocations, packs, signed manifests.")
@@ -53,7 +54,9 @@ def create_app(config: Config | str | Path | None = None, *, clock: Clock | None
             "game_client": ["/client-config", "/changes", "/resolve", "/files/{pack}/{name}",
                             "/telemetry"],
             "portal": ["/config/public", "/brand", "/wallet", "/demo-files", "/content",
-                       "/content/{id}/versions", "/games", "/games/{id}", "/bids",
+                       "/content/{id}/versions", "/games", "/games/{id}",
+                       "/games/{id}/map", "/games/{id}/slots/{slot}/thumb",
+                       "/games/register", "/bids",
                        "/bids/split", "/lots", "/lots/{id}", "/report", "/preview/region",
                        "/campaign/pause", "/status/live", "/clock"],
             "admin": ["/admin/health", "/admin/reset", "/admin/sabotage", "/admin/allocate",

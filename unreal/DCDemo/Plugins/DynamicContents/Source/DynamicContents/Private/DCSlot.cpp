@@ -14,7 +14,10 @@
 
 namespace
 {
-	/** Telemetry: a view is content on screen, within 30 m, for at least a second. */
+	/**
+	 * Telemetry: a view is content on screen, within 30 m of the piece's own bounds, for at
+	 * least a second (demo plan v6 §9).
+	 */
 	constexpr float DCViewRadius = 3000.0f;       // cm
 	constexpr float DCViewMinSeconds = 1.0f;
 
@@ -106,15 +109,28 @@ bool ADCSlot::IsPointInsideBounds(const FVector& WorldPoint) const
 
 FVector ADCSlot::GetContentCentre() const
 {
+	const FBox Bounds = GetContentBounds();
+	return Bounds.IsValid ? Bounds.GetCenter()
+		: (LimitsBox ? LimitsBox->GetComponentLocation() : GetActorLocation());
+}
+
+FBox ADCSlot::GetContentBounds() const
+{
 	if (const ADCContentActor* Built = Cast<ADCContentActor>(Content.Get()))
 	{
 		const FBox Bounds = Built->GetBuiltBounds();
 		if (Bounds.IsValid)
 		{
-			return Bounds.GetCenter();
+			return Bounds;
 		}
 	}
-	return LimitsBox ? LimitsBox->GetComponentLocation() : GetActorLocation();
+	if (LimitsBox)
+	{
+		const FVector Centre = LimitsBox->GetComponentLocation();
+		const FVector Extent = LimitsBox->GetUnscaledBoxExtent();
+		return FBox(Centre - Extent, Centre + Extent);
+	}
+	return FBox(GetActorLocation(), GetActorLocation());
 }
 
 FVector ADCSlot::GetDoorApproachPoint(float Extra) const
@@ -380,10 +396,25 @@ void ADCSlot::UpdateViewSeconds(float DeltaSeconds)
 	FRotator Look;
 	PC->GetPlayerViewPoint(Eye, Look);
 
-	const FVector Centre = GetContentCentre();
+	// Within 30 m of the **piece**, not of the middle of it. A T slot's content is 20 m tall,
+	// so a Player standing a comfortable 25 m from its door is 32 m from its centre, and
+	// measuring to the centre quietly threw that view away. The distance is therefore to the
+	// nearest point of the content's own bounds; the line check below still aims at the
+	// middle, which is the right place to ask "can it be seen from here".
+	const FBox Bounds = GetContentBounds();
+	const FVector Centre = Bounds.IsValid ? Bounds.GetCenter() : GetContentCentre();
+	const double BoundsDistance = Bounds.IsValid
+		? FMath::Sqrt(Bounds.ComputeSquaredDistanceToPoint(Eye))
+		: FVector::Dist(Centre, Eye);
+	if (BoundsDistance > DCViewRadius)
+	{
+		ViewSeconds = 0.0f;
+		return;
+	}
+
 	const FVector ToContent = Centre - Eye;
 	const float Distance = ToContent.Size();
-	if (Distance > DCViewRadius || Distance <= KINDA_SMALL_NUMBER)
+	if (Distance <= KINDA_SMALL_NUMBER)
 	{
 		ViewSeconds = 0.0f;
 		return;

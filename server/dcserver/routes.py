@@ -6,10 +6,13 @@ build carries everything the game side needs end to end; the auction routes arri
 from __future__ import annotations
 
 import asyncio
+import json
 import time
+from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, Body, Depends, File, Header, Query, Request, UploadFile
+from fastapi import (APIRouter, Body, Depends, File, Form, Header, Query, Request,
+                     UploadFile)
 from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel, Field
 
@@ -48,10 +51,16 @@ def changes(game: str = Query(...), region: str = Query(...),
 
 @client.get("/resolve")
 def resolve(game: str = Query(...), slot: str = Query(...), region: str = Query(...),
-            format: str = Query("envelope", pattern="^(envelope|flat)$"),
             svc: Service = Depends(get_svc)) -> dict[str, Any]:
+    """The signed-payload envelope, and only that.
+
+    There used to be a `?format=flat` that returned the manifest's fields with the signature
+    alongside them, so that a client and a server could be one brief apart. The UE client is
+    on the envelope now (brief 011), so the second shape is gone: two ways to sign the same
+    answer is two ways to get it wrong.
+    """
     svc.tick()                       # a resolve is also when a due auction gets settled
-    return svc.resolve(game, slot, region, envelope=(format != "flat"))
+    return svc.resolve(game, slot, region)
 
 
 def parse_range(header: str | None, total: int) -> tuple[int, int, bool]:
@@ -209,7 +218,8 @@ def placeholder_map(svc: Service, game: str) -> str:
     parts.append(f'<text x="40" y="70" fill="#5d6b7d" font-family="sans-serif" '
                  f'font-size="34">{cfg.game_label(game)} — placeholder map</text>')
     for slot in slots:
-        cx, cy = int(slot.px[0] * w), int(slot.px[1] * h)
+        px = svc.slot_px(game, slot.id)
+        cx, cy = int(px["x"] * w), int(px["y"] * h)
         colour = PIN_COLOURS[min(rank[slot.id] * len(PIN_COLOURS) // max(len(slots), 1),
                                  len(PIN_COLOURS) - 1)]
         parts += [
@@ -328,21 +338,50 @@ def game(game: str, svc: Service = Depends(get_svc)) -> dict[str, Any]:
     return svc.game_card(game)
 
 
+@portal.post("/games/register")
+async def register_game(data: str = Form(...), map_image: UploadFile = File(...),
+                        thumbs: list[UploadFile] = File(default=[]),
+                        svc: Service = Depends(get_svc)) -> dict[str, Any]:
+    """The developer's slot-map tool, arriving (`dcserver/registry.py` has the long version).
+
+    Multipart, because two of the three parts are pictures: `data` is the JSON the tool
+    wrote, `map_image` is the orthographic capture, and `thumbs` is one eye-level PNG per
+    slot. Each thumbnail is matched to its slot by its **file name** (`<game>_<slot>.png`)
+    rather than by its position in the request, so the order the tool sends them in cannot
+    quietly mis-label them.
+    """
+    try:
+        payload = json.loads(data)
+    except json.JSONDecodeError as bad:
+        raise ServiceError(400, f"The registration JSON would not parse: {bad}")
+    blobs: dict[str, bytes] = {}
+    for upload in thumbs:
+        name = Path(upload.filename or "").name
+        if not name:
+            raise ServiceError(400, "A thumbnail arrived with no file name.")
+        blobs[name] = await upload.read()
+    return svc.register_game(payload, await map_image.read(), blobs)
+
+
 @portal.get("/games/{game}/map")
 def game_map(game: str, svc: Service = Depends(get_svc)):
-    """The real map image once the UE slot-map tool has made one; a drawn placeholder
-    until then, so the portal has something to put a pin on."""
+    """The real map image once the slot-map tool has registered one; a drawn placeholder
+    until then, so the portal always has something to put a pin on."""
     real = svc.map_file(game)
     if real:
-        return FileResponse(real)
+        return FileResponse(real, media_type="image/png",
+                            headers={"Cache-Control": "no-store"})
     return Response(content=placeholder_map(svc, game), media_type="image/svg+xml",
                     headers={"Cache-Control": "no-store"})
 
 
 @portal.get("/games/{game}/slots/{slot}/thumb")
 def slot_thumb(game: str, slot: str, svc: Service = Depends(get_svc)):
-    if not svc.config.has_slot(slot) or svc.config.slot(slot).game != game:
-        raise ServiceError(404, f"Game {game} has no slot {slot}.")
+    """The eye-level photograph of the empty spot, or the drawn card until it is registered."""
+    real = svc.thumb_file(game, slot)
+    if real:
+        return FileResponse(real, media_type="image/png",
+                            headers={"Cache-Control": "no-store"})
     return Response(content=placeholder_thumb(svc, slot), media_type="image/svg+xml",
                     headers={"Cache-Control": "no-store"})
 

@@ -281,10 +281,13 @@ def import_env_meshes(manifests, palette_materials, default_palette="warm", reim
 
 # --------------------------------------------------------------------------- the Player
 
-CHAR_MATERIALS = (
-    ("MI_DC_Char_Body", (0.58, 0.60, 0.63), 0.42, 0.0),
-    ("MI_DC_Char_Trim", (0.20, 0.23, 0.27), 0.35, 0.0),
-)
+# One material, both slots. The mannequin has a body slot and a chest-logo slot, and brief
+# 012 gave them two different colours - which turned the Player into a two-tone mannequin
+# whose darker patch sat exactly where the engine's logo used to be, i.e. it still read as a
+# badge. One plain material instance over the whole figure reads as a neutral, untextured
+# character on purpose rather than as an asset that is missing its textures: a light warm
+# grey with a slight sheen, so the figure catches the sun and has a silhouette.
+CHAR_MATERIAL = ("MI_DC_Char_Neutral", (0.62, 0.60, 0.57), 0.38, 0.04)
 
 
 def make_character_materials():
@@ -293,46 +296,48 @@ def make_character_materials():
     if master is None:
         fail("master material %s is missing" % DEFAULT_MASTER)
         return made
-    for (name, rgb, rough, metal) in CHAR_MATERIALS:
-        path = "%s/%s" % (PLAYER_ROOT, name)
-        mi = load_asset(path)
-        if mi is None:
-            mi = asset_tools().create_asset(
-                name, PLAYER_ROOT, unreal.MaterialInstanceConstant,
-                unreal.MaterialInstanceConstantFactoryNew())
-        MEL.set_material_instance_parent(mi, master)
-        MEL.set_material_instance_vector_parameter_value(mi, "BaseColor", linear_color(rgb))
-        MEL.set_material_instance_scalar_parameter_value(mi, "Roughness", rough)
-        MEL.set_material_instance_scalar_parameter_value(mi, "Metallic", metal)
-        save(mi)
-        made[name] = mi
+    name, rgb, rough, metal = CHAR_MATERIAL
+    path = "%s/%s" % (PLAYER_ROOT, name)
+    mi = load_asset(path)
+    if mi is None:
+        mi = asset_tools().create_asset(
+            name, PLAYER_ROOT, unreal.MaterialInstanceConstant,
+            unreal.MaterialInstanceConstantFactoryNew())
+    MEL.set_material_instance_parent(mi, master)
+    MEL.set_material_instance_vector_parameter_value(mi, "BaseColor", linear_color(rgb))
+    MEL.set_material_instance_scalar_parameter_value(mi, "Roughness", rough)
+    MEL.set_material_instance_scalar_parameter_value(mi, "Metallic", metal)
+    save(mi)
+    made[name] = mi
+    log("character material %s -> light warm grey, roughness %.2f" % (name, rough))
     return made
 
 
 def dress_mannequin(char_materials):
-    """Neutral materials on the mannequin, and the chest logo slot replaced.
+    """One plain neutral material on every slot of the mannequin.
 
     The engine's mannequin wears the engine's logo on its chest. CLAUDE.md rule 3 is no logos
-    anywhere in this project, so the logo slot gets a plain dark material and the body gets a
-    plain grey one. It also drops ~23 MB of 4K textures out of the repo.
+    anywhere in this project, so both of its material slots - body and chest logo - get the
+    same plain material instance: no logo, and no two-tone patch where the logo used to be.
+    It also drops ~23 MB of 4K textures out of the repo.
     """
     mesh = load_asset("%s/Character/Mesh/SK_Mannequin" % MANNEQUIN_ROOT)
     if mesh is None:
         warn("SK_Mannequin is not in the project - the Player will have no visible mesh")
         return None, []
-    body = char_materials.get("MI_DC_Char_Body")
-    trim = char_materials.get("MI_DC_Char_Trim")
+    neutral = char_materials.get(CHAR_MATERIAL[0])
+    if neutral is None:
+        fail("the character material was not made - the mannequin would keep the engine logo")
+        return mesh, []
 
     entries = mesh.get_editor_property("materials")
     names = []
-    for i, entry in enumerate(entries):
-        slot = str(entry.get_editor_property("material_slot_name"))
-        names.append(slot)
-        pick = trim if ("logo" in slot.lower() or i > 0) else body
-        safe_set(entry, "material_interface", pick)
+    for entry in entries:
+        names.append(str(entry.get_editor_property("material_slot_name")))
+        safe_set(entry, "material_interface", neutral)
     safe_set(mesh, "materials", entries)
     save(mesh)
-    log("mannequin material slots %s -> neutral, no logo" % names)
+    log("mannequin material slots %s -> one neutral material, no logo" % names)
     return mesh, names
 
 

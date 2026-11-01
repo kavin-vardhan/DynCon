@@ -19,9 +19,9 @@ import sys
 
 # the kit, restated here so the validator does not depend on Blender
 ENV_MATERIAL_SLOTS = {
-    "M_Ground", "M_Paving", "M_PavingAlt", "M_Kerb", "M_Wall", "M_WallAlt", "M_Roof",
-    "M_Trim", "M_Glass", "M_Metal", "M_Timber", "M_Foliage", "M_Trunk", "M_Water",
-    "M_Emissive",
+    "M_Ground", "M_GroundAlt", "M_Grass", "M_Paving", "M_PavingAlt", "M_Kerb", "M_Wall",
+    "M_WallAlt", "M_Roof", "M_Trim", "M_Glass", "M_Metal", "M_Timber", "M_Foliage",
+    "M_Trunk", "M_Water", "M_Emissive",
 }
 # the three the content uses for its runtime identity. An environment piece carrying one of
 # these could be dressed in a brand colour, which is exactly what the environment must not do.

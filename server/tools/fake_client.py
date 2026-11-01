@@ -247,8 +247,8 @@ class FakeClient:
 
         The server's answer is the envelope — `{signed_payload, signature}` — so the check
         is over the exact bytes it sent and there is no canonical JSON to reproduce. The
-        flat shape part 1 served is still accepted, so a client and a server can be one
-        brief apart without breaking.
+        flat shape part 1 served stopped being served in brief 013; the branch that reads it
+        stays because it costs four lines and is the worked example of the harder check.
         """
         response = self.http.get("resolve", params={"game": self.game, "slot": slot,
                                                     "region": self.region})

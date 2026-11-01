@@ -1,4 +1,4 @@
-# The environment kit — what it is and how to build it
+﻿# The environment kit — what it is and how to build it
 
 *Written 2026-11-01 (brief 012). Plain-words guide for a cold reader. Status of each item is
 marked **DONE / QUEUED / FUTURE**.*
@@ -10,7 +10,7 @@ only job is to make two places that read as two different games, and to frame th
 slots without competing with them.
 
 ```powershell
-.\art\build.ps1 -EnvOnly               # the 23 pieces, both palettes, validate, sheet
+.\art\build.ps1 -EnvOnly               # the 24 pieces, both palettes, validate, sheet
 .\art\build.ps1 -EnvOnly -NoRender     # geometry and exports only - seconds, not minutes
 .\art\build.ps1 -EnvOnly -OnlyEnv bench,tree_tall
 .\art\build.ps1                        # the content, then the environment
@@ -19,14 +19,14 @@ slots without competing with them.
 | File | What | Status |
 |---|---|---|
 | `env_kit.py` | the kit: material slots, the two palettes, `EnvPiece`, export, manifest, previews | DONE |
-| `ground.py` | paving, kerbs, steps, boardwalk, pier deck and posts, quay wall, the slot pad | DONE |
+| `ground.py` | paving, kerbs, steps, boardwalk, pier deck and posts, quay wall, the two slot pads | DONE |
 | `buildings.py` | the three background blocks, the arcade, the shed | DONE |
 | `props.py` | trees, shrub, bench, lamp post, planter, bollard, railing, fountain | DONE |
 | `build_env.py` | the driver: fresh scene → .blend → FBX + GLB → previews → manifest | DONE |
 | `../../tools/validate_env.py` | the checker `art/build.ps1` gates on | DONE |
 | `../../tools/env_sheet.py` | `art/previews/env_contact.png` — the one picture that goes in git | DONE |
 
-**23 pieces, 9,696 triangles in the whole kit.** The budgets are per category and deliberately
+**24 pieces, 9,804 triangles in the whole kit.** The budgets are per category and deliberately
 tight (ground 1,500 · street 3,000 · planting 4,000 · building 14,000): a plaza puts a couple
 of hundred of these on screen at once, and a content piece's budget is 60,000 on its own.
 
@@ -36,10 +36,13 @@ It is a small cousin of `art/blender/dc_kit.py` and borrows that file's `MeshBui
 same welded-group polygon builder with the same outward-normal checks — its colour maths, its
 bevel and its export plumbing. What it does differently:
 
-- **its own material slots** — paving, kerb, timber, foliage, water — instead of the content's
-  wall/door/sign/screen list. There is deliberately **no `M_BrandAccent`, `M_Sign` or
-  `M_Screen`**, and `validate_env.py` fails a piece that uses one: a piece of environment must
-  never be able to wear a brand;
+- **its own material slots** — ground, paving, kerb, timber, foliage, water — instead of the
+  content's wall/door/sign/screen list. There is deliberately **no `M_BrandAccent`, `M_Sign`
+  or `M_Screen`**, and `validate_env.py` fails a piece that uses one: a piece of environment
+  must never be able to wear a brand. Three of the slots — `M_Ground`, `M_GroundAlt` and
+  `M_Grass` — are carried by no mesh at all: they are the big flat things the map builder
+  lays with the engine's own cube, and they live in the palette so that the colour of the
+  ground is decided in the same table as the colour of everything standing on it;
 - **two palettes**, `warm` (Game A, the plaza) and `cool` (Game B, the waterfront). The
   geometry does not depend on the palette and is exported **once**; the palette is a set of
   material instances the map chooses per actor. That is why there is one FBX per piece and not
@@ -69,6 +72,14 @@ A placement in `unreal/Tools/make_maps.py` is then a location and a yaw and noth
 "Centred in plan" is checked on `ground_bounds`, the footprint of everything below 0.6 m, not
 on the whole bounding box: a lamp post's arm reaches a metre out at four metres up and that is
 not a badly anchored piece.
+
+## The slot pads are two pieces, not one scaled
+
+`slot_pad` is 14 × 14 m for an L or a T slot and `slot_pad_s` is 7 × 7 m for an S one, and
+both are used at **scale 1.0**. The S pad used to be the big one scaled to 0.5, which scaled
+the 0.55 m kerb band and the inlaid square down with it: the result read as a *model of* a
+pad rather than as a pad. `_slot_pad` in `ground.py` is one builder taking the side length
+and the band widths in metres, so the two sizes cannot drift apart.
 
 ## Collision
 

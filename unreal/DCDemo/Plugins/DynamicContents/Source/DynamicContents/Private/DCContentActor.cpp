@@ -176,7 +176,7 @@ void ADCContentActor::AddLights()
 		Light->SetLightColor(LightColor);
 		Light->SetAttenuationRadius(bGroupA ? LightARadius : LightBRadius);
 		Light->SetSourceRadius(LightSourceRadius);
-		Light->SetCastShadows(bLightsCastShadows);
+		Light->SetCastShadows(bGroupA ? bLightsCastShadows : bLightBCastsShadows);
 		AddInstanceComponent(Light);
 
 		(bGroupA ? LightsA : LightsB).Add(Light);
@@ -331,7 +331,7 @@ FString ADCContentActor::DescribeBuild() const
 
 	return FString::Printf(
 		TEXT("%s_%s  shell=%s unit_scale=%.0f door=%d screen=%d sign=%d switches=%d ")
-		TEXT("lightsA=%d(%s %.0flm r%.0f) lightsB=%d(%s %.0flm r%.0f) shadows=%s sockets=%d ")
+		TEXT("lightsA=%d(%s %.0flm r%.0f) lightsB=%d(%s %.0flm r%.0f) shadowsA=%s shadowsB=%s sockets=%d ")
 		TEXT("bounds=%.0fx%.0fx%.0f cm door_local=(%.0f,%.0f,%.0f) door_open=%d ")
 		TEXT("sign_local=(%.0f,%.0f,%.0f) sign_out=(%.2f,%.2f,%.2f) ")
 		TEXT("brand=(%.2f,%.2f,%.2f) emblem=%s screen_img=%s"),
@@ -342,6 +342,7 @@ FString ADCContentActor::DescribeBuild() const
 		LightsA.Num(), bLightAOn ? TEXT("on") : TEXT("off"), LightAIntensity, LightARadius,
 		LightsB.Num(), bLightBOn ? TEXT("on") : TEXT("off"), LightBIntensity, LightBRadius,
 		bLightsCastShadows ? TEXT("yes") : TEXT("no"),
+		bLightBCastsShadows ? TEXT("yes") : TEXT("no"),
 		ShellComp ? ShellComp->GetAllSocketNames().Num() : 0,
 		Size.X, Size.Y, Size.Z,
 		DoorLocal.X, DoorLocal.Y, DoorLocal.Z, bDoorOpen ? 1 : 0,

@@ -71,6 +71,7 @@ class Env:
     client: TestClient
     demo_files: Path
     data_dir: Path
+    maps_dir: Path
 
     # ---- shortcuts the tests read better with -------------------------------------
 
@@ -106,12 +107,10 @@ class Env:
         return self.changes(game, region)["slots"][slot]
 
     def resolve(self, game: str = "A", slot: str = "A1", region: str = "r1",
-                expect: int = 200, shape: str | None = None) -> dict:
-        """The manifest, whichever shape the server was asked for: the envelope is opened
-        so a test can read the fields, with the signature left on it to check."""
+                expect: int = 200) -> dict:
+        """The manifest: the envelope is opened so a test can read the fields, with the
+        signature left on it to check."""
         params = {"game": game, "slot": slot, "region": region}
-        if shape:
-            params["format"] = shape
         body = self.ok(self.client.get("/resolve", params=params), expect)
         if expect != 200 or "signed_payload" not in body:
             return body
@@ -162,16 +161,23 @@ def make_env(tmp_path, demo_files, keys_dir) -> Callable[..., Env]:
     """Factory so a test can ask for its own server with different tunables."""
     made: list[Env] = []
 
-    def factory(*, files: Path | None = None, **overrides: Any) -> Env:
+    def factory(*, files: Path | None = None, maps: Path | None = None,
+                **overrides: Any) -> Env:
         config = Config.load(CONFIG_PATH)
         overrides.setdefault("packs", {}).setdefault("pacing_seconds", 0.0)
         overrides.setdefault("sabotage", {}).setdefault("freeze_seconds", 0.05)
         config = config.copy_with(**overrides)
         clock = FakeClock()
         data_dir = tmp_path / f"data{len(made)}"
+        # Its own (empty) maps folder, not the committed `server/config/maps`: a test that
+        # registers a game must not overwrite the real captures, and a test of the drawn
+        # placeholders must not accidentally be served the real ones.
+        maps_dir = maps or (tmp_path / f"maps{len(made)}")
         app = create_app(config, clock=clock, data_dir=data_dir,
-                         demo_files=files or demo_files, keys=KeyStore(keys_dir))
-        env = Env(config, clock, app, TestClient(app), files or demo_files, data_dir)
+                         demo_files=files or demo_files, maps_dir=maps_dir,
+                         keys=KeyStore(keys_dir))
+        env = Env(config, clock, app, TestClient(app), files or demo_files, data_dir,
+                  maps_dir)
         made.append(env)
         return env
 

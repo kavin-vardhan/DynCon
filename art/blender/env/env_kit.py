@@ -60,6 +60,8 @@ PREVIEW_ROOT = os.path.join(_ART, "previews_env")
 
 ENV_MATERIAL_SLOTS = (
     "M_Ground",       # the big ground plane under everything
+    "M_GroundAlt",    # a second ground tone: the apron the paving is laid in
+    "M_Grass",        # planted ground - the garden court
     "M_Paving",       # plaza slabs / promenade deck
     "M_PavingAlt",    # the banding and the inlays that give paving a rhythm
     "M_Kerb",
@@ -102,6 +104,8 @@ PALETTES = {
     "warm": dict(
         name="warm sandstone + terracotta (Game A, the plaza)",
         M_Ground=dict(color="#B9A98C", roughness=0.92),
+        M_GroundAlt=dict(color="#9C8763", roughness=0.94),
+        M_Grass=dict(color="#6F8F4D", roughness=0.95),
         M_Paving=dict(color="#D9C8A6", roughness=0.78),
         M_PavingAlt=dict(color="#C2AC85", roughness=0.74),
         M_Kerb=dict(color="#A99579", roughness=0.80),
@@ -120,6 +124,8 @@ PALETTES = {
     "cool": dict(
         name="slate + timber + blue water (Game B, the waterfront)",
         M_Ground=dict(color="#7E858A", roughness=0.92),
+        M_GroundAlt=dict(color="#646C72", roughness=0.94),
+        M_Grass=dict(color="#56785F", roughness=0.95),
         M_Paving=dict(color="#9AA3A9", roughness=0.74),
         M_PavingAlt=dict(color="#7D868D", roughness=0.72),
         M_Kerb=dict(color="#69727A", roughness=0.80),

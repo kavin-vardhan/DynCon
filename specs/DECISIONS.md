@@ -107,3 +107,44 @@ decisions. Each line: date · decision · why. Kavin can overturn any of these; 
 - 2026-11-01 · The walk test follows **waypoints on the slot** (`ADCSlot::ApproachPath`), not a navigation mesh. · The
   maps are written by a script, so the route is known when the map is; a nav mesh needs a brush volume, which is awkward
   to place from Python, and nothing in the demo path-finds at runtime.
+- 2026-11-01 · The slot-map tool is an **editor module in the same plugin** (`DynamicContentsEditor`), reachable three
+  ways — the Tools menu entry, a commandlet, and editor Python — all calling one `UDCSlotMapTool::RegisterCurrentLevel`.
+  · Plan v6 §6 asks for a button *and* a headless run for both maps; one function with three doors is the only way the
+  thing a developer presses is the thing that was tested.
+- 2026-11-01 · The captures are **`USceneCaptureComponent2D` into a transient render target**, and the tool needs
+  **`-AllowCommandletRendering`**. · A commandlet runs with rendering off unless asked, and the component is outered to
+  the world rather than spawned as an actor, so the tool cannot dirty a package or leave anything in the level.
+- 2026-11-01 · A slot's **pixel position is computed from the capture camera's own transform**
+  (`CameraXform.InverseTransformPosition` → u, v), not from a hand-written world-to-image formula. · The number and the
+  picture then cannot drift apart, whichever way round the level was built, and the tool picks the camera yaw that makes
+  the long axis of the level the long axis of the image.
+- 2026-11-01 · The playable area comes from actors tagged **`DCPlayableArea`** (the map builder tags the invisible
+  bounds), with "every visible primitive under 400 m across" as the fallback. · The walls round where the Player can go
+  *are* the playable area; one tag beats a tool guessing, and the fallback keeps the tool useful on a level that knows
+  nothing about this plugin.
+- 2026-11-01 · Captures turn **TemporalAA, Lumen GI, Lumen reflections, SSR and auto-exposure off** and pin exposure at
+  1.0; the map capture also turns the **fog** off. · All of those want a frame history that one capture does not have, so
+  leaving them on makes a soft, speckled picture that is different every run. The sky is not in a straight-down frame at
+  all, so "no sky" needs no flag.
+- 2026-11-01 · A registration is stored as **files in `server/config/maps/`, committed to git** — one JSON plus the PNGs
+  per game — not in the database. · It belongs to the developer, so `POST /admin/reset` between visitors must not wipe
+  it, and a clean checkout has to serve the real map and thumbnails without anyone running Unreal first.
+- 2026-11-01 · On registration the **platform's slot table stays authoritative** (which slots exist, their class, their
+  footfall); the registration supplies only what the map knows — the picture, the measured pin positions, a thumbnail per
+  slot, the developer's rating rule and pre-fetch radius. A slot the platform has never heard of is a **400**, not a
+  warning. · Silently accepting one would leave a slot nobody can bid on and nobody can see.
+- 2026-11-01 · Each thumbnail is matched to its slot by **file name** (`<game>_<slot>.png`), not by its position in the
+  multipart request. · The order the tool sends them in can then never quietly mis-label them.
+- 2026-11-01 · **`/resolve?format=flat` is gone**; the envelope is the only shape. · It existed so a client and a server
+  could be one brief apart, and the UE client has verified the envelope since brief 011. Two ways to sign one answer is
+  two ways to get it wrong.
+- 2026-11-01 · The **view** telemetry radius is measured from the content's **bounds**, not its centre. · A T slot's
+  piece is 20 m tall, so a Player standing a comfortable 25 m from its door was 32 m from its middle and the view was
+  thrown away. The line-of-sight check still aims at the middle.
+- 2026-11-01 · Content lights: **group A casts shadows, group B does not.** · Group A is what stops interior light
+  leaking through the walls. Group B is six 320 lm wall lamps with a 3.2 m reach — invisible as shadow casters, but
+  visible in the worst 1 % frame time when a visitor switched them on.
+- 2026-11-01 · An S slot gets its **own 7 m `slot_pad_s`** instead of the 14 m pad scaled to 0.5. · Scaling halved the
+  kerb band and the inlay with it, and the pad read as a model of a pad.
+- 2026-11-01 · The mannequin wears **one** plain material instance, not two. · Two tones put a darker patch exactly
+  where the engine's chest logo used to be, which still read as a badge.

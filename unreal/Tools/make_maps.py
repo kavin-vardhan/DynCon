@@ -169,6 +169,30 @@ class MapBuilder:
         self.note("ground")
         return actor
 
+    def ground_patch(self, cx, cy, size_x, size_y, piece_slot, top=0.01, label=None):
+        """A second ground tone laid on top of the big plane.
+
+        Two of them in Game A: the apron the paving is laid in (so the plaza's edge reads
+        against something other than itself), and the grass in the garden court. `top` is
+        where the patch's surface sits in metres, which is how a patch slides under the
+        paving (top 0.13 against the paving's 0.14) instead of z-fighting with it.
+        """
+        cube = load_asset("/Engine/BasicShapes/Cube")
+        actor = self.actor_sub.spawn_actor_from_class(unreal.StaticMeshActor,
+                                                      v3(cx, cy, top - 0.25))
+        actor.set_actor_label(label or ("Ground_%s" % piece_slot))
+        comp = actor.static_mesh_component
+        comp.set_editor_property("mobility", unreal.ComponentMobility.STATIC)
+        comp.set_static_mesh(cube)
+        actor.set_actor_scale3d(unreal.Vector(size_x, size_y, 0.5))
+        mi = self.palette_materials.get(self.palette, {}).get(piece_slot)
+        if mi is not None:
+            comp.set_material(0, mi)
+        # Deliberately not grown into `extent`: a ground tone is not a built thing, and the
+        # report's extent is the size of the place, not of the paint under it.
+        self.note("ground_patch")
+        return actor
+
     def water(self, cx, cy, size_x, size_y, z):
         plane = load_asset("/Engine/BasicShapes/Plane")
         actor = self.actor_sub.spawn_actor_from_class(unreal.StaticMeshActor, v3(cx, cy, z))
@@ -185,7 +209,13 @@ class MapBuilder:
         return actor
 
     def bound(self, x0, y0, x1, y1, height=8.0, label="Bound"):
-        """An invisible wall. The Player cannot leave the map and cannot fall off the pier."""
+        """An invisible wall. The Player cannot leave the map and cannot fall off the pier.
+
+        Every one of these carries the actor tag **DCPlayableArea**, which is how the
+        slot-map tool knows what to photograph: the union of the walls round the part of the
+        level the Player can reach *is* the playable area, and one tag is a better answer
+        than a tool guessing from actor sizes.
+        """
         cube = load_asset("/Engine/BasicShapes/Cube")
         cx, cy = (x0 + x1) / 2.0, (y0 + y1) / 2.0
         sx, sy = max(abs(x1 - x0), 0.4), max(abs(y1 - y0), 0.4)
@@ -199,6 +229,7 @@ class MapBuilder:
         safe_set(comp, "hidden_in_game", True)
         safe_set(comp, "cast_shadow", False)
         comp.set_collision_profile_name("BlockAll")
+        safe_set(actor, "tags", [unreal.Name("DCPlayableArea")])
         self.note("bound")
         return actor
 
@@ -275,16 +306,26 @@ class MapBuilder:
 
     # ---------------------------------------------------------------- slots and the Player
     def slot(self, slot_id, size_class, x, y, z, facing_deg, fill_order,
-             view_distance, view_height, pad_scale=1.0, pad_z=None, approach=()):
-        """One ADCSlot, standing on a slot_pad.
+             view_distance, view_height, pad="slot_pad", pad_z=None, approach=(),
+             rating_rule="all"):
+        """One ADCSlot, standing on its own pad.
 
         `facing_deg` is the compass direction the content's door looks: ADCSlot adds a -90
         yaw offset when it spawns content (the art is authored facing -Y in Blender and
         arrives facing +Y), so the slot actor's +X *is* the door direction and the actor's yaw
         is the facing straight off.
+
+        `pad` is a kit piece used at scale 1.0 - `slot_pad` (14 m) for an L or a T slot and
+        `slot_pad_s` (7 m) for an S slot. It used to be the 14 m pad scaled to 0.5, which
+        also halved the width of its kerb band and made the S slot's pad read as a model of
+        a pad rather than as one.
+
+        `rating_rule` is the developer's rule for what may appear here, and it is set on the
+        actor rather than looked up anywhere: the slot-map tool reads it off the map and
+        hands it to the platform with the rest of the slot (demo plan v6 §6).
         """
-        self.place("slot_pad", x, y, z=(pad_z if pad_z is not None else z - 0.17),
-                   scale=(pad_scale, pad_scale, 1.0), label="Pad_%s" % slot_id)
+        self.place(pad, x, y, z=(pad_z if pad_z is not None else z - 0.17),
+                   label="Pad_%s" % slot_id)
         actor = self.actor_sub.spawn_actor_from_class(unreal.DCSlot, v3(x, y, z),
                                                       yaw(facing_deg))
         actor.set_actor_label(slot_id)
@@ -294,13 +335,15 @@ class MapBuilder:
         safe_set(actor, "view_distance", view_distance)
         safe_set(actor, "view_height", view_height)
         safe_set(actor, "content_yaw_offset", -90.0)
+        safe_set(actor, "rating_rule", unreal.Name(rating_rule))
         # The way in, as waypoints rather than a navigation mesh: these maps are written by a
         # script, so the route round the arcades and down the avenue is known here.
         safe_set(actor, "approach_path", [v3(px, py, 0.0) for (px, py) in approach])
         self.note("slot")
         self.slots.append(dict(id=slot_id, size_class=str(size_class).split(".")[-1],
                                location_m=[x, y, z], facing_deg=facing_deg,
-                               pad_scale=pad_scale, approach=[list(p) for p in approach]))
+                               pad=pad, rating_rule=rating_rule,
+                               approach=[list(p) for p in approach]))
         return actor
 
     def player_start(self, x, y, z, facing_deg):
@@ -346,6 +389,12 @@ def build_game_a(meshes, manifests, pal_mats):
     B.new_level()
 
     B.ground(10, 4, 600.0, 600.0)
+    # Two more ground tones, so the plaza's edge reads against something other than itself:
+    # an apron of compacted earth under the whole built-up area, and grass in the garden
+    # court. The grass surfaces 1 cm under the paving's 0.14 m, so the slabs stand a hair
+    # proud of it instead of fighting it for the same pixels.
+    B.ground_patch(15, 6, 202.0, 132.0, "M_GroundAlt", top=0.01, label="Ground_Apron")
+    B.ground_patch(-54, 39.5, 48.0, 37.0, "M_Grass", top=0.13, label="Ground_Garden")
     # Warm midday with a light haze. The fog is deliberately thin: it is there to stop the
     # ground meeting the sky in a hard line, not to be weather.
     B.sky(sun_pitch=-54.0, sun_yaw=145.0, sun_intensity=6.0, sun_temperature=5900.0,
@@ -432,13 +481,13 @@ def build_game_a(meshes, manifests, pal_mats):
 
     # ---- the slots
     B.slot("A1", unreal.DCSizeClass.L, 0.0, 12.0, 0.82, -90.0, 0, 2700.0, 650.0,
-           pad_scale=1.0, pad_z=0.65,
+           pad="slot_pad", pad_z=0.65,
            approach=())                       # straight across the plaza from the spawn
     B.slot("A2", unreal.DCSizeClass.T, 84.0, 0.0, 0.31, 180.0, 1, 4200.0, 1100.0,
-           pad_scale=1.0, pad_z=0.14,
+           pad="slot_pad", pad_z=0.14,
            approach=((0.0, -4.0), (30.0, -2.0), (56.0, 0.0)))     # out of the plaza, east
     B.slot("A3", unreal.DCSizeClass.S, -52.0, 40.0, 0.31, -90.0, 2, 1500.0, 380.0,
-           pad_scale=0.5, pad_z=0.14,
+           pad="slot_pad_s", pad_z=0.14,
            approach=((50.0, 0.0), (20.0, -4.0), (-10.0, -4.0), (-30.0, -4.0),
                      (-30.0, 24.0), (-50.0, 24.0), (-52.0, 30.0)))  # back west, into the garden
 
@@ -524,10 +573,10 @@ def build_game_b(meshes, manifests, pal_mats):
 
     # ---- the slots
     B.slot("B1", unreal.DCSizeClass.L, -12.0, 12.0, 0.31, -90.0, 0, 2700.0, 650.0,
-           pad_scale=1.0, pad_z=0.14,
+           pad="slot_pad", pad_z=0.14,
            approach=((-26.0, 6.0), (-16.0, 4.0)))           # along the promenade
     B.slot("B2", unreal.DCSizeClass.S, 16.0, -30.0, 0.34, 90.0, 1, 1500.0, 380.0,
-           pad_scale=0.5, pad_z=0.17,
+           pad="slot_pad_s", pad_z=0.17,
            approach=((-8.0, -1.0), (6.0, -2.0), (16.0, -3.0), (16.0, -14.0)))  # out on the pier
 
     B.player_start(-30.0, 8.0, 1.2, 10.0)

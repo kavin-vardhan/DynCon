@@ -1,0 +1,21 @@
+
+================================================================================================
+GAME A  (GameA)   build Shipping   10 shot(s) in 99 s
+------------------------------------------------------------------------------------------------
+slots:
+  A1  L  ACTIVE       content1 v1 #E23D3D star (visitor)
+  A2  T  ACTIVE       content3 v1 #E23D3D star (visitor)
+  A3  S  ACTIVE       content4 v1 #E23D3D star (visitor)
+walks:
+  ok   A1  to the door              4.5 s    21.7 m walked    109 cm short
+  ok   A1  in through the door      1.8 s     8.2 m walked    105 cm short
+  ok   A1  back out                 1.6 s     7.2 m walked    105 cm short
+  ok   A2  to the door             15.3 s    75.7 m walked    106 cm short
+  ok   A2  in through the door      1.8 s     8.2 m walked    106 cm short
+  ok   A2  back out                 1.5 s     7.1 m walked    109 cm short
+  ok   A3  to the door             31.5 s   156.0 m walked    107 cm short
+  ok   A3  in through the door      1.5 s     6.6 m walked    109 cm short
+  ok   A3  back out                 1.2 s     5.6 m walked    106 cm short
+  9/9 legs arrived
+frame time at 1600x900: average 11.35 ms (88 fps)  ·  median 11.67 ms  ·  worst 1% 16.65 ms  ·  worst 46.69 ms  (7951 frames)
+================================================================================================

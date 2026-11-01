@@ -1,0 +1,130 @@
+{
+ "schema_version": 1,
+ "game": "B",
+ "registered_utc": "2026-11-01T10:57:25.607650Z",
+ "image": "B.png",
+ "image_px": {
+  "w": 2048,
+  "h": 1616
+ },
+ "slot_order": [
+  "B1",
+  "B2"
+ ],
+ "slots": {
+  "B1": {
+   "size_class": "L",
+   "px": {
+    "x": 0.3761,
+    "y": 0.6584
+   },
+   "thumb": "B_B1.png",
+   "thumb_px": {
+    "w": 960,
+    "h": 540
+   },
+   "limits_m": {
+    "x": 14.0,
+    "y": 14.0,
+    "z": 9.0
+   },
+   "rating_rule": "all",
+   "prefetch_radius_m": 60.0,
+   "world_m": {
+    "x": -12.0,
+    "y": 12.0,
+    "z": 0.31
+   },
+   "facing_deg": -90.00000000000001,
+   "thumb_camera": {
+    "file": "B_B1.png",
+    "width": 960,
+    "height": 540,
+    "fov_deg": 70,
+    "eye_height_m": 1.7000000476837158,
+    "stand_off_m": 11.49659152448345,
+    "camera_m": {
+     "x": -12.000000000000002,
+     "y": 0.5034084755165487,
+     "z": 1.8500000572204567
+    },
+    "aim_m": {
+     "x": -12,
+     "y": 12,
+     "z": 2.56
+    },
+    "content_hidden": true
+   }
+  },
+  "B2": {
+   "size_class": "S",
+   "px": {
+    "x": 0.6653,
+    "y": 0.1086
+   },
+   "thumb": "B_B2.png",
+   "thumb_px": {
+    "w": 960,
+    "h": 540
+   },
+   "limits_m": {
+    "x": 7.0,
+    "y": 7.0,
+    "z": 5.0
+   },
+   "rating_rule": "all",
+   "prefetch_radius_m": 60.0,
+   "world_m": {
+    "x": 16.0,
+    "y": -30.0,
+    "z": 0.34
+   },
+   "facing_deg": 89.99999999999999,
+   "thumb_camera": {
+    "file": "B_B2.png",
+    "width": 960,
+    "height": 540,
+    "fov_deg": 70,
+    "eye_height_m": 1.7000000476837158,
+    "stand_off_m": 8,
+    "camera_m": {
+     "x": 16.000000000000004,
+     "y": -22,
+     "z": 1.8700000476837157
+    },
+    "aim_m": {
+     "x": 16,
+     "y": -30,
+     "z": 1.59
+    },
+    "content_hidden": true
+   }
+  }
+ },
+ "source": {
+  "map": "/Game/Maps/GameB",
+  "captured_utc": "2026-11-01T10:57:25.571Z",
+  "engine_version": "5.7.4-51494982+++UE5+Release-5.7",
+  "tool": "DynamicContentsEditor.DCSlotMapTool",
+  "world": {
+   "playable_area_from": "8 actor(s) tagged DCPlayableArea",
+   "projection": "orthographic",
+   "width_m": 96.81999993696809,
+   "height_m": 76.39703120026388,
+   "camera_m": {
+    "x": 0,
+    "y": -0.10000000000000228,
+    "z": 134
+   },
+   "camera_yaw_deg": -90,
+   "measured_rect_m": {
+    "min_x": -47,
+    "min_y": -37.2,
+    "max_x": 47,
+    "max_y": 37
+   }
+  },
+  "schema_version": 1
+ },
+ "warnings": []
+}

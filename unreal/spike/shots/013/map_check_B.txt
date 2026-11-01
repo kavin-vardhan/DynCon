@@ -1,0 +1,17 @@
+
+================================================================================================
+GAME B  (GameB)   build Shipping   7 shot(s) in 52 s
+------------------------------------------------------------------------------------------------
+slots:
+  B1  L  ACTIVE       content2 v1 #E23D3D star (visitor)
+  B2  S  ACTIVE       content4 v2 #E23D3D star (visitor)
+walks:
+  ok   B1  to the door              3.9 s    18.6 m walked    106 cm short
+  ok   B1  in through the door      1.8 s     8.2 m walked    106 cm short
+  ok   B1  back out                 1.8 s     8.6 m walked    108 cm short
+  ok   B2  to the door              9.3 s    45.8 m walked    106 cm short
+  ok   B2  in through the door      1.5 s     6.6 m walked    109 cm short
+  ok   B2  back out                 1.2 s     5.5 m walked    108 cm short
+  6/6 legs arrived
+frame time at 1600x900: average 12.36 ms (81 fps)  ·  median 12.62 ms  ·  worst 1% 17.61 ms  ·  worst 30.32 ms  (3575 frames)
+================================================================================================

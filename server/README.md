@@ -1,9 +1,9 @@
 # The demo server — what is here and how to run it
 
 *The stand-in cloud for the Tokyo demo, built to `specs/server_spec_v1.md`. **DONE**: the
-game-facing delivery path and uploads (brief 007), and the auctions, the portal API and the
-report (brief 008). **QUEUED**: `POST /games/register`, which needs the UE slot-map tool to
-exist first — until then the map and the thumbnails are drawn placeholders.*
+game-facing delivery path and uploads (brief 007); the auctions, the portal API and the
+report (brief 008); and `POST /games/register` with the real map and thumbnails the UE
+slot-map tool captures (brief 013). Nothing here is QUEUED.*
 
 ## Run it
 
@@ -40,6 +40,8 @@ one-line "is it alive and what does it have" check.
 | Path | What |
 |---|---|
 | `config/demo.json` | **Every tunable, and the source of truth for rival identity and region mapping.** |
+| `config/maps/` | the registered slot maps: `<game>.json` + `<game>.png` + `<game>_<slot>.png`, **in git** |
+| `dcserver/registry.py` | `POST /games/register`: what the developer's slot-map tool sends, checked and stored |
 | `dcserver/clock.py` | `Clock` (injectable; `FakeClock` in tests) and `DemoClock` (60x, time blocks) |
 | `dcserver/config.py` | reads demo.json, validates it, answers questions about slots and rivals |
 | `dcserver/repo.py` | `Repo` interface + the SQLite implementation (DynamoDB later) |
@@ -122,11 +124,12 @@ server signs *is* canonical JSON (keys sorted at every level, no whitespace betw
 UTF-8, no trailing newline) and the payload deliberately contains **no floating-point
 numbers** — only strings, integers and booleans — but a verifier never has to rebuild it.
 
-`GET /resolve?format=flat` still returns part 1's shape (the manifest's fields with
-`signature` alongside them, verified by canonicalising the object yourself). It is there so
-a client and a server can be one brief apart; it goes away once the UE client is on the
-envelope. `dcserver/signing.py:verify_bytes_with_public_pem` is the whole check, and
-`tools/fake_client.py:resolve` is the worked example — it accepts both shapes.
+That is the **only** shape `/resolve` serves. There used to be a `?format=flat` that returned
+the manifest's fields with the signature alongside them, so a client and a server could be
+one brief apart; the UE client has verified the envelope since brief 011, and brief 013 took
+the second shape out — two ways to sign one answer is two ways to get it wrong.
+`dcserver/signing.py:verify_bytes_with_public_pem` is the whole check, and
+`tools/fake_client.py:resolve` is the worked example.
 
 Then: download each file with its signed link (Range supported, resume from where you
 stopped), check **SHA-256** per file, and only mount after both checks pass. On a mismatch the
@@ -141,17 +144,54 @@ client keeps the default up and retries — `tools/fake_client.py` is the worked
 **Portal** — `/config/public` · `/clock` · `GET|POST /brand` · `/wallet` ·
 `/demo-files[?purpose=update]` · `/demo-files/{name}` · `POST /content` · `GET /content` ·
 `POST /content/{id}/versions` · `/games` · `/games/{id}` · `/games/{id}/map` ·
-`/games/{id}/slots/{slot}/thumb` · `POST /bids` · `/bids/split` · `/lots` · `/lots/{id}` ·
-`/report` · `GET|POST /preview/region` · `POST /campaign/pause` · `/status/live`
+`/games/{id}/slots/{slot}/thumb` · `POST /games/register` · `POST /bids` · `/bids/split` ·
+`/lots` · `/lots/{id}` · `/report` · `GET|POST /preview/region` · `POST /campaign/pause` ·
+`/status/live`
 
 **Admin** — `/admin/health` · `POST /admin/reset` · `POST /admin/sabotage` ·
 `POST /admin/allocate` · `POST /admin/close-auction`
 
-**QUEUED** — `POST /games/register`, which the UE slot-map tool will call with the real map
-image, the thumbnails and the measured pin positions. Until then `/games/{id}/map` and the
-slot thumbnails are SVGs drawn from the config, and the pin positions are the `px` values in
-`demo.json`. `POST /admin/allocate` stays: it is how a block gets written by hand when the
-auction is not involved.
+`POST /admin/allocate` stays: it is how a block gets written by hand when the auction is not
+involved.
+
+## Registering a game (`POST /games/register`)
+
+This is the **third actor** in the story. A brand uploads content and bids; the platform
+resolves and delivers; and the **game developer** registers the game, its slots and the rule
+for each slot. Without it the portal can only draw a picture of a slot map; with it, a brand
+is looking at a photograph of the spot it is bidding on.
+
+What arrives is one multipart POST from the editor half of the UE plugin
+(`UDCSlotMapTool`, `unreal/README.md`):
+
+| part | what |
+|---|---|
+| `data` | the JSON the tool wrote: the capture's geometry, plus per slot its id, size class, class limits, rating rule, pre-fetch radius, world position and **pixel position on the capture** |
+| `map_image` | the straight-down orthographic PNG of the playable area (2048 px on the long side) |
+| `thumbs` | one eye-level PNG per slot, each named `<game>_<slot>.png` |
+
+A thumbnail is matched to its slot by its **file name**, not by its position in the request,
+so the order the tool sends them in can never quietly mis-label one.
+
+The server checks that each image really is a PNG (and reads its size straight out of the
+IHDR chunk — it never decodes one), that every pin lands inside the image, and that every
+slot is one the platform actually has. A slot the platform has never heard of is a **400**,
+not a warning: accepting it would leave a slot nobody can bid on and nobody can see.
+Registering only some of a game's slots is allowed and comes back as a warning; the rest keep
+their drawn placeholder.
+
+**Where it is stored: `server/config/maps/`, and it is in git.** One `<game>.json` plus the
+PNGs. In `config/` rather than `data/` for two reasons: a registration belongs to the
+developer, so `POST /admin/reset` between visitors must not wipe it; and a clean checkout has
+to serve the real map and thumbnails without anyone running Unreal first.
+
+What it changes once a game is registered: `/games/{id}/map` and
+`/games/{id}/slots/{slot}/thumb` serve the real PNGs instead of the drawn SVG, and **the
+registered pin positions replace the `px` values in `demo.json`** everywhere a pin position
+is published (`/games/{id}`, `/config/public`, and the drawn fallback map itself). The
+config's `px` numbers were hand-guessed stand-ins for a map nobody had captured yet; the
+registered ones were measured on the capture the pin is drawn on. The platform's own slot
+table still decides which slots exist, what class they are and what they cost.
 
 ## The auction
 
@@ -206,3 +246,8 @@ auction is not involved.
   block is 3 demo hours = 3 real minutes.
 - `saved_state` exists as a table and is wiped by a reset, but nothing writes to it yet — the
   state-across-an-update endpoints belong to the UE brief (plan v6 §14 step 6).
+- `client_cache_packs` is **12** (brief 013 raised it from 8): one short of every
+  piece-version in the demo, so a booth run never evicts a pack it is about to be asked for
+  again. The whole set is 8.9 MB of real cooked packs, so there is nothing to save by being
+  stingy — and an eviction at the booth costs a four-second download the visitor can see.
+  The game reads it from `/client-config` as `cache_packs`.

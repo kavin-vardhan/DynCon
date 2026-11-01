@@ -13,7 +13,7 @@ there is no step between them.
 import env_kit as E
 
 PIECES = ("paving_tile", "paving_edge", "kerb", "steps", "boardwalk",
-          "pier_deck", "pier_post", "quay_wall", "slot_pad")
+          "pier_deck", "pier_post", "quay_wall", "slot_pad", "slot_pad_s")
 
 PAVE_T = 0.14          # how proud of the ground plane a paved area stands
 
@@ -120,30 +120,50 @@ def quay_wall(palette):
     return P
 
 
-def slot_pad(palette):
-    """The prepared ground a dynamic slot stands on: 14 x 14 m, with a kerb band.
+def _slot_pad(pid, side, palette, *, band, inlay, margin, notes):
+    """The prepared ground a dynamic slot stands on: a square with a kerb band.
 
     Why it exists: the packaged build contains **none** of the content, so between the map
     loading and the backend's first answer a slot has nothing in it. A pad means that moment
     reads as a place that is waiting for something rather than as a hole in the paving - and
-    it costs nothing, because it is environment, not content. The map scales it to 0.5 for an
-    S slot; L and T use it at 1.0.
+    it costs nothing, because it is environment, not content.
+
+    One builder, two sizes: the kerb band, the inlaid square and the chamfer are given in
+    metres rather than as a fraction of the side, because that is what scaling a 14 m pad
+    down to 7 m got wrong - a half-scale pad has a half-width kerb, and the S slot's pad read
+    as a model of a pad rather than as a pad.
     """
-    P = E.EnvPiece("slot_pad", "ground", palette=palette, collision="blocking",
-                   footprint=(14.0, 14.0))
-    P.notes.append("Scaled 0.5 in X and Y for an S slot. Never carries a brand or a marking.")
-    h = 7.0
+    P = E.EnvPiece(pid, "ground", palette=palette, collision="blocking",
+                   footprint=(side, side))
+    for note in notes:
+        P.notes.append(note)
+    P.notes.append("Never carries a brand or a marking.")
+    h = side / 2.0
     P.box((-h, -h, 0.0), (h, h, 0.17), "M_Paving")
-    band = 0.55
     for (ax, ay, bx, by) in ((-h, -h, h, -h + band), (-h, h - band, h, h),
                              (-h, -h + band, -h + band, h - band),
                              (h - band, -h + band, h, h - band)):
         P.box((ax, ay, 0.0), (bx, by, 0.23), "M_Kerb")
     # a shallow inlaid square, so the pad has a centre to stand something on
     for s in (-1, 1):
-        P.box((-h + 1.5, s * 4.4 - 0.09, 0.168), (h - 1.5, s * 4.4 + 0.09, 0.176), "M_PavingAlt")
-        P.box((s * 4.4 - 0.09, -h + 1.5, 0.168), (s * 4.4 + 0.09, h - 1.5, 0.176), "M_PavingAlt")
+        P.box((-h + margin, s * inlay - 0.09, 0.168),
+              (h - margin, s * inlay + 0.09, 0.176), "M_PavingAlt")
+        P.box((s * inlay - 0.09, -h + margin, 0.168),
+              (s * inlay + 0.09, h - margin, 0.176), "M_PavingAlt")
     return P
+
+
+def slot_pad(palette):
+    """14 x 14 m: the pad an L or a T slot stands on, used at scale 1.0."""
+    return _slot_pad("slot_pad", 14.0, palette, band=0.55, inlay=4.4, margin=1.5,
+                     notes=["The pad for an L or a T slot (14 x 14 m class footprint)."])
+
+
+def slot_pad_s(palette):
+    """7 x 7 m: the S slot's own pad, with a full-width kerb and inlay."""
+    return _slot_pad("slot_pad_s", 7.0, palette, band=0.55, inlay=2.2, margin=0.8,
+                     notes=["The pad for an S slot (7 x 7 m class footprint), used at "
+                            "scale 1.0 - it is not slot_pad scaled down."])
 
 
 BUILDERS = {name: globals()[name] for name in PIECES}

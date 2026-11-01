@@ -802,6 +802,7 @@ def make_blueprint(piece, pack_path, meshes, manifest, emblem_tex, screen_tex):
             "light_a_radius": float(rcdo.get_editor_property("light_a_radius")),
             "light_b_radius": float(rcdo.get_editor_property("light_b_radius")),
             "lights_cast_shadows": bool(rcdo.get_editor_property("lights_cast_shadows")),
+            "light_b_casts_shadows": bool(rcdo.get_editor_property("light_b_casts_shadows")),
         }
     except Exception as exc:                                    # noqa: BLE001
         warn("could not read the Blueprint defaults back (%s)" % exc)
