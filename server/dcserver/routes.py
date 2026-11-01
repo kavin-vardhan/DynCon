@@ -193,6 +193,11 @@ class PreviewIn(BaseModel):
     region: str
 
 
+class FlipIn(BaseModel):
+    region: str
+    seconds: float = Field(default=20.0, description="0 cancels a flip that is running")
+
+
 # The map and the thumbnails are drawn here as SVG — no image library, no binary assets in
 # git — and are replaced by the real ones the moment the UE slot-map tool writes them.
 PIN_COLOURS = ["#2EA44F", "#F2C230", "#E23D3D"]      # low, middle, high footfall
@@ -439,6 +444,19 @@ def get_preview_region(svc: Service = Depends(get_svc)) -> dict[str, Any]:
 @portal.post("/preview/region")
 def post_preview_region(body: PreviewIn, svc: Service = Depends(get_svc)) -> dict[str, Any]:
     return svc.set_preview_region(body.region)
+
+
+@portal.get("/preview/flip")
+def get_live_flip(svc: Service = Depends(get_svc)) -> dict[str, Any]:
+    return {"flip": svc.live_flip(), "server_time": svc.clock_block()["server_time"]}
+
+
+@portal.post("/preview/flip")
+def post_live_flip(body: FlipIn, svc: Service = Depends(get_svc)) -> dict[str, Any]:
+    """The fallback for tour step 7 (plan v6 §11): instead of a second copy of the game
+    showing another region, the **main** game plays as that region for a few seconds and
+    the slot swaps in front of the Player. `seconds: 0` cancels it."""
+    return svc.set_live_flip(body.region, body.seconds)
 
 
 # =============================================================================== admin

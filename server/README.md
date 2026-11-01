@@ -149,8 +149,8 @@ client keeps the default up and retries — `tools/fake_client.py` is the worked
 `/demo-files[?purpose=update]` · `/demo-files/{name}` · `POST /content` · `GET /content` ·
 `POST /content/{id}/versions` · `/games` · `/games/{id}` · `/games/{id}/map` ·
 `/games/{id}/slots/{slot}/thumb` · `POST /games/register` · `POST /bids` · `/bids/split` ·
-`/lots` · `/lots/{id}` · `/report` · `GET|POST /preview/region` · `POST /campaign/pause` ·
-`/status/live`
+`/lots` · `/lots/{id}` · `/report` · `GET|POST /preview/region` · `GET|POST /preview/flip` ·
+`POST /campaign/pause` · `/status/live`
 
 **Admin** — `/admin/health` · `POST /admin/reset` · `POST /admin/sabotage` ·
 `POST /admin/allocate` · `POST /admin/close-auction` · `POST /admin/end-block`
@@ -259,6 +259,25 @@ table still decides which slots exist, what class they are and what they cost.
 - `players_online` and the simulated half of footfall are functions of the demo clock, not
   random: two screens polling at the same moment agree, and footfall is labelled
   "simulated + live" with the counted views kept separate.
+- **`GET /preview/region` is everything the second copy of the game needs to know about
+  itself** (plan v6 §7). It answers one question — *what am I?* — in two halves: the region
+  it plays as, which the portal's region check flips with the `POST`, and a **`focus`** block
+  saying which slot to look at. The focus has three rules in order, so there is always an
+  answer: the lot the **visitor last bid on** ("the slot just auctioned", and right from the
+  moment a bid is placed rather than when the auction closes), else their **newest
+  allocation** — which is what a rehearsal driven by `/admin/allocate` has instead of a bid —
+  else the **busiest slot of the game being played at the booth**, so the window has
+  something to frame during the attract loop. A rival's bidding never moves it. The answer
+  also carries `label_jp`, because the window draws a bilingual caption on the game's HUD
+  canvas and cannot read the portal's string table; `tests/test_preview.py` fails if that
+  label stops agreeing with `portal/strings.js`.
+- **`POST /preview/flip {region, seconds}` is the fallback for the same step** (plan v6
+  §11): no second copy of the game, the **main** one plays as that region for twenty
+  seconds and the slot swaps in front of the Player. It is a timestamp like everything else
+  here — an entry with an `ends_at`, and the first request after that moment sees no flip —
+  and it is carried on **`/changes`**, the poll every copy of the game already makes every
+  1.5 s, rather than on an endpoint of its own. It changes nothing about what any region is
+  showing: it is an instruction to a game, not to the platform. A reset cancels it.
 - The demo clock runs at 60x from the server's epoch: one demo hour is one real minute, and a
   block is 3 demo hours = 3 real minutes.
 - `saved_state` exists as a table and is wiped by a reset, but nothing writes to it yet — the

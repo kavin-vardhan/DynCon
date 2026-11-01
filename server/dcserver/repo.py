@@ -236,6 +236,8 @@ class Repo(ABC):
     def last_allocation_end(self, game: str, slot: str, region: str) -> datetime | None: ...
     @abstractmethod
     def visitor_allocations(self) -> list[dict[str, Any]]: ...
+    @abstractmethod
+    def last_visitor_allocation(self) -> dict[str, Any] | None: ...
     # ---- lots and bids (the auction)
     @abstractmethod
     def add_lot(self, row: dict[str, Any], now: datetime) -> None: ...
@@ -257,6 +259,8 @@ class Repo(ABC):
                 note: str, at: datetime) -> None: ...
     @abstractmethod
     def bids_for(self, lot_id: str) -> list[dict[str, Any]]: ...
+    @abstractmethod
+    def last_visitor_bid_lot(self) -> dict[str, Any] | None: ...
     @abstractmethod
     def sum_lots_held(self) -> int: ...
     @abstractmethod
@@ -565,6 +569,13 @@ class SqliteRepo(Repo):
             return [dict(r) for r in self.conn.execute(
                 "SELECT * FROM allocations WHERE kind='visitor' ORDER BY start_at, id")]
 
+    def last_visitor_allocation(self) -> dict[str, Any] | None:
+        """The visitor's newest allocation, whether it has started yet or not."""
+        with self._lock:
+            return _row(self.conn.execute(
+                "SELECT * FROM allocations WHERE kind='visitor' "
+                "ORDER BY created_at DESC, id DESC LIMIT 1").fetchone())
+
     # ---- lots and bids -------------------------------------------------------------
 
     def add_lot(self, row: dict[str, Any], now: datetime) -> None:
@@ -628,6 +639,19 @@ class SqliteRepo(Repo):
                 "INSERT INTO bids(lot_id, bidder, amount, content_id, note, at)"
                 " VALUES(?,?,?,?,?,?)", (lot_id, bidder, int(amount), content_id, note, iso(at)))
             self.conn.commit()
+
+    def last_visitor_bid_lot(self) -> dict[str, Any] | None:
+        """The lot the visitor bid on most recently — "the slot just auctioned".
+
+        A join rather than a column on `lots`, because the rival bids on lots too, and what
+        the region preview window wants to look at is the slot the *visitor* just put money
+        on, whether they went on to win it or not.
+        """
+        with self._lock:
+            return _row(self.conn.execute(
+                "SELECT lots.* FROM bids JOIN lots ON lots.id = bids.lot_id "
+                "WHERE bids.bidder='you' ORDER BY bids.at DESC, bids.id DESC LIMIT 1"
+            ).fetchone())
 
     def bids_for(self, lot_id: str) -> list[dict[str, Any]]:
         with self._lock:

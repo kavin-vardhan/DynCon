@@ -108,7 +108,8 @@ def test_client_config_tells_the_game_what_it_needs(env) -> None:
 
 def test_the_public_config_is_what_the_portal_draws_from(env) -> None:
     public = env.ok(env.client.get("/config/public"))
-    assert public["regions"]["r1"] == {"label": "Japan", "neutral_label": "Mock region 1"}
+    assert public["regions"]["r1"] == {"label": "Japan", "neutral_label": "Mock region 1",
+                                       "label_jp": "日本"}
     assert public["games"]["A"]["slots"][0]["id"] == "A1"
     assert public["footfall"]["A1"]["r1"] == 1200
     assert public["wallet"] == 2000

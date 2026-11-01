@@ -49,6 +49,8 @@ export const state = {
 
 let current = null;         // the live screen module
 let currentParams = {};
+let input = null;           // the pad helper's socket, also the preview window's remote
+let previewWindow = { found: null, shown: null };
 let pollTimer = null;
 let enterToken = 0;
 let lastInputAt = performance.now();
@@ -79,6 +81,17 @@ const ctx = {
   },
   afterReset: () => afterReset(),
   restoreHints: () => restoreHints(),
+
+  // Tour step 7: the second copy of the game is a window on this monitor, and the pad
+  // helper is the only thing that can move it (a web page cannot). The portal asks when
+  // the Region-check step opens and closes; `previewState()` is the helper's last answer,
+  // so the step can say in plain words if the window is not running.
+  previewWindow(show) {
+    if (input) input.previewWindow(show);
+  },
+  previewState() {
+    return previewWindow;
+  },
 };
 
 // --------------------------------------------------------------------- the header
@@ -232,6 +245,13 @@ function onConnection(online, controllers) {
   refreshHeader();
 }
 
+function onPreview(message) {
+  previewWindow = { found: !!message.found, shown: message.shown === true };
+  appNode.dataset.preview = previewWindow.found
+    ? (previewWindow.shown ? 'shown' : 'hidden') : 'missing';
+  if (menu.isOpen()) menu.redraw(ctx);
+}
+
 // --------------------------------------------------------------------- the reset
 
 async function afterReset() {
@@ -276,7 +296,7 @@ async function boot() {
   }
 
   const padPort = Number(new URLSearchParams(location.search).get('pad') || 8701);
-  new Input({ port: padPort, onButton, onStaff, onConnection }).start();
+  input = new Input({ port: padPort, onButton, onStaff, onConnection, onPreview }).start();
 
   setInterval(tickClockDisplay, 250);
   setInterval(async () => {

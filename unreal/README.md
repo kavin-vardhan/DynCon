@@ -2,9 +2,10 @@
 
 *Written 2026-10-26 (brief 004), rewritten the same day for brief 006, and extended
 2026-11-01 with the runtime client (brief 011), the two maps and the Player (brief 012), the
-slot-map tool (brief 013), and the interaction, the state store and the waypoint marker
-(brief 016). Plain-words guide for a cold reader. Status of each item is
-marked **DONE / QUEUED / FUTURE**. The spec this implements is `specs/unreal_spec_v1.md`.*
+slot-map tool (brief 013), the interaction, the state store and the waypoint marker
+(brief 016), and the region preview window (brief 017). Plain-words guide for a cold reader.
+Status of each item is marked **DONE / QUEUED / FUTURE**. The spec this implements is
+`specs/unreal_spec_v1.md`.*
 
 ## What this folder is
 
@@ -236,7 +237,9 @@ checks it and puts it there, while it is running. Nothing is handed to it.
 | `FDCPackCache` | one folder per pack under `Saved\DCPacks\`, least-recently-used eviction, purge on a booth reset | DONE |
 | `FDCManifest` | the parsed, verified manifest | DONE |
 | `UDCInteractor`, `UDCStateStore` | brief 016: the Player uses the content, and what they do survives a replacement | DONE |
-| X-ray view, preview mode | plan v6 §11 and §14 step 5 | FUTURE |
+| `FDCPreviewWindow` | brief 017: the region preview window's borderless placement on the portal's monitor | DONE |
+| the live flip | brief 017: the fallback for tour step 7 — the **main** game plays as another region for twenty seconds | DONE |
+| X-ray view | plan v6 §11 | FUTURE |
 
 `ADCSpikeGameMode` is untouched apart from one guard (see "A Shipping build ignores the map"
 below), so `run_all_packs.ps1` still does exactly what brief 006 reported.
@@ -269,6 +272,8 @@ stop everything. The command line the game takes:
 | `-DCQuitWhenFileExists=<path>` · `-DCRunSeconds=<n>` | how the run ends without killing a process |
 | `-DCRangeBytes=<n>` | bytes per range request (default 262144; 0 = whole files) |
 | `-DCUiScale=<f>` · `-DCNoStrip` | the status strip |
+| `-DCPreview` | this copy is the **region preview window** — see its own section below |
+| `-DCTourFor=<seconds>` | keep the scripted tour going round for at least that long |
 
 ## What the exit test proved (brief 011, 2026-11-01)
 
@@ -509,7 +514,8 @@ exclude the first four seconds and any frame within half a second of a shutter.
 
 **Headroom:** the region preview window of plan v6 §11 is a second copy of this build at 30 fps
 and half resolution. The main game has 80–88 fps of its own at full resolution here, so there
-is room on paper; the soak test in plan §14 step 5 is what will decide it.
+is room on paper; the soak test in plan §14 step 5 is what decided it — see the preview
+window's own section below.
 
 The picture of all of it is `spike/shots/012/maps_contact.png`.
 
@@ -877,6 +883,304 @@ A1|rival1  schema 1  lights A on / B off, door closed, screen 1  (saved 3, resto
 A2|default  schema 1  lights A on / B off, door closed, screen 1  (saved 1, restored 0)
 A3|rivalsmall  schema 1  lights A on / B off, door closed, screen 1  (saved 1, restored 0)
 ```
+---
+
+# The region preview window (brief 017): the same slot, another region
+
+Plan v6 §4 step 7 is one sentence of the tour and the only one that needs a **second copy of
+the game**: *"the region preview window appears: same game, same slot, a player in India →
+the India rival's content is there, not yours. Flip it to Japan → yours."* It is the step
+that shows the resolution engine is answering a *context*, not a question with one answer.
+
+It is not a second program. It is **this build, started with `-DCPreview`**.
+
+| Flag | What it does |
+|---|---|
+| `-DCPreview` | the whole mode: see the list below |
+| `-DCRegion=r2 -DCFollowRegion` | which region it plays as, and that the portal may move it |
+| `-DCCacheDir=<dir>` | its own pack cache, so the two copies never share a file |
+| `-DCPreviewShown` | start on screen instead of parked off-screen |
+| `-DCPreviewRect=x,y,w,h` · `-DCPreviewMonitor=<n>` | where the window goes, instead of the computed place |
+| `-DCPreviewFile=<path>` · `-DCPreviewTitle=<text>` | how the pad helper finds it |
+| `-DCPreviewFps=<n>` · `-DCPreviewDrift=<deg>` | the frame cap (30) and the drift (11°; 0 = still) |
+
+```powershell
+powershell -ExecutionPolicy Bypass -File unreal\Tools\run_preview.ps1
+powershell -ExecutionPolicy Bypass -File unreal\Tools\run_preview.ps1 -Region r3 -Shown
+```
+
+`-DCPreview` alone does all of this, because at the booth it is one line of a start script:
+
+- **no Player.** The pawn is a bare `APawn` with no mesh, not the game module's mannequin:
+  nobody is playing this copy, and a character standing at the spawn point would be in the
+  picture. Move and look input are ignored, and no interaction component is attached.
+- **no audio** (`FApp::SetVolumeMultiplier(0)`), **no telemetry at all**, **no status strip
+  and no waypoint marker** — the HUD draws one thing instead, below.
+- **the budget of plan v6 §11**: a 30 fps cap (`t.MaxFPS`), the lowest scalability level,
+  below-normal process priority, and half resolution — which is the window itself: 960 × 540
+  is half of 1080p on each axis, a quarter of the pixels, and because the window is
+  borderless it renders exactly the size it is.
+- **the window**: borderless, on the portal's monitor, over the rectangle the Region-check
+  step leaves free, topmost while it is shown, and **out of sight at boot**.
+- **the camera**: it auto-pilots to whatever slot the backend says the visitor has just been
+  bidding on, frames it from the front at eye level, and drifts slowly.
+- **a tiny corner caption**, bilingual like the portal, saying which region it plays as.
+
+## Why the preview posts no telemetry
+
+It is a camera parked in front of a piece of content for minutes at a time. Every slot it
+frames is "on screen, within 30 m, for more than a second, not blocked" — so it would post a
+`view` nobody had, and the brand's report would count an audience of one machine nobody is
+playing. Worse, its `mount` events are what the portal's push-update screen reads as *the
+game swapped it* (`specs/DECISIONS.md`). So `UDCSubsystem::QueueTelemetry` drops everything
+in preview mode and counts what it dropped; the status file carries both numbers.
+
+## The window: who owns which half
+
+- the **game** decides where the window belongs, makes it borderless, parks it off-screen at
+  boot, and writes `dc_preview_window.json` saying where "there" is;
+- the **pad helper** (`booth/pad_helper.py`) moves it between there and off-screen when the
+  portal's Region-check step opens and closes. A web page cannot move another program's
+  window; the helper can, and it is already the thing the portal talks to.
+
+Four things about it are deliberate:
+
+**The home rectangle is a rule, not a number**: the right half of the portal's monitor,
+vertically centred, half the monitor's width and height — 960 × 540 at (960, 270) on a
+1920 × 1080 screen. It is written in three places that have to agree and cannot ask each
+other: `FDCPreviewWindow::ComputeHomeRect`, the portal's `.preview-reserve` in
+`portal/style.css`, and the helper's fallback in `pad_helper.py`. The Start menu's panel
+moved into the left half to make room for it.
+
+**Hidden is off-screen, not minimised.** A minimised Unreal window stops drawing, and this
+window has to be already showing the right thing the instant the portal asks for it — the
+visitor is looking at the screen when it appears. The off-screen position is 30,000 and not
+something rounder because **Windows clamps a window position to a signed 16-bit number**:
+40,000 came back as 32,767, and the "is it hidden?" test, which compared against the
+constant, then said the window was still on screen. It now asks the only question that is
+actually true or false — *does this window overlap a monitor?*
+
+**Nothing ever activates it.** Every `SetWindowPos` carries `SWP_NOACTIVATE`. The main game
+keeps focus and therefore pad 1 all day (plan v6 §11), and a window that took focus when it
+appeared would take the Player's controller with it. Creating a window always takes focus,
+which cannot be helped — so the booth's start order is **server → portal → preview → main
+game**, and the main game, being last, is the one left holding it.
+
+**It is hidden from the plugin's module startup, not from the game mode.** A Shipping build
+always starts in the default map and travels (`-DCMap=`, above), so `ADCRuntimeGameMode`'s
+BeginPlay is several seconds after the window exists — and for those seconds the booth would
+be looking at a bordered window of the spike map. `FDynamicContentsModule` therefore hides it
+on the first tick after the engine makes it, and the game mode restyles and places it two
+seconds later, while it is still invisible.
+
+## What the camera does
+
+The slot comes from the server: `GET /preview/region` now answers with a `focus` block as
+well as a region — the lot the visitor last bid on, else their newest allocation, else the
+busiest slot of the game being played at the booth (`server/README.md`). "The slot just
+auctioned" is therefore right from the moment a bid is placed, before the auction closes.
+
+`FramePreviewOn` puts the camera on the slot's **front** — the slot's +X, the same direction
+`GetDoorApproachPoint` measures from — at **eye level, 1.7 m**, the same height the
+slot-map tool's thumbnails are taken from. The distance is whatever makes the piece fit a 65°
+frame in the tighter of its two axes, plus an allowance that is worth writing down: the
+camera is at eye level and aims at the middle of the piece, so it is looking *up*, and the
+top of a building is further from the middle of the frame than half its height. Without that
+allowance an L piece has its roof on the top edge of the window.
+
+Then it drifts: ±11° about the front, one lap every 46 seconds, smoothed. A change of slot
+more than 60 m away is a **cut**, not a fly-through — "the same slot, another region" is not
+a tour of the map.
+
+The slot it frames can be in the *other* game: a visitor is free to bid on Game B while
+Game A is the one on the booth's screens. This copy plays the map it was started on, keeps
+framing the slot it has, and says so in the log. Following a focus into another map would be
+a level load in a window that exists to be a still of somewhere else. **QUEUED** if the booth
+ever wants it.
+
+## The caption, and Japanese on a HUD canvas
+
+Bottom-left, two lines, Japanese over English, exactly as the portal does it:
+
+```
+インドのプレイヤー
+a player in India
+```
+
+The words come from the server (`/preview/region`'s `label_jp` and `label`), because the
+booth's region labels already live in `server/config/demo.json` and the game cannot import
+`portal/strings.js`. `server/tests/test_preview.py` fails if the two ever disagree — the same
+guard `test_rival_identity.py` puts on the art kit's identity table.
+
+CJK on a Canvas HUD works, and it is worth knowing why: `GEngine->GetMediumFont()` is
+`/Engine/EngineFonts/Roboto`, which is a **composite** font whose fallback typeface is
+`DroidSansFallback` — and that face is cooked into this build (3.9 MB of it, in pakchunk0).
+Nothing had to be imported and no font asset was added. If a build ever loses it, the caption
+falls back to its English line alone rather than drawing boxes, because it only draws the
+Japanese line when the server sent one.
+
+## `-UserDir=` is not optional, and this is the trap of the brief
+
+Two copies of one packaged build share one **`GameUserSettings.ini`** — in a Shipping build
+that is `%LOCALAPPDATA%\DCDemo\Saved\Config\Windows\`, not a folder next to the build. The
+engine persists the **scalability groups** and the **window resolution** into it. So the
+preview window, which exists to run at the lowest settings and half resolution, writes
+exactly that into the file the *main game* reads the next time it starts:
+
+```
+sg.ResolutionQuality=50
+sg.ViewDistanceQuality=0 … sg.ShadingQuality=0
+```
+
+It happened here. The main game then ran the whole plaza at half resolution and the lowest
+quality — 375 fps instead of 80 — and nothing in any log said why; it was found only because
+the frame times of the soak run were implausibly good. At a booth it would have been an
+afternoon of a soft-looking screen nobody could explain.
+
+The fix is one flag: **`-UserDir=<folder>`** gives the preview its own `Saved` tree, so it
+cannot write anything the main game reads. `run_preview.ps1` passes it, both test drivers
+pass it for *both* copies (so a measurement starts from the build's own settings and leaves
+nothing behind), and `-DCPreview` **logs a warning when it is missing** — the failure is
+invisible and a day late, which is exactly the kind that has to be noticed at the time.
+
+## Pad 1 only, and focus (plan v6 §11, day-1 checks 1, 3 and 4)
+
+Three of the four day-1 checks are now evidence rather than expectation, and the fourth is
+an errand that needs two controllers plugged in.
+
+**Two copies run side by side** (check 3) and **both keep running and rendering when they
+are not the foreground window** (check 4). The preview window is never focused and is
+plainly drawing - that is half of it, and the exit test's desktop captures are the picture.
+For the other half the exit test deliberately hands focus to the browser, then reads the
+main game's own frame counter and compares two photographs of its window five seconds
+apart: it is still ticking at full rate and the picture has changed. `t.IdleWhenNotForeground`
+is set to 0 and `FApp::SetUnfocusedVolumeMultiplier(1)` is called at startup in both copies,
+because the engine's default is to **silence** an unfocused game (`BaseEngine.ini` sets
+`UnfocusedVolumeMultiplier=0.0`) - plan v6 §11 asks for the opposite, so that an emergency
+mouse click on the other screen is survivable.
+
+**The main game never loses focus** when the window shows or hides: every move of it carries
+`SWP_NOACTIVATE`, the exit test checks the foreground window at each beat, and the booth's
+start order puts the main game last.
+
+**The game listens to pad 1 only** (check 1) is the one this PC cannot answer: no controller
+is plugged into it (`py -3 booth\pad_helper.py --list` finds none). What can be said without
+hardware is what the engine will do. Windows' input device mapping policy is
+`PrimaryUserSharesKeyboardAndFirstGamepad` (`input.DeviceMappingPolicy=1` in the engine's
+`BaseWindowsInput.ini`): the keyboard and **the first connected gamepad** are mapped to the
+primary platform user, and every gamepad after that goes to the *next* platform user. This
+game has one local player, so a second pad's presses belong to a platform user that has no
+`ULocalPlayer` and never reach the player controller - which is where `UDCInteractor` binds.
+So pad 2 should be inert in the game by construction. **NEEDS-KAVIN**: plug both pads in,
+start the main game, and press every button on pad 2 - nothing in the game should move and
+the interaction count in the status file should not change - then do the same on pad 1 and
+watch it work. Note the engine's rule is "the first *connected*" gamepad, which is not
+guaranteed to be XInput's pad 1; plan v6 §11's "press ✕ on the player pad at startup" is the
+feature that makes that deterministic, and it is **FUTURE**.
+
+## The pass / fail test (plan v6 §11, §14 step 5)
+
+```powershell
+server\.venv\Scripts\python.exe unreal\Tools\preview_frametime_test.py
+server\.venv\Scripts\python.exe unreal\Tools\preview_frametime_test.py --minutes 2 --only solo
+```
+
+The same ten-minute scripted tour of Game A, twice: once alone, once with the preview window
+up and rendering. **Pass = the main game's worst 1 % stays under 25 ms and its average is
+within 15 % of solo.**
+
+Ten minutes is *laps* of the tour (`-DCTourFor=600`), not a camera left standing: what costs
+frames is a Player walking the plaza and going in and out of three pieces of content, and
+only the first lap photographs anything. Both numbers come from the game's own sampler — every
+frame after the first four seconds, minus any frame within half a second of a shutter — which
+is also what the status file now carries, as cumulative counters a watching script can
+difference over any window it likes.
+
+Two things to know before reading any of these numbers:
+
+- **the preview's own frame times are all over 25 ms, on purpose.** It is capped at 30 fps,
+  so every frame it draws is 33 ms and `over_25ms` equals `frames` in its status file. The
+  pass line is about the **main game**;
+- **this PC has to be left alone for the ten minutes.** The first attempt at this run was
+  made while the same machine was being used for file searches over the engine's source
+  tree, and the main game's worst 1 % went from 19 ms to 29 ms — nothing to do with the
+  preview window. A soak measures the machine as well as the build.
+
+### What the run measured (2026-11-01, this PC, 1600 × 900)
+
+| | frames | average | median | **worst 1 %** | worst | over 16 ms | over 25 ms | laps |
+|---|---|---|---|---|---|---|---|---|
+| solo | 33,682 | **17.82 ms** (56 fps) | 17.57 ms | **25.45 ms** | 37.83 ms | 26,797 | 435 | 7 |
+| with the preview | 30,973 | **19.41 ms** (52 fps) | 19.32 ms | **26.39 ms** | 72.96 ms | 29,213 | 661 | 7 |
+
+* worst 1 % under 25 ms: **26.39 ms** — **FAIL**, by 1.4 ms
+* average within 15 % of solo (at most 20.50 ms): **19.41 ms**, **+8.9 %** — pass
+* 63 / 63 walk legs arrived in both runs; the preview window drew 12,316 frames of its own
+  at 50 ms each (below-normal priority is doing its job), posted **no telemetry**, and sat
+  on 960 × 540 at (960, 270) throughout, playing as India while the main game played as
+  Japan.
+
+The full table, including what the preview window was showing, is written to
+`unreal/_build/preview/frametime.md` by the run.
+
+<!--FRAMETIME-->
+
+## The live flip: the fallback, and what the verdict means
+
+Plan v6 §11 wrote the rule and its consequence: *"the main game must hold its frame rate
+with the preview alive through a soak run. If not, drop the preview and do step 7 as a live
+flip: the portal switches the main game's region to India and the slot swaps in front of the
+Player."* The run above is a **FAIL** by that rule, so the fallback is built and working.
+
+Read the numbers before deciding which to use, though, because what failed is not quite
+what the rule was aiming at: **the solo run misses the 25 ms line as well**, at 25.45 ms.
+This PC does not hold a worst 1 % under 25 ms on Game A at 1600 × 900 with nothing else
+running at all. Brief 012's 12.47 ms average and 19.05 ms worst 1 % were **one lap** of the
+tour, before the content's light groups existed (brief 016) and before the tour started
+switching light B on at every slot and leaving it on; over seven laps with eighteen extra
+point lights burning, the same walk costs half as much again.
+
+What the preview window adds on top of that is **+1.6 ms of average (8.9 %) and +0.9 ms of
+worst 1 %** — inside the plan's own 15 % allowance for the average, and 3.7 % more on the
+tail of a figure that was already over. So the honest reading is "this PC is a whisker short
+of the line, with or without a second copy", and the booth PC — whose strength plan v6 §17
+lists as an open item — is the thing that actually settles it. **NEEDS-DECISION**, with both
+paths now built.
+
+The fallback works either way, and it is a good booth trick to have even if the window
+stays:
+
+* **the portal** — the Start menu's second row, *"Play the main game as this region"*. It
+  posts `/preview/flip {region, seconds}`;
+* **the server** — keeps it as a timestamp like everything else (`live_flip` in meta, an
+  `ends_at`), and carries it on **`/changes`**, which every copy of the game already polls
+  every 1.5 s. A reset cancels it;
+* **the game** — `UDCSubsystem::ApplyLiveFlip` switches this copy's region for the length of
+  the flip and switches it back when the server stops reporting one. The **preview window
+  ignores it**: it already is another region, and flipping it too would make both screens
+  show the same thing. `-DCNoFlip` opts out.
+
+The Player sees the slot they are standing in front of swap to the other region's content
+and swap back, with no loading screen and no restart - which is the same promise as the
+preview window, shown on one screen instead of two.
+
+## A bug this found: two slots, one pack, one cache folder
+
+The first live-flip run failed with `sha256 mismatch on pakchunk110-Windows.ucas`, and it
+was not the flip's fault. **A region's large rival stands in both of that game's large
+slots**, so A1 and A2 resolved to the same pack at the same instant on a cold cache, both
+started downloading it into the same folder (the cache is one folder per pack), and they
+wrote over each other's bytes.
+
+It has been there since brief 011 and nothing had hit it: every scenario so far gave each
+slot a different piece. The attract rotation does it every block in any region whose rival
+holds two large slots, so the booth would have found it.
+
+`UDCSubsystem::StartDownloads` now checks whether another slot's job is already fetching the
+same pack. If one is, the second slot does not start a competing download: it keeps what is
+on screen and falls back with the ordinary backoff, and when it tries again the pack is in
+the cache and costs nothing. One download, two slots, no race.
+
 ## Things worth knowing about this PC
 
 - The engine is the launcher install at `E:\EpicGames\UE_5.7` (5.7.4) and is **read-only**.

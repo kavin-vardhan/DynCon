@@ -47,8 +47,17 @@ void ADCStatusHud::BeginPlay()
 	// without the strip should still show them.
 	bStrip = !FParse::Param(Cmd, TEXT("DCNoStrip"));
 	bMarker = !FParse::Param(Cmd, TEXT("DCNoMarker"));
-	DC_LOG(Log, TEXT("HUD status strip %s, waypoint marker %s, scale %.2f"),
-		bStrip ? TEXT("on") : TEXT("off"), bMarker ? TEXT("on") : TEXT("off"), UiScale);
+	bPreview = FParse::Param(Cmd, TEXT("DCPreview"));
+	if (bPreview)
+	{
+		// The preview window is not a game anybody is playing: no instrumentation, no
+		// prompt, no marker - one small caption (brief 017 / plan v6 §7).
+		bStrip = false;
+		bMarker = false;
+	}
+	DC_LOG(Log, TEXT("HUD status strip %s, waypoint marker %s, preview caption %s, scale %.2f"),
+		bStrip ? TEXT("on") : TEXT("off"), bMarker ? TEXT("on") : TEXT("off"),
+		bPreview ? TEXT("on") : TEXT("off"), UiScale);
 }
 
 void ADCStatusHud::DrawPanel(float X, float Y, float W, float H, const FLinearColor& Fill)
@@ -100,6 +109,11 @@ void ADCStatusHud::DrawHUD()
 	{
 		return;
 	}
+	if (bPreview)
+	{
+		DrawPreviewCaption();
+		return;
+	}
 	if (bStrip)
 	{
 		DrawStrip();
@@ -109,6 +123,73 @@ void ADCStatusHud::DrawHUD()
 		DrawMarkers();
 	}
 	DrawPrompt();
+}
+
+// ------------------------------------------------------------------- the preview caption
+
+void ADCStatusHud::DrawPreviewCaption()
+{
+	const UDCSubsystem* Subsystem = UDCSubsystem::Get(this);
+	if (Subsystem == nullptr || Canvas == nullptr)
+	{
+		return;
+	}
+	UFont* Font = GEngine->GetMediumFont();
+	if (Font == nullptr)
+	{
+		Font = GEngine->GetSmallFont();
+	}
+	if (Font == nullptr)
+	{
+		return;
+	}
+
+	// The server's own words for the region, Japanese over English, exactly as the portal
+	// does it. Until the first GET /preview/region answers there is only the region id,
+	// which is the honest thing to show rather than a guess at a name.
+	const FString Label = Subsystem->GetRegionLabel().IsEmpty()
+		? Subsystem->GetRegion() : Subsystem->GetRegionLabel();
+	const FString Jp = Subsystem->GetRegionLabelJp();
+
+	// "a player in India" - which region this copy plays as, and nothing else. No ad and no
+	// money language ever reaches a game screen (plan v6 §3), and this is a game screen.
+	const FString Line1 = Jp.IsEmpty() ? FString() : FString::Printf(TEXT("%sのプレイヤー"), *Jp);
+	const FString Line2 = FString::Printf(TEXT("a player in %s"), *Label);
+
+	const float Scale = UiScale * 0.85f;
+	float W1 = 0.0f;
+	float H1 = 0.0f;
+	float W2 = 0.0f;
+	float H2 = 0.0f;
+	if (!Line1.IsEmpty())
+	{
+		Canvas->TextSize(Font, Line1, W1, H1, Scale, Scale);
+	}
+	Canvas->TextSize(Font, Line2, W2, H2, Scale * 0.8f, Scale * 0.8f);
+
+	const float Pad = 9.0f * UiScale;
+	const float BoxW = FMath::Max(W1, W2) + Pad * 2.0f;
+	const float BoxH = H1 + H2 + Pad * 2.0f;
+	const float X = DCMargin;
+	const float Y = static_cast<float>(Canvas->SizeY) - BoxH - DCMargin;
+
+	DrawPanel(X, Y, BoxW, BoxH, PanelColour);
+
+	float TextY = Y + Pad;
+	if (!Line1.IsEmpty())
+	{
+		FCanvasTextItem Top(FVector2D(X + Pad, TextY), FText::FromString(Line1), Font,
+			FLinearColor::White);
+		Top.Scale = FVector2D(Scale, Scale);
+		Top.EnableShadow(FLinearColor(0.0f, 0.0f, 0.0f, 0.85f));
+		Canvas->DrawItem(Top);
+		TextY += H1;
+	}
+	FCanvasTextItem Bottom(FVector2D(X + Pad, TextY), FText::FromString(Line2), Font,
+		MarkerColour);
+	Bottom.Scale = FVector2D(Scale * 0.8f, Scale * 0.8f);
+	Bottom.EnableShadow(FLinearColor(0.0f, 0.0f, 0.0f, 0.85f));
+	Canvas->DrawItem(Bottom);
 }
 
 // --------------------------------------------------------------------------- the strip

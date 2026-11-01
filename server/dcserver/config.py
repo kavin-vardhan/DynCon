@@ -71,6 +71,11 @@ class Config:
     def region_label(self, region: str) -> str:
         return self.data["regions"][region]["label"]
 
+    def region_label_jp(self, region: str) -> str:
+        """The Japanese name. Empty when this config has none, which is a caption in one
+        language rather than a box of tofu — the game checks before it draws."""
+        return self.data["regions"][region].get("label_jp") or ""
+
     def has_region(self, region: str) -> bool:
         return region in self.data["regions"]
 

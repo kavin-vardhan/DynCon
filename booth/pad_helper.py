@@ -1,4 +1,5 @@
-"""The booth's pad helper: controller 2 -> the brand portal, and the staff combos.
+"""The booth's pad helper: controller 2 -> the brand portal, the staff combos, and the
+show/hide of the region preview window.
 
     py -3 booth\\pad_helper.py                       # the booth setup: read controller 2
     py -3 booth\\pad_helper.py --pad 1               # read controller 1 instead
@@ -12,14 +13,20 @@ The portal is a web page in a kiosk browser on the right-hand monitor. A browser
 game-pad input while its window has focus, and at a booth the focus is wherever staff last
 clicked. So the pad is read *outside* the browser, here, and the presses are relayed over a
 WebSocket on 127.0.0.1 that the page listens to. The portal therefore never needs focus,
-and one helper can also do the two things a web page must never be allowed to do: talk to
-the admin endpoints, and tell a staff combo apart from a visitor mashing buttons.
+and one helper can also do the three things a web page must never be allowed to do: talk to
+the admin endpoints, tell a staff combo apart from a visitor mashing buttons, and move
+another program's window.
 
 What it sends (one JSON object per WebSocket text frame):
 
-    {"type": "hello",  "pad": 2, "simulate": false, "controllers": [...]}
-    {"type": "button", "button": "A", "pressed": true, "repeat": false, "t": 1234.5}
-    {"type": "staff",  "action": "reset", "ok": true, "detail": "..."}
+    {"type": "hello",   "pad": 2, "simulate": false, "controllers": [...]}
+    {"type": "button",  "button": "A", "pressed": true, "repeat": false, "t": 1234.5}
+    {"type": "staff",   "action": "reset", "ok": true, "detail": "..."}
+    {"type": "preview", "shown": true, "found": true, "rect": [960, 270, 960, 540]}
+
+What it listens for (the portal is the only thing that sends it anything):
+
+    {"type": "preview", "show": true}        the Region-check step opened / closed
 
 Staff combos (hold all three for 3 seconds, specs/portal_spec_v1.md §2):
 
@@ -31,9 +38,9 @@ Staff combos (hold all three for 3 seconds, specs/portal_spec_v1.md §2):
 While LB and RB are both held, nothing else is relayed to the portal: a combo can never
 leak into the screen as a stray press.
 
-No third-party packages: XInput is reached with ctypes and the WebSocket server is about a
-hundred lines of socket code at the bottom of this file. That matters because this has to
-run on the booth PC from a clean checkout.
+No third-party packages: XInput, the window moving and the WebSocket server are all ctypes
+and plain sockets. That matters because this has to run on the booth PC from a clean
+checkout with nothing installed.
 """
 from __future__ import annotations
 
@@ -42,6 +49,7 @@ import base64
 import ctypes
 import hashlib
 import json
+import os
 import queue
 import socket
 import struct
@@ -51,6 +59,7 @@ import time
 import urllib.error
 import urllib.request
 from ctypes import wintypes
+from pathlib import Path
 
 # --------------------------------------------------------------------------- XInput
 
@@ -131,13 +140,226 @@ class XInput:
         return rows
 
 
+# ------------------------------------------------------------- the region preview window
+
+# The title the second copy of the game gives its own window (ADCRuntimeGameMode, the
+# -DCPreview block). Matched exactly, so nothing else on the desktop can be moved by this.
+PREVIEW_TITLE = "DynamicContents region preview"
+
+# Where that copy writes down what it did with its window. This is the Shipping build's own
+# "project saved dir" - %LOCALAPPDATA%\DCDemo\Saved, not a folder next to the build (see
+# unreal/README.md) - so a booth run needs no path on the command line. A test passes
+# -DCPreviewFile= and --preview-file to keep its evidence next to itself instead.
+DEFAULT_PREVIEW_FILE = (Path(os.environ.get("LOCALAPPDATA") or ".")
+                        / "DCDemo" / "Saved" / "dc_preview_window.json")
+
+# Where "hidden" is. Far from any real desktop, so the window keeps running and rendering -
+# a minimised Unreal window stops drawing, and the whole point of this window is to be
+# already showing the right thing the moment it appears. 30,000 and not more because Windows
+# clamps a window position to a signed 16-bit number (32,767). Agrees with
+# FDCPreviewWindow::OffScreenX in the plugin.
+OFFSCREEN_X = 30000
+OFFSCREEN_Y = 30000
+
+# Window-position metrics: the whole desktop, however many monitors it is made of.
+SM_XVIRTUALSCREEN, SM_YVIRTUALSCREEN = 76, 77
+SM_CXVIRTUALSCREEN, SM_CYVIRTUALSCREEN = 78, 79
+
+# Win32 constants, named rather than numbered at the call sites.
+SWP_NOSIZE, SWP_NOMOVE, SWP_NOZORDER, SWP_NOACTIVATE = 0x0001, 0x0002, 0x0004, 0x0010
+SWP_SHOWWINDOW = 0x0040
+HWND_TOPMOST, HWND_NOTOPMOST = -1, -2
+SW_SHOWNOACTIVATE = 4
+MONITORINFOF_PRIMARY = 0x1
+
+
+class RECT(ctypes.Structure):
+    _fields_ = [("left", ctypes.c_long), ("top", ctypes.c_long),
+                ("right", ctypes.c_long), ("bottom", ctypes.c_long)]
+
+
+class MONITORINFO(ctypes.Structure):
+    _fields_ = [("cbSize", wintypes.DWORD), ("rcMonitor", RECT), ("rcWork", RECT),
+                ("dwFlags", wintypes.DWORD)]
+
+
+MONITOR_ENUM_PROC = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HMONITOR, wintypes.HDC,
+                                       ctypes.POINTER(RECT), wintypes.LPARAM)
+ENUM_WINDOWS_PROC = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+
+
+class PreviewWindow:
+    """Shows and hides the second copy of the game (plan v6 §7 and §10, step 6 of §10's
+    list: "pad helper (also shows and hides the preview window)").
+
+    The division of labour: the **game** decides where its window belongs - it is the one
+    that knows which monitor is which - makes it borderless, parks it off-screen at boot and
+    writes a small JSON file saying where "there" is. This class only ever moves it between
+    there and off-screen.
+
+    It never activates anything. Every call carries SWP_NOACTIVATE, because the main game
+    has to keep focus and pad 1 all day (plan v6 §11) and a window that stole focus when it
+    appeared would take the Player's controller with it.
+    """
+
+    def __init__(self, state_file: Path | None = None, title: str = PREVIEW_TITLE) -> None:
+        self.title = title
+        self.state_file = state_file
+        self.user32 = None
+        if sys.platform == "win32":
+            try:
+                self.user32 = ctypes.WinDLL("user32", use_last_error=True)
+            except OSError:
+                self.user32 = None
+        self.last_home: tuple[int, int, int, int] | None = None
+
+    # ---- finding it -------------------------------------------------------------------
+
+    def find(self) -> int | None:
+        """The window handle, by exact title. Found by title rather than by the handle in
+        the JSON file because a title can never be stale: a file left behind by yesterday's
+        run names a handle that is gone or, worse, reused."""
+        if not self.user32:
+            return None
+        found: list[int] = []
+        buffer = ctypes.create_unicode_buffer(256)
+
+        def visit(hwnd, _lparam):
+            self.user32.GetWindowTextW(hwnd, buffer, len(buffer))
+            if buffer.value == self.title:
+                found.append(int(hwnd))
+                return False
+            return True
+
+        self.user32.EnumWindows(ENUM_WINDOWS_PROC(visit), 0)
+        return found[0] if found else None
+
+    def rect(self, hwnd: int) -> tuple[int, int, int, int] | None:
+        box = RECT()
+        if not self.user32.GetWindowRect(wintypes.HWND(hwnd), ctypes.byref(box)):
+            return None
+        return (box.left, box.top, box.right - box.left, box.bottom - box.top)
+
+    def on_screen(self, box: tuple[int, int, int, int] | None) -> bool:
+        """Is any of this window on a monitor? That, and not a comparison with the
+        off-screen constant, is what "shown" means - Windows clamps a window position to
+        32,767, so the number that was asked for is not always the number that comes back."""
+        if not box or not self.user32:
+            return False
+        x, y, w, h = box
+        vx = self.user32.GetSystemMetrics(SM_XVIRTUALSCREEN)
+        vy = self.user32.GetSystemMetrics(SM_YVIRTUALSCREEN)
+        vw = self.user32.GetSystemMetrics(SM_CXVIRTUALSCREEN)
+        vh = self.user32.GetSystemMetrics(SM_CYVIRTUALSCREEN)
+        return x < vx + vw and x + w > vx and y < vy + vh and y + h > vy
+
+    def home(self, hwnd: int | None) -> tuple[int, int, int, int]:
+        """Where the window belongs: what the game wrote down, else where it is now if that
+        is on-screen, else the right half of the rightmost monitor - the same rule the game
+        itself uses, so even with no file at all the window lands where the portal's
+        Region-check screen leaves room for it."""
+        written = self.read_state_file()
+        if written:
+            self.last_home = written
+            return written
+        if hwnd is not None:
+            now = self.rect(hwnd)
+            if self.on_screen(now):
+                return now
+        if self.last_home:
+            return self.last_home
+        return self.monitor_rect()
+
+    def read_state_file(self) -> tuple[int, int, int, int] | None:
+        if not self.state_file:
+            return None
+        try:
+            data = json.loads(Path(self.state_file).read_text(encoding="utf-8"))
+            box = data["home"]
+            return (int(box["x"]), int(box["y"]), int(box["w"]), int(box["h"]))
+        except Exception:                                  # noqa: BLE001 - any failure
+            return None
+
+    def monitor_rect(self) -> tuple[int, int, int, int]:
+        """The right half of the rightmost monitor, vertically centred - 960 x 540 at
+        (960, 270) on a 1920 x 1080 right-hand screen. The portal's Region-check step
+        reserves exactly this rectangle (portal/style.css `.preview-reserve`)."""
+        monitors: list[tuple[int, int, int, int, bool]] = []
+        if self.user32:
+            def visit(_handle, _hdc, box, _lparam):
+                info = MONITORINFO()
+                info.cbSize = ctypes.sizeof(MONITORINFO)
+                if self.user32.GetMonitorInfoW(_handle, ctypes.byref(info)):
+                    r = info.rcMonitor
+                    monitors.append((r.left, r.top, r.right - r.left, r.bottom - r.top,
+                                     bool(info.dwFlags & MONITORINFOF_PRIMARY)))
+                return True
+
+            self.user32.EnumDisplayMonitors(None, None, MONITOR_ENUM_PROC(visit), 0)
+        if not monitors:
+            return (960, 270, 960, 540)
+        others = [m for m in monitors if not m[4]] or monitors
+        left, top, width, height, _primary = max(others, key=lambda m: m[0])
+        w, h = width // 2, height // 2
+        return (left + width - w, top + (height - h) // 2, w, h)
+
+    # ---- moving it --------------------------------------------------------------------
+
+    def set_shown(self, shown: bool) -> dict:
+        hwnd = self.find()
+        if hwnd is None or not self.user32:
+            return {"found": False, "shown": None,
+                    "detail": "no window called " + self.title}
+        if shown:
+            x, y, w, h = self.home(hwnd)
+            # A window somebody minimised by hand comes back without taking focus.
+            if self.user32.IsIconic(wintypes.HWND(hwnd)):
+                self.user32.ShowWindow(wintypes.HWND(hwnd), SW_SHOWNOACTIVATE)
+            self.user32.SetWindowPos(wintypes.HWND(hwnd), wintypes.HWND(HWND_TOPMOST),
+                                     x, y, w, h, SWP_NOACTIVATE | SWP_SHOWWINDOW)
+        else:
+            x, y, w, h = self.home(hwnd)          # remembered for the next show
+            self.last_home = (x, y, w, h)
+            self.user32.SetWindowPos(wintypes.HWND(hwnd), wintypes.HWND(HWND_NOTOPMOST),
+                                     OFFSCREEN_X, OFFSCREEN_Y, 0, 0,
+                                     SWP_NOACTIVATE | SWP_NOSIZE)
+        return {"found": True, "shown": bool(shown), "rect": self.rect(hwnd)}
+
+    def state(self) -> dict:
+        hwnd = self.find()
+        if hwnd is None:
+            return {"found": False, "shown": None}
+        box = self.rect(hwnd)
+        return {"found": True, "rect": box,
+                "shown": self.on_screen(box),
+                "visible": bool(self.user32.IsWindowVisible(wintypes.HWND(hwnd))),
+                "minimised": bool(self.user32.IsIconic(wintypes.HWND(hwnd)))}
+
+
+def foreground_window_title() -> str:
+    """Whatever window has focus right now — the main game, all being well (plan v6 §11)."""
+    if sys.platform != "win32":
+        return ""
+    try:
+        user32 = ctypes.WinDLL("user32", use_last_error=True)
+    except OSError:
+        return ""
+    buffer = ctypes.create_unicode_buffer(256)
+    user32.GetWindowTextW(user32.GetForegroundWindow(), buffer, len(buffer))
+    return buffer.value
+
+
 # --------------------------------------------------------------------------- the helper
 
 class PadHelper:
     def __init__(self, args: argparse.Namespace) -> None:
         self.args = args
         self.xinput = XInput()
-        self.server = WsServer(args.host, args.port, on_client=self.greet)
+        self.server = WsServer(args.host, args.port, on_client=self.greet,
+                               on_text=self.on_text)
+        self.preview = None if args.no_preview_window else PreviewWindow(
+            state_file=Path(args.preview_file) if args.preview_file else None,
+            title=args.preview_title)
         self.held: set[str] = set()
         self.repeat_at: dict[str, float] = {}
         self.combo_since: dict[str, float] = {}
@@ -176,7 +398,31 @@ class PadHelper:
         client.send(json.dumps({
             "type": "hello", "pad": self.args.pad, "simulate": bool(self.args.simulate),
             "server": self.args.server, "controllers": self.controllers,
+            "preview_window": bool(self.preview),
         }))
+        if self.preview:
+            # A page that reloads mid-visit gets told where the window is, rather than
+            # having to guess from whichever step it happens to come back on.
+            client.send(json.dumps({"type": "preview", **self.preview.state()}))
+
+    def on_text(self, _client: "WsClient", raw: str) -> None:
+        """The one thing the portal sends: show or hide the region preview window."""
+        try:
+            message = json.loads(raw)
+        except (ValueError, TypeError):
+            return
+        if not isinstance(message, dict) or message.get("type") != "preview":
+            return
+        self.set_preview(bool(message.get("show")), "the portal")
+
+    def set_preview(self, shown: bool, why: str) -> dict:
+        if not self.preview:
+            answer = {"found": False, "shown": None, "detail": "--no-preview-window"}
+        else:
+            answer = self.preview.set_shown(shown)
+        self.say(f"preview window {'show' if shown else 'hide'} ({why}): {answer}")
+        self.broadcast({"type": "preview", **answer})
+        return answer
 
     def broadcast(self, message: dict) -> None:
         self.server.broadcast(json.dumps(message))
@@ -315,6 +561,18 @@ class PadHelper:
                 return True
             self.fire(action)
             return True
+        if head == "PREVIEW":
+            # So a scripted test can do by hand exactly what the portal does over the
+            # socket: `preview show`, `preview hide`, `preview state`.
+            word = tail.lower()
+            if word in ("show", "hide"):
+                self.set_preview(word == "show", "a script")
+            elif word in ("", "state"):
+                self.say(f"  preview window: "
+                         f"{self.preview.state() if self.preview else 'off'}")
+            else:
+                self.say(f"  preview takes show / hide / state, not {word!r}")
+            return True
         if head.startswith("+"):
             self.press(head[1:], now)
             return True
@@ -359,6 +617,11 @@ class PadHelper:
                  f"  (admin calls go to {self.args.server})")
         if self.args.simulate:
             self.say("simulate: this is a fake pad — no controller is being read")
+        if self.preview:
+            self.say(f"region preview window: {self.preview.state()}"
+                     f"  home {self.preview.home(None)}")
+        else:
+            self.say("region preview window: not managed (--no-preview-window)")
 
         if self.args.script:
             with open(self.args.script, "r", encoding="utf-8-sig") as handle:
@@ -412,7 +675,7 @@ def ws_frame(payload: bytes, opcode: int = 0x1) -> bytes:
 
 
 class WsClient:
-    """One connected browser. Sending is all this needs to be good at."""
+    """One connected browser. Mostly sending; the portal sends one kind of message back."""
 
     def __init__(self, conn: socket.socket, server: "WsServer") -> None:
         self.conn = conn
@@ -438,7 +701,7 @@ class WsClient:
         self.server.drop(self)
 
     def read_loop(self) -> None:
-        """Browsers send pings and a close frame; nothing else is expected."""
+        """Pings, a close frame, and the portal's own show/hide of the preview window."""
         try:
             while self.alive:
                 head = self.recv_exactly(2)
@@ -460,6 +723,8 @@ class WsClient:
                 if opcode == 0x9:                       # ping -> pong
                     with self.lock:
                         self.conn.sendall(ws_frame(payload, opcode=0xA))
+                elif opcode == 0x1 and self.server.on_text:   # text
+                    self.server.on_text(self, payload.decode("utf-8", "replace"))
         except OSError:
             pass
         finally:
@@ -478,10 +743,11 @@ class WsClient:
 class WsServer:
     """A WebSocket broadcaster in plain sockets — no dependency to install at the booth."""
 
-    def __init__(self, host: str, port: int, on_client=None) -> None:
+    def __init__(self, host: str, port: int, on_client=None, on_text=None) -> None:
         self.host = host
         self.port = port
         self.on_client = on_client
+        self.on_text = on_text
         self.clients: list[WsClient] = []
         self.lock = threading.Lock()
         self.sock: socket.socket | None = None
@@ -589,6 +855,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--list", action="store_true",
                         help="print which controllers are plugged in and exit")
     parser.add_argument("--quiet", action="store_true")
+    # The region preview window (plan v6 §7). The game writes the file; this only reads it.
+    parser.add_argument("--preview-file", default=str(DEFAULT_PREVIEW_FILE),
+                        help="the JSON the preview copy of the game writes about its window")
+    parser.add_argument("--preview-title", default=PREVIEW_TITLE,
+                        help="the exact window title to move (default: %(default)s)")
+    parser.add_argument("--no-preview-window", action="store_true",
+                        help="do not touch any window: the live-flip fallback uses this")
+    parser.add_argument("--preview", choices=["show", "hide", "state"],
+                        help="do that to the preview window and exit")
     return parser.parse_args(argv)
 
 
@@ -598,6 +873,13 @@ def main(argv: list[str] | None = None) -> int:
     if args.list:
         helper.report_controllers()
         return 0
+    if args.preview:
+        # Without starting anything: how a start script or a rehearsal pokes the window.
+        window = helper.preview or PreviewWindow()
+        answer = (window.state() if args.preview == "state"
+                  else window.set_shown(args.preview == "show"))
+        print(json.dumps(answer))
+        return 0 if answer.get("found") else 1
     return helper.run()
 
 

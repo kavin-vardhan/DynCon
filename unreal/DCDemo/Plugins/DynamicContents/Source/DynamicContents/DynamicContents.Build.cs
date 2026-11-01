@@ -18,6 +18,14 @@ public class DynamicContents : ModuleRules
 			"Projects",
 			"RenderCore",
 
+			// The region preview window (DCPreview.h): the game's own top-level window,
+			// which monitor it is on, and its title. ApplicationCore is where
+			// FDisplayMetrics and FGenericWindow::GetOSWindowHandle live; Slate and
+			// SlateCore are for SWindow, which is what the viewport hands back.
+			"ApplicationCore",
+			"Slate",
+			"SlateCore",
+
 			// The client half: talking to the backend, reading its answers, and checking
 			// them. PlatformCrypto is the engine's own crypto (OpenSSL underneath) and is
 			// what FRSA - the facade pak signing uses - is built on; see DCCrypto.h for

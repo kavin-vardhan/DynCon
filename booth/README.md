@@ -1,13 +1,15 @@
 # The booth's plumbing
 
 *The bits that sit between the hardware on the table and the two screens. **DONE**: the pad
-helper (brief 014) and the portal's exit test, now the whole tour (brief 015). **FUTURE**: the
-region-preview window's placement and the watchdog that restarts things (plan v6 §10).*
+helper (brief 014), the portal's exit test — the whole tour (brief 015) — and the region
+preview window's show/hide and its exit test (brief 017). **FUTURE**: the one-button start
+script and the watchdog that restarts things (plan v6 §10).*
 
 | File | What |
 |---|---|
-| `pad_helper.py` | reads **controller 2** and relays it to the brand portal; runs the staff combos |
+| `pad_helper.py` | reads **controller 2** and relays it to the brand portal; runs the staff combos; shows and hides the region preview window |
 | `portal_exit_test.py` | the whole visitor tour, the express version and the idle reset, driven by a simulated pad |
+| `preview_exit_test.py` | brief 017's exit test: win A1 for Japan, open the region check, watch the second copy of the game appear and flip region, run the live-flip fallback, and check the main game never loses focus |
 
 ## The pad helper
 
@@ -32,9 +34,16 @@ booth PC with nothing installed.
 **What it sends** (one JSON object per text frame):
 
 ```json
-{"type": "hello",  "pad": 2, "simulate": false, "controllers": [ … ]}
-{"type": "button", "button": "A", "pressed": true, "repeat": false, "t": 1234.5}
-{"type": "staff",  "action": "reset", "ok": true, "detail": { … }}
+{"type": "hello",   "pad": 2, "simulate": false, "controllers": [ … ]}
+{"type": "button",  "button": "A", "pressed": true, "repeat": false, "t": 1234.5}
+{"type": "staff",   "action": "reset", "ok": true, "detail": { … }}
+{"type": "preview", "found": true, "shown": true, "rect": [960, 270, 960, 540]}
+```
+
+**What it listens for** — the portal is the only thing that sends it anything:
+
+```json
+{"type": "preview", "show": true}
 ```
 
 Buttons are `UP DOWN LEFT RIGHT A B X Y LB RB LT RT START BACK` (the left stick stands in for
@@ -58,13 +67,54 @@ back to the attract screen on a reset.
 from `--stdin`, or both:
 
 ```
-A            press and release A
-+LB  -LB     press / release, for holds
-wait 3300    milliseconds (held buttons still age, so combos really fire)
-combo reset  run a staff combo straight away
+A              press and release A
++LB  -LB       press / release, for holds
+wait 3300      milliseconds (held buttons still age, so combos really fire)
+combo reset    run a staff combo straight away
+preview show   show / hide / state the region preview window
 # a comment
 quit
 ```
+
+## The region preview window
+
+```powershell
+py -3 booth\pad_helper.py --preview state      # is it there, and where?
+py -3 booth\pad_helper.py --preview show       # ... without starting the helper
+py -3 booth\pad_helper.py --no-preview-window  # never touch any window (the live-flip fallback)
+```
+
+The second copy of the game (`unreal\Tools\run_preview.ps1`) is a borderless window on the
+portal's monitor. **The portal decides when it is seen and the helper moves it**, because a
+web page cannot move another program's window: the portal sends `{"type":"preview","show":…}`
+over this same WebSocket when the Start menu's Region-check step opens and closes.
+
+The division of labour with the game is worth knowing:
+
+* the **game** owns where the window belongs — it is the one that can see which monitor is
+  which — makes it borderless, parks it off-screen at boot, and writes a small JSON file
+  (`-DCPreviewFile=`, by default `%LOCALAPPDATA%\DCDemo\Saved\dc_preview_window.json`) saying
+  where "there" is;
+* the **helper** finds that window by its exact title, `DynamicContents region preview`, and
+  only ever moves it between that rectangle and off-screen.
+
+Three details that are not arbitrary:
+
+* **hidden is off-screen, not minimised.** A minimised Unreal window stops drawing, and the
+  point of this window is to be already showing the right thing the moment it appears. The
+  off-screen position is 30,000 — Windows clamps a window position to 32,767, so a rounder
+  number comes back as something else and "is it hidden?" reads as a bug;
+* **nothing ever activates it.** Every move carries `SWP_NOACTIVATE`: the main game keeps
+  focus and pad 1 all day (plan v6 §11), and a window that took focus when it appeared would
+  take the Player's controller with it;
+* the home rectangle, when the JSON file is missing, is worked out the same way the game and
+  the portal work it out: **the right half of the right-most monitor, vertically centred,
+  half the monitor's width and height** — 960 × 540 at (960, 270) on a 1920 × 1080 screen.
+
+One thing the start script must get right, which is the game's side rather than the
+helper's: the preview copy needs **`-UserDir=`** (`unreal\Tools\run_preview.ps1` passes it).
+Without it the two copies share one `GameUserSettings.ini` and the preview's lowest settings
+become the main game's — see `unreal/README.md`.
 
 It still enumerates the controllers at startup and reports what it saw, so a run in a test says
 as much about the hardware as a run at the booth.
@@ -116,3 +166,37 @@ Edge** (`channel="msedge"`), so there is no browser to download:
 ```powershell
 server\.venv\Scripts\python.exe -m pip install playwright pillow
 ```
+
+## The region preview window's exit test
+
+```powershell
+server\.venv\Scripts\python.exe booth\preview_exit_test.py
+server\.venv\Scripts\python.exe booth\preview_exit_test.py --keep        # leave it all up
+server\.venv\Scripts\python.exe booth\preview_exit_test.py --headless    # no visible browser
+```
+
+Brief 017's exit test, and the only one that runs **two copies of the packaged game at
+once**. It starts its own server (port 8797), its own pad helper (port 8703), the preview
+copy and the main game, and drives the portal through the helper's `--simulate`:
+
+1. a visit: brand, Content 1 approved, Game A, slot A1, Japan and India ticked and bid, the
+   rival's counter-bid, a raise in Japan only, the staff close — **won in Japan, lost in
+   India**;
+2. the Start menu's Region check opens → the helper moves the window onto the rectangle the
+   portal leaves free → it is showing **the India rival's building in A1**;
+3. the region is flipped to Japan from the portal → the same window, the same slot, now
+   showing **the visitor's own content**;
+4. the step is left → the window goes off-screen and the portal has the screen back;
+5. the **live-flip fallback** (plan v6 §11): the menu's second row makes the *main* game
+   play as India for twenty seconds, A1 swaps to the India rival in front of the Player,
+   and it swaps back by itself;
+6. the main game's **focus is checked at every beat**; at the end it is deliberately put in
+   the background to show it is still running and still drawing; and its frame time is
+   reported per phase from its own status file.
+
+It captures both the **desktop** (what a camera would see, the preview window included) and
+the **portal page** underneath it, and crops the preview's rectangle out of the desktop shot
+on its own — into `booth/_shots/017/`, with `result.md` next to them. The booth has two
+monitors; this PC has one, so the main game is parked in the bottom-left where it cannot
+cover the preview's rectangle, and the two kinds of shot together say what one screen
+cannot.

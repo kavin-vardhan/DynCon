@@ -626,16 +626,93 @@ class Service:
     # ------------------------------------------------------------------ preview region
 
     def preview_region(self) -> dict[str, Any]:
+        """Everything the second copy of the game needs to know about itself.
+
+        Two answers in one, because the preview window asks one question: *what am I?* It is
+        a player in some region (which the portal's region check flips), looking at some
+        slot (the one the visitor has just been bidding on). The `label_jp` is here because
+        the window draws a bilingual caption on the HUD canvas and cannot read the portal's
+        own string table.
+        """
         region = self.repo.meta_get("preview_region") or self.config.preview_region
         return {"region": region, "label": self.config.region_label(region),
+                "label_jp": self.config.region_label_jp(region),
                 "neutral_label": self.config.data["regions"][region].get("neutral_label"),
-                "main_region": self.config.main_region}
+                "main_region": self.config.main_region,
+                "focus": self.preview_focus()}
+
+    def preview_focus(self) -> dict[str, Any]:
+        """Which slot the preview window should be looking at, and why.
+
+        Three rules, in order, so there is always an answer and the best one wins:
+
+        1. the lot the **visitor bid on** last — that is "the slot just auctioned", and it
+           is right from the moment they place a bid, before the auction has even closed;
+        2. failing that, their newest **allocation** — which is what a rehearsal driven by
+           `POST /admin/allocate` has instead of a bid;
+        3. failing that, the **busiest slot of the game being played at the booth**, so the
+           window has something to frame during the attract loop.
+        """
+        lot = self.repo.last_visitor_bid_lot()
+        if lot:
+            return {"game": lot["game"], "slot": lot["slot"],
+                    "reason": "the slot the visitor last bid on"}
+        row = self.repo.last_visitor_allocation()
+        if row:
+            return {"game": row["game"], "slot": row["slot"],
+                    "reason": "the visitor's newest allocation"}
+        booth = next((g for g in self.config.games
+                      if self.config.game(g).get("live_at_booth")), self.config.games[0])
+        slots = sorted(self.config.slots_of(booth),
+                       key=lambda s: -self.config.footfall(s.id, self.config.main_region))
+        return {"game": booth, "slot": slots[0].id if slots else None,
+                "reason": "nobody has bid yet, so the busiest slot of the game at the booth"}
 
     def set_preview_region(self, region: str) -> dict[str, Any]:
         if not self.config.has_region(region):
             raise ServiceError(404, f"There is no region {region}.")
         self.repo.meta_set("preview_region", region)
         return self.preview_region()
+
+    # ------------------------------------------------------------------ the live flip
+
+    def live_flip(self) -> dict[str, Any] | None:
+        """The fallback for tour step 7 when there is no preview window (plan v6 §11).
+
+        Instead of a second copy of the game playing as another region, the **main** game
+        plays as that region for a few seconds: the slot swaps in front of the Player, and
+        swaps back. It is the same promise shown a different way, and it costs the booth
+        nothing but the twenty seconds.
+
+        It is a timestamp, like everything else here: the flip is simply an entry with an
+        `ends_at`, and the first request after that moment sees no flip.
+        """
+        flip = self.repo.meta_get("live_flip")
+        if not isinstance(flip, dict) or not flip.get("region"):
+            return None
+        now = self.now()
+        ends = parse_iso(flip["ends_at"])
+        if ends <= now:
+            return None
+        region = flip["region"]
+        return {"region": region, "label": self.config.region_label(region),
+                "label_jp": self.config.region_label_jp(region),
+                "ends_at": flip["ends_at"],
+                "seconds_left": round((ends - now).total_seconds(), 1),
+                "back_to": flip.get("back_to") or self.config.main_region}
+
+    def set_live_flip(self, region: str, seconds: float) -> dict[str, Any]:
+        if not self.config.has_region(region):
+            raise ServiceError(404, f"There is no region {region}.")
+        if seconds <= 0:
+            self.repo.meta_set("live_flip", None)
+            return {"flip": None, "server_time": iso(self.now())}
+        now = self.now()
+        self.repo.meta_set("live_flip", {
+            "region": region, "back_to": self.config.main_region,
+            "started_at": iso(now), "ends_at": iso(now + timedelta(seconds=seconds))})
+        log.info("live flip: the main game plays as %s for %.0f s", region, seconds)
+        return {"flip": self.live_flip(), "server_time": iso(now)}
 
     def set_brand(self, colour: str, emblem: str) -> dict[str, Any]:
         presets = self.config.data["brand_presets"]
@@ -681,6 +758,10 @@ class Service:
             "block_ends_in_s": round((demo.block_end(k) - now).total_seconds(), 3),
             "reset_generation": int(self.repo.meta_get("reset_generation") or 0),
             "purge_packs": list(self.repo.meta_get("purge_packs") or []),
+            # The live flip rides on the poll every copy of the game already makes, rather
+            # than on a second endpoint: it is a thing the game has to act on within a
+            # second, and this is the request that happens within a second.
+            "live_flip": self.live_flip(),
         }
 
     def resolve(self, game: str, slot: str, region: str) -> dict[str, Any]:
@@ -847,6 +928,7 @@ class Service:
         for pack_id in result["purge_packs"]:
             self.blobs.delete_pack(pack_id)
         self.repo.meta_set("preview_region", self.config.preview_region)
+        self.repo.meta_set("live_flip", None)
         generation = int(self.repo.meta_get("reset_generation") or 0) + 1
         self.repo.meta_set("reset_generation", generation)
         self.repo.meta_set("purge_packs", result["purge_packs"])
@@ -916,7 +998,8 @@ class Service:
         d = self.config.data
         return {
             "regions": {r: {"label": d["regions"][r]["label"],
-                            "neutral_label": d["regions"][r].get("neutral_label")}
+                            "neutral_label": d["regions"][r].get("neutral_label"),
+                            "label_jp": self.config.region_label_jp(r)}
                         for r in self.config.regions},
             "booth": d.get("booth", {}),
             "size_classes": d["size_classes"],

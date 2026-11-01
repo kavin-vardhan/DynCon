@@ -33,6 +33,26 @@ class ADCSlot;
 class UTexture2D;
 enum class EDCSlotState : uint8;
 
+/**
+ * Frame times, as the status file and the preview soak test read them.
+ *
+ * The counters are cumulative since the run's four-second mark, which is what lets a script
+ * difference two readings and get the average over any window it likes - "while the preview
+ * window was on screen", for instance. The percentiles are over the whole run.
+ */
+struct FDCFrameStats
+{
+	int32 Frames = 0;
+	double SumMs = 0.0;
+	float WorstMs = 0.0f;
+	int32 Over16 = 0;
+	int32 Over25 = 0;
+	int32 Over33 = 0;
+	float AverageMs = 0.0f;
+	float MedianMs = 0.0f;
+	float Worst1PercentMs = 0.0f;
+};
+
 /** One queued telemetry event. Batched: the booth never needs a request per event. */
 struct FDCTelemetryEvent
 {
@@ -104,6 +124,24 @@ public:
 	const FString& GetRegion() const { return Region; }
 	const FString& GetGame() const { return Game; }
 
+	/**
+	 * This copy is the region preview window (`-DCPreview`): no input, no audio, no
+	 * telemetry, and it auto-pilots its camera to whatever slot the server says the visitor
+	 * has just been bidding on.
+	 */
+	bool IsPreview() const { return bPreview; }
+
+	/** How the region is named, for the preview window's bilingual caption. Both come from
+	 *  GET /preview/region, so the booth's labels live in the server's config and not in two
+	 *  string tables (`server/config/demo.json`, and `portal/strings.js` for the portal). */
+	const FString& GetRegionLabel() const { return RegionLabel; }
+	const FString& GetRegionLabelJp() const { return RegionLabelJp; }
+
+	/** The slot the preview window should be looking at, and why the server picked it. */
+	const FString& GetFocusGame() const { return FocusGame; }
+	const FString& GetFocusSlot() const { return FocusSlot; }
+	const FString& GetFocusReason() const { return FocusReason; }
+
 	/** "ok", "waiting for the backend", or the last sentence that went wrong. */
 	const FString& GetBackendStatus() const { return BackendStatus; }
 
@@ -145,6 +183,14 @@ public:
 
 	void QueueTelemetry(const FString& Type, const FString& SlotId, const FString& AllocKey,
 		double Value);
+
+	/**
+	 * One frame's time, for the status file and the soak test. Fed by the game mode, so
+	 * there is one sampling rule rather than two: frames within half a second of a
+	 * screenshot are left out, and so are the first four seconds of the run.
+	 */
+	void NoteFrame(float Ms);
+	FDCFrameStats GetFrameStats();
 
 	// ---------------------------------------------------------------- hooks for the game mode
 
@@ -219,6 +265,9 @@ private:
 	void OnClientConfig(FHttpResponsePtr Response, bool bOk);
 	void Poll();
 	void OnChanges(FHttpResponsePtr Response, bool bOk);
+
+	/** The live flip of plan v6 §11, carried on /changes. Ignored by the preview copy. */
+	void ApplyLiveFlip(const TSharedPtr<class FJsonObject>& Changes);
 	void PollPreviewRegion();
 	void OnPreviewRegion(FHttpResponsePtr Response, bool bOk);
 	void SetRegion(const FString& NewRegion, const FString& Why);
@@ -251,6 +300,11 @@ private:
 	FString Game = TEXT("A");
 	FString StatusFilePath;
 	bool bFollowPreviewRegion = false;
+	bool bPreview = false;
+	bool bNoLiveFlip = false;
+
+	/** While a live flip is on, the region this copy goes back to when it ends. */
+	FString FlipBackTo;
 	int32 RangeBytes = 256 * 1024;
 	float RetryBaseSeconds = 2.0f;
 	float RetryMaxSeconds = 15.0f;
@@ -282,9 +336,22 @@ private:
 	TSet<FString> MountedPaks;
 	TSet<FString> MountedPackIds;
 
+	FString RegionLabel;
+	FString RegionLabelJp;
+	FString FocusGame;
+	FString FocusSlot;
+	FString FocusReason;
+
 	TArray<FDCTelemetryEvent> Telemetry;
 	bool bTelemetryInFlight = false;
 	int32 TelemetrySent = 0;
+	int32 TelemetryDropped = 0;
+
+	/** Every sampled frame, for the percentiles. Capped: ten minutes at 90 fps is 54,000. */
+	TArray<float> FrameSamples;
+	FDCFrameStats Frames;
+	double LastPercentileSeconds = 0.0;
+	int32 PercentileFrames = 0;
 
 	TArray<FActivation> Activations;
 	TArray<FFallbackNote> Fallbacks;

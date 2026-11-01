@@ -200,8 +200,16 @@ export const STRINGS = {
   menu_pause:          { jp: 'キャンペーンを一時停止',        en: 'Pause the campaign' },
   menu_resume:         { jp: 'キャンペーンを再開',            en: 'Resume the campaign' },
   menu_summary:        { jp: 'まとめを見る',                  en: 'See the summary' },
+  menu_flip:           { jp: 'メインのゲームをこの地域にする',
+                         en: 'Play the main game as this region' },
   menu_close:          { jp: '閉じる',                        en: 'Close' },
   menu_hint:           { jp: 'メニュー',                      en: 'Menu' },
+  // The empty rectangle the preview window covers while this step is open. The window is
+  // another program, so the portal can only leave room for it and say what belongs there.
+  preview_window_here: { jp: 'ここにプレビュー画面が出ます',
+                         en: 'The preview window appears here' },
+  preview_window_missing: { jp: 'プレビュー画面は動いていません',
+                            en: 'The preview window is not running' },
 
   // ---------------------------------------------------------------- 9 report
   report_title:        { jp: 'レポート',                      en: 'Report' },

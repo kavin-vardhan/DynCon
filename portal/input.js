@@ -9,6 +9,10 @@
 //
 // Everything downstream sees the same button names, so a screen cannot tell which was
 // used — and the scripted walkthrough (pad_helper.py --simulate) drives the real path.
+//
+// The same socket carries one message the other way: show or hide the region preview
+// window (tour step 7). A web page cannot move another program's window, and the helper
+// can, so the portal asks and the helper does it.
 
 export const BUTTONS = ['UP', 'DOWN', 'LEFT', 'RIGHT', 'A', 'B', 'X', 'Y',
                         'LB', 'RB', 'LT', 'RT', 'START', 'BACK'];
@@ -24,11 +28,12 @@ const KEY_MAP = {
 
 export class Input {
   constructor({ port = 8701, onButton = () => {}, onStaff = () => {},
-                onConnection = () => {} } = {}) {
+                onConnection = () => {}, onPreview = () => {} } = {}) {
     this.port = port;
     this.onButton = onButton;
     this.onStaff = onStaff;
     this.onConnection = onConnection;
+    this.onPreview = onPreview;
     this.socket = null;
     this.online = false;
     this.controllers = [];
@@ -66,6 +71,21 @@ export class Input {
     this.retry = setTimeout(() => { this.retry = null; this.connect(); }, 1500);
   }
 
+  /** Ask the helper to show or hide the region preview window. */
+  previewWindow(show) {
+    this.send({ type: 'preview', show: !!show });
+  }
+
+  send(message) {
+    if (!this.socket || this.socket.readyState !== WebSocket.OPEN) return false;
+    try {
+      this.socket.send(JSON.stringify(message));
+      return true;
+    } catch (problem) {
+      return false;                 // the helper has gone; onclose will reconnect
+    }
+  }
+
   handleMessage(raw) {
     let message;
     try { message = JSON.parse(raw); } catch (problem) { return; }
@@ -76,6 +96,8 @@ export class Input {
       this.emit(message.button, 'pad', !!message.repeat);
     } else if (message.type === 'staff') {
       this.onStaff(message);
+    } else if (message.type === 'preview') {
+      this.onPreview(message);
     }
   }
 

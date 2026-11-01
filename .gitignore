@@ -58,3 +58,13 @@ portal/_shots/*/[0-9]*.png
 portal/_shots/*/*.log
 portal/_shots/*/audit.txt
 !portal/_shots/*/contact_sheet.png
+
+# the preview window's exit test, same rule again: the per-beat portal shots and the full
+# desktop captures are rebuilt by `booth\preview_exit_test.py`, so what goes in git is the
+# two contact sheets, the three crops of the preview window's own rectangle, and result.md.
+booth/_shots/*/[0-9]*.png
+booth/_shots/*/desktop_*.png
+booth/_shots/*/*.log
+!booth/_shots/*/contact_sheet*.png
+!booth/_shots/*/previewarea_*.png
+!booth/_shots/*/mainwindow_*.png

@@ -12,14 +12,23 @@
 //   * the **waypoint marker** points at a slot whose content has just changed, until the
 //     Player gets close.
 //
+// In the region preview window (`-DCPreview`) none of those three is drawn - it is not
+// somebody's game, it is a picture of somewhere else - and the HUD draws one thing instead:
+// a **tiny corner caption**, bilingual like the portal, saying which region this copy plays
+// as. Japanese on top, English under it, in the words the server's own config gives
+// (`/preview/region`'s `label_jp` and `label`). CJK on the HUD canvas works because the
+// engine's Roboto is a composite font whose fallback typeface is DroidSansFallback, and that
+// face is cooked into the build.
+//
 // Nothing here ever says anything about advertising, brands or money: the Player's screen is
-// a game's screen (plan v6 §3). The only words are the strip's own instrumentation and four
-// plain prompts.
+// a game's screen (plan v6 §3). The only words are the strip's own instrumentation, four
+// plain prompts and the preview's caption.
 //
 //   -DCUiScale=<f>   text scale
 //   -DCNoStrip       hide the status strip (the prompt and the marker stay - they are the
 //                    game's UI, not the demo's instrumentation)
 //   -DCNoMarker      hide the waypoint marker
+//   -DCPreview       the caption, and nothing else
 
 #pragma once
 
@@ -57,6 +66,9 @@ private:
 	void DrawPrompt();
 	void DrawMarkers();
 
+	/** The preview window's corner caption: which region this copy is playing as. */
+	void DrawPreviewCaption();
+
 	/** A filled box with a border, the one shape all three of these are built out of. */
 	void DrawPanel(float X, float Y, float W, float H, const FLinearColor& Fill);
 
@@ -68,4 +80,5 @@ private:
 
 	bool bStrip = true;
 	bool bMarker = true;
+	bool bPreview = false;
 };

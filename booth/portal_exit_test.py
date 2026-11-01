@@ -81,11 +81,12 @@ def get_json(url: str):
 class Pad:
     """The simulated controller, as a process we type lines at."""
 
-    def __init__(self, port: int, server: str, log: Path) -> None:
+    def __init__(self, port: int, server: str, log: Path,
+                 extra: list[str] | None = None) -> None:
         self.log = log.open("w", encoding="utf-8")
         self.process = subprocess.Popen(
             [str(VENV_PY), str(ROOT / "booth" / "pad_helper.py"), "--simulate", "--stdin",
-             "--port", str(port), "--server", server],
+             "--port", str(port), "--server", server, *(extra or [])],
             stdin=subprocess.PIPE, stdout=self.log, stderr=subprocess.STDOUT,
             text=True, encoding="utf-8", bufsize=1, cwd=str(ROOT))
 
@@ -426,7 +427,15 @@ def tour_full(run: Run) -> None:
     run.expect('#app[data-screen="report"]', 15000)
     pad.press("START")
     run.expect('#app[data-menu="open"]', 10000)
-    pad.press("DOWN", "DOWN")                     # "see the summary"
+    # Walk down to the summary row by name rather than by counting presses: the menu grew
+    # a row in brief 017 (the live flip) and a hard-coded two DOWNs then landed on pause.
+    for _ in range(6):
+        if page.locator('.menu .button.focused[data-item="menu_summary"]').count():
+            break
+        pad.press("DOWN")
+        page.wait_for_timeout(150)
+    else:
+        run.failures.append("could not put the cursor on the menu's summary row")
     pad.press("A")
     run.expect('#app[data-screen="summary"]', 15000, "the summary")
     page.wait_for_timeout(700)
@@ -517,7 +526,10 @@ def run_all(args: argparse.Namespace) -> int:
     try:
         wait_for_http(f"{base}/admin/health")
         wait_for_http(f"{base}/portal/")
-        pad = Pad(args.pad_port, base, out / "pad_helper.log")
+        # No preview window in this test: it is the portal's own tour, and brief 017's
+        # `preview_exit_test.py` is the one that has a second copy of the game to move.
+        pad = Pad(args.pad_port, base, out / "pad_helper.log",
+                  extra=["--no-preview-window"])
 
         # The game side: a real client on the same server, so the Live strip's last step
         # and the Report's counted half are real events, not a story the portal tells.

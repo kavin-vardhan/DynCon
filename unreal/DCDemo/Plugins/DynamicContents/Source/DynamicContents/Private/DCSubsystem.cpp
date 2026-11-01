@@ -15,6 +15,7 @@
 #include "Engine/Texture2D.h"
 #include "Engine/World.h"
 #include "HAL/FileManager.h"
+#include "HAL/PlatformProcess.h"
 #include "HAL/PlatformTime.h"
 #include "HttpModule.h"
 #include "Interfaces/IHttpResponse.h"
@@ -192,6 +193,8 @@ void UDCSubsystem::ParseCommandLine()
 	}
 
 	bFollowPreviewRegion = FParse::Param(Cmd, TEXT("DCFollowRegion"));
+	bPreview = FParse::Param(Cmd, TEXT("DCPreview"));
+	bNoLiveFlip = FParse::Param(Cmd, TEXT("DCNoFlip"));
 
 	Cache.Configure(CacheDir, 8);
 }
@@ -210,9 +213,19 @@ void UDCSubsystem::Start()
 	DC_LOG(Log, TEXT("CRYPTO %s   %s"), bCryptoOk ? TEXT("ok") : TEXT("UNAVAILABLE"), *CryptoApi);
 
 	DC_LOG(Log, TEXT("DC client starting: build=%s  backend=%s  game=%s  region=%s  "
-		"follow-preview-region=%s  range=%d B  cache=%s"),
+		"follow-preview-region=%s  preview=%s  range=%d B  cache=%s"),
 		GetBuildConfigName(), *BackendUrl, *Game, *Region,
-		bFollowPreviewRegion ? TEXT("yes") : TEXT("no"), RangeBytes, *Cache.GetRoot());
+		bFollowPreviewRegion ? TEXT("yes") : TEXT("no"),
+		bPreview ? TEXT("yes - this copy is the region preview window") : TEXT("no"),
+		RangeBytes, *Cache.GetRoot());
+	if (bPreview)
+	{
+		// The preview is not a player. It has a camera within 30 m of content for minutes
+		// at a time, so every slot it frames would post `view` telemetry and the brand's
+		// report would count views nobody had - and a mount from a machine nobody is
+		// playing is what the portal's push-update screen reads as "the game swapped it".
+		DC_LOG(Log, TEXT("TELEMETRY off: this copy is the preview window, not a player"));
+	}
 
 	SetBackendStatus(TEXT("waiting for the backend"));
 
@@ -462,7 +475,9 @@ bool UDCSubsystem::Tick(float DeltaSeconds)
 	{
 		LastPollSeconds = Now;
 		Poll();
-		if (bFollowPreviewRegion)
+		// The preview window asks this whether or not it is following the region: the same
+		// answer carries the slot it should be looking at, and the labels for its caption.
+		if (bFollowPreviewRegion || bPreview)
 		{
 			PollPreviewRegion();
 		}
@@ -569,6 +584,8 @@ void UDCSubsystem::OnChanges(FHttpResponsePtr Response, bool bOk)
 		}
 	}
 
+	ApplyLiveFlip(Root);
+
 	const TSharedPtr<FJsonObject>* SlotMap = nullptr;
 	if (!Root->TryGetObjectField(TEXT("slots"), SlotMap) || !SlotMap)
 	{
@@ -597,6 +614,53 @@ void UDCSubsystem::OnChanges(FHttpResponsePtr Response, bool bOk)
 	}
 
 	WriteStatusFile();
+}
+
+void UDCSubsystem::ApplyLiveFlip(const TSharedPtr<FJsonObject>& Changes)
+{
+	// The fallback for tour step 7 (plan v6 §11). If the booth cannot afford a second copy
+	// of the game, the portal flips the **main** game to another region for twenty seconds
+	// instead: the slot swaps in front of the Player, and swaps back. It is the same
+	// promise shown a different way, and it needs no second window.
+	//
+	// The preview window ignores it: it already *is* another region, and flipping it would
+	// make the two screens show the same thing, which is the opposite of the point.
+	if (bPreview || bNoLiveFlip)
+	{
+		return;
+	}
+
+	const TSharedPtr<FJsonObject>* Flip = nullptr;
+	const bool bHasFlip = Changes->TryGetObjectField(TEXT("live_flip"), Flip)
+		&& Flip != nullptr && Flip->IsValid();
+
+	if (bHasFlip)
+	{
+		FString To;
+		(*Flip)->TryGetStringField(TEXT("region"), To);
+		if (To.IsEmpty() || To == Region)
+		{
+			return;
+		}
+		if (FlipBackTo.IsEmpty())
+		{
+			// Remember what this copy really is, from the command line rather than from
+			// the server's idea of it: this is where it has to end up.
+			FlipBackTo = Region;
+		}
+		double Left = 0.0;
+		(*Flip)->TryGetNumberField(TEXT("seconds_left"), Left);
+		DC_LOG(Log, TEXT("FLIP  the portal is flipping this copy to %s for %.0f s "
+			"(back to %s)"), *To, Left, *FlipBackTo);
+		SetRegion(To, TEXT("the portal's live flip"));
+	}
+	else if (!FlipBackTo.IsEmpty())
+	{
+		const FString Back = FlipBackTo;
+		FlipBackTo.Reset();
+		DC_LOG(Log, TEXT("FLIP  over - back to %s"), *Back);
+		SetRegion(Back, TEXT("the live flip ended"));
+	}
 }
 
 void UDCSubsystem::PollPreviewRegion()
@@ -628,10 +692,44 @@ void UDCSubsystem::OnPreviewRegion(FHttpResponsePtr Response, bool bOk)
 		return;
 	}
 	const TSharedPtr<FJsonObject> Root = ParseJsonObject(Response->GetContentAsString());
+	if (!Root.IsValid())
+	{
+		return;
+	}
+
 	FString NewRegion;
-	if (Root.IsValid() && Root->TryGetStringField(TEXT("region"), NewRegion) && !NewRegion.IsEmpty())
+	if (Root->TryGetStringField(TEXT("region"), NewRegion) && !NewRegion.IsEmpty()
+		&& bFollowPreviewRegion)
 	{
 		SetRegion(NewRegion, TEXT("the portal moved this copy's region"));
+	}
+	// The labels are of whatever region the answer is about. Only read them when this copy
+	// is actually playing as that region, so the caption can never name somebody else's.
+	if (NewRegion == Region)
+	{
+		Root->TryGetStringField(TEXT("label"), RegionLabel);
+		Root->TryGetStringField(TEXT("label_jp"), RegionLabelJp);
+	}
+
+	const TSharedPtr<FJsonObject>* Focus = nullptr;
+	if (Root->TryGetObjectField(TEXT("focus"), Focus) && Focus != nullptr)
+	{
+		FString NewGame;
+		FString NewSlot;
+		FString NewReason;
+		(*Focus)->TryGetStringField(TEXT("game"), NewGame);
+		(*Focus)->TryGetStringField(TEXT("slot"), NewSlot);
+		(*Focus)->TryGetStringField(TEXT("reason"), NewReason);
+		if (NewSlot != FocusSlot || NewGame != FocusGame)
+		{
+			DC_LOG(Log, TEXT("PREVIEW focus %s/%s -> %s/%s   (%s)"),
+				FocusGame.IsEmpty() ? TEXT("-") : *FocusGame,
+				FocusSlot.IsEmpty() ? TEXT("-") : *FocusSlot,
+				*NewGame, *NewSlot, *NewReason);
+		}
+		FocusGame = NewGame;
+		FocusSlot = NewSlot;
+		FocusReason = NewReason;
 	}
 }
 
@@ -827,6 +925,39 @@ void UDCSubsystem::StartDownloads(TSharedPtr<FDCSlotJob> Job)
 	{
 		return;
 	}
+
+	// Two slots can want the SAME pack at the same moment - a region's large rival is in
+	// both of that game's large slots, so the attract rotation does it every block, and the
+	// portal's live flip does it the instant it fires. The cache is one folder per pack, so
+	// two jobs downloading it at once write over each other's bytes and both fail their
+	// SHA-256. (Brief 017 found this: A1 and A2 both resolved to rival2 on a cold cache and
+	// A1 came back with "sha256 mismatch on pakchunk110-Windows.ucas".)
+	//
+	// So the second one waits instead: it keeps what is on screen, falls back with the
+	// ordinary backoff, and when it tries again the pack is in the cache and costs nothing.
+	FString FetchedBy;
+	for (const TPair<FString, TSharedPtr<FDCSlotJob>>& Other : Jobs)
+	{
+		if (Other.Value == Job || !Other.Value.IsValid() || Other.Value->bCancelled)
+		{
+			continue;
+		}
+		if (Other.Value->Manifest.PackId == Job->Manifest.PackId
+			&& Other.Value->DownloadStartSeconds > 0.0)
+		{
+			FetchedBy = Other.Value->SlotId;
+			break;
+		}
+	}
+	if (!FetchedBy.IsEmpty())
+	{
+		// Outside the loop: FailJob removes this job from the very map being iterated.
+		FailJob(Job, FString::Printf(
+			TEXT("slot %s is already fetching pack %s - waiting for it"),
+			*FetchedBy, *Job->Manifest.PackId));
+		return;
+	}
+
 	Slot->SetState(EDCSlotState::Downloading);
 
 	Job->CacheDir = Cache.DirFor(Job->Manifest.PackId);
@@ -1176,6 +1307,15 @@ void UDCSubsystem::FailJob(TSharedPtr<FDCSlotJob> Job, const FString& Reason)
 void UDCSubsystem::QueueTelemetry(const FString& Type, const FString& SlotId,
 	const FString& AllocKey, double Value)
 {
+	if (bPreview)
+	{
+		// Plan v6 §9 counts a view, a visit, a dwell or an interaction of the **Player**.
+		// This copy is a camera on the brand's screen: nobody is playing it, so nothing it
+		// sees is a view and nothing it mounts is a swap the portal should believe.
+		++TelemetryDropped;
+		return;
+	}
+
 	FDCTelemetryEvent Event;
 	Event.Type = Type;
 	Event.SlotId = SlotId;
@@ -1191,6 +1331,50 @@ void UDCSubsystem::QueueTelemetry(const FString& Type, const FString& SlotId,
 	{
 		FlushTelemetry(true);
 	}
+}
+
+void UDCSubsystem::NoteFrame(float Ms)
+{
+	if (Ms <= 0.0f)
+	{
+		return;
+	}
+	++Frames.Frames;
+	Frames.SumMs += Ms;
+	Frames.WorstMs = FMath::Max(Frames.WorstMs, Ms);
+	// Three buckets rather than a histogram, because a watching script wants to difference
+	// them: "no frame over 25 ms while the preview window was on screen" is the pass line
+	// of plan v6 §11, and that is a subtraction of two readings of Over25.
+	Frames.Over16 += Ms > 16.0f ? 1 : 0;
+	Frames.Over25 += Ms > 25.0f ? 1 : 0;
+	Frames.Over33 += Ms > 33.0f ? 1 : 0;
+	if (FrameSamples.Num() < 240000)
+	{
+		FrameSamples.Add(Ms);
+	}
+}
+
+FDCFrameStats UDCSubsystem::GetFrameStats()
+{
+	// The percentiles need the samples sorted, and the status file is written four times a
+	// second: sorting ten minutes of frames that often would itself cost frame time, in the
+	// one run whose whole purpose is to measure frame time. So they are recomputed at most
+	// once every five seconds, which is far fresher than anything reads them.
+	const double Now = FPlatformTime::Seconds();
+	if (FrameSamples.Num() > 0
+		&& (PercentileFrames != FrameSamples.Num() && Now - LastPercentileSeconds >= 5.0))
+	{
+		LastPercentileSeconds = Now;
+		PercentileFrames = FrameSamples.Num();
+		TArray<float> Sorted = FrameSamples;
+		Sorted.Sort();
+		Frames.MedianMs = Sorted[Sorted.Num() / 2];
+		Frames.Worst1PercentMs = Sorted[FMath::Clamp(FMath::FloorToInt(Sorted.Num() * 0.99f),
+			0, Sorted.Num() - 1)];
+	}
+	Frames.AverageMs = Frames.Frames > 0
+		? static_cast<float>(Frames.SumMs / Frames.Frames) : 0.0f;
+	return Frames;
 }
 
 void UDCSubsystem::FlushTelemetry(bool bForce)
@@ -1307,6 +1491,10 @@ void UDCSubsystem::WriteStatusFile()
 	const TSharedRef<TJsonWriter<TCHAR>> W = TJsonWriterFactory<TCHAR>::Create(&Text);
 	W->WriteObjectStart();
 	W->WriteValue(TEXT("build"), GetBuildConfigName());
+	// The archived build's DCDemo.exe is a launcher that starts the real executable, so a
+	// script that started the game does not have the pid of the process that owns the
+	// window. This is how a test (and the booth's watchdog) finds it.
+	W->WriteValue(TEXT("pid"), static_cast<int32>(FPlatformProcess::GetCurrentProcessId()));
 	W->WriteValue(TEXT("now_utc"), UtcNowIso());
 	W->WriteValue(TEXT("uptime_s"), GetUptimeSeconds());
 	W->WriteValue(TEXT("restarts"), GetRestartCount());
@@ -1323,6 +1511,36 @@ void UDCSubsystem::WriteStatusFile()
 	W->WriteValue(TEXT("cache_packs"), Cache.CountPacks());
 	W->WriteValue(TEXT("crypto"), CryptoApi);
 	W->WriteValue(TEXT("telemetry_sent"), TelemetrySent);
+	W->WriteValue(TEXT("telemetry_dropped"), TelemetryDropped);
+	W->WriteValue(TEXT("preview"), bPreview);
+	// Non-empty only while the portal's live flip has this copy playing as another region.
+	W->WriteValue(TEXT("live_flip_back_to"), FlipBackTo);
+	if (bPreview)
+	{
+		W->WriteValue(TEXT("region_label"), RegionLabel);
+		W->WriteValue(TEXT("region_label_jp"), RegionLabelJp);
+		W->WriteObjectStart(TEXT("focus"));
+		W->WriteValue(TEXT("game"), FocusGame);
+		W->WriteValue(TEXT("slot"), FocusSlot);
+		W->WriteValue(TEXT("reason"), FocusReason);
+		W->WriteObjectEnd();
+	}
+
+	// Frame times, the same samples the tour report uses. The counters are cumulative, so
+	// a watching script can difference two readings and get the average and the number of
+	// frames over 25 ms in any window it cares about - "while the preview window was up".
+	const FDCFrameStats Stats = GetFrameStats();
+	W->WriteObjectStart(TEXT("frame_ms"));
+	W->WriteValue(TEXT("frames"), Stats.Frames);
+	W->WriteValue(TEXT("sum_ms"), Stats.SumMs);
+	W->WriteValue(TEXT("average"), Stats.AverageMs);
+	W->WriteValue(TEXT("median"), Stats.MedianMs);
+	W->WriteValue(TEXT("worst_1_percent"), Stats.Worst1PercentMs);
+	W->WriteValue(TEXT("worst"), Stats.WorstMs);
+	W->WriteValue(TEXT("over_16ms"), Stats.Over16);
+	W->WriteValue(TEXT("over_25ms"), Stats.Over25);
+	W->WriteValue(TEXT("over_33ms"), Stats.Over33);
+	W->WriteObjectEnd();
 
 	W->WriteObjectStart(TEXT("slots"));
 	for (const TWeakObjectPtr<ADCSlot>& Weak : Slots)

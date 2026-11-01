@@ -9,7 +9,10 @@
     "must agree with this file — tests/test_rival_identity.py fails if it ever drifts.",
     "",
     "Region ids stay neutral (r1/r2/r3). 'label' is the booth label; 'neutral_label'",
-    "is what management material says (CLAUDE.md rule 3)."
+    "is what management material says (CLAUDE.md rule 3); 'label_jp' is the Japanese",
+    "name, here because the GAME needs it too - the region preview window draws a",
+    "bilingual caption on the HUD canvas and cannot import portal/strings.js.",
+    "tests/test_preview.py fails if the two ever drift."
   ],
 
   "mode": "local",
@@ -17,9 +20,9 @@
   "client": { "poll_interval_s": 1.5, "prefetch_radius_m": 60.0 },
 
   "regions": {
-    "r1": { "label": "Japan", "neutral_label": "Mock region 1" },
-    "r2": { "label": "India", "neutral_label": "Mock region 2" },
-    "r3": { "label": "Europe", "neutral_label": "Mock region 3" }
+    "r1": { "label": "Japan", "neutral_label": "Mock region 1", "label_jp": "日本" },
+    "r2": { "label": "India", "neutral_label": "Mock region 2", "label_jp": "インド" },
+    "r3": { "label": "Europe", "neutral_label": "Mock region 3", "label_jp": "ヨーロッパ" }
   },
   "booth": { "main_region": "r1", "preview_default_region": "r2" },
 

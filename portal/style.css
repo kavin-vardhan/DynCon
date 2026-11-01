@@ -744,18 +744,45 @@ main {
 .rep-row .c.accent .mono { color: var(--accent); }
 
 /* ------------------------------------------------------------------ the menu */
+/* The menu lives in the LEFT half of the screen, because the right half is where the
+   region preview window lands while this step is open (brief 017 / plan v6 §7). It used to
+   be centred; centred means the window covers it. */
 .menu-layer {
   position: fixed; inset: 0; z-index: 20;
   background: rgba(4, 8, 14, 0.72);
-  display: flex; align-items: center; justify-content: center;
+  display: flex; align-items: center; justify-content: flex-start;
+  padding-left: 1.5rem;
 }
 .menu-layer.hidden { display: none; }
+/* The gap and the buttons below are a notch tighter than elsewhere because this panel now
+   carries five rows (the live flip joined them in brief 017) on top of the region picker
+   and the per-region table: at the old spacing it was 1,012px of content in a 994px box,
+   and the bottom row painted over the edge. The exit test's layout audit is what said so. */
 .menu {
-  width: 60rem; max-height: 92vh; gap: 0.625rem; padding: 1rem 1.25rem;
+  width: 55rem; max-height: 92vh; gap: 0.5rem; padding: 1rem 1.25rem;
   box-shadow: 0 2rem 5rem rgba(0, 0, 0, 0.6);
   border-color: var(--line);
 }
-.menu .button { padding: 0.5rem 1.25rem; }
+
+/* The rectangle the preview window covers: the right half of the monitor, vertically
+   centred, half the monitor's width and height — 960 x 540 at (960, 270) on a 1920 x 1080
+   screen. The game computes the same rectangle from the monitor it is on
+   (DCPreview.cpp::ComputeHomeRect), and the pad helper falls back to it
+   (pad_helper.py::PreviewWindow.monitor_rect). Three places, one rule, written down in
+   each of them. */
+.preview-reserve {
+  position: fixed; left: 50%; top: 25%; width: 50%; height: 50%;
+  border: 2px dashed var(--line); border-radius: 0.75rem;
+  display: flex; align-items: flex-end; justify-content: center;
+  padding-bottom: 1rem; pointer-events: none;
+}
+.preview-reserve .label {
+  padding: 0.375rem 1rem; border-radius: 0.5rem;
+  background: rgba(4, 8, 14, 0.78); text-align: center;
+}
+.preview-reserve[data-state="missing"] { border-color: var(--warn); }
+.preview-reserve[data-state="shown"] { border-color: transparent; }
+.menu .button { padding: 0.375rem 1.25rem; }
 .menu .region-table .r { padding: 0.3125rem 0.625rem; }
 .menu-item {
   padding: 0.75rem 1rem; border-radius: 0.75rem;

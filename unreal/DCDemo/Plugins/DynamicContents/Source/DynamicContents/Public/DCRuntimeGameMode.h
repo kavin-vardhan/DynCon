@@ -10,6 +10,7 @@
 //   -DCBackend=http://127.0.0.1:8700   where the backend is          (UDCSubsystem)
 //   -DCRegion=r1   -DCGame=A           which region and game          (UDCSubsystem)
 //   -DCFollowRegion                    follow GET /preview/region     (UDCSubsystem)
+//   -DCNoFlip                          ignore the portal's live flip  (UDCSubsystem)
 //   -DCStatusFile=<path>               JSON a test script can watch   (UDCSubsystem)
 //   -DCShotDir=<dir>                   photograph every change here
 //   -DCAutoShot                        photograph even without a shot dir
@@ -17,6 +18,27 @@
 //                                      every slot, then walk to each one and in through its
 //                                      door, with a shot from inside. Writes dc_tour.json
 //                                      with the walk results and the frame times.
+//   -DCTourFor=<seconds>               keep touring for at least that long, starting the
+//                                      round again when it ends: how the ten-minute frame
+//                                      time run of plan v6 §11 is driven. Only the first
+//                                      round photographs anything.
+//   -DCPreview                         this copy is the REGION PREVIEW WINDOW (plan v6 §7):
+//                                      no input, no audio, no telemetry, no status strip and
+//                                      no waypoint marker; a 30 fps cap and the lowest
+//                                      scalability; below-normal process priority; a
+//                                      borderless window on the portal's monitor that starts
+//                                      out of sight; and a camera that auto-pilots itself to
+//                                      whatever slot GET /preview/region says the visitor has
+//                                      just been bidding on, framing it from the front at eye
+//                                      level with a slow drift.
+//   -DCPreviewShown                    start it on screen instead of parked off-screen (the
+//                                      soak test wants it visible from the first frame).
+//   -DCPreviewRect=x,y,w,h             where the window goes, instead of the computed
+//   -DCPreviewMonitor=<n>              right half of the portal's monitor.
+//   -DCPreviewFile=<path>              the JSON the pad helper reads to find it again.
+//   -DCPreviewTitle=<text>             the window title the helper matches on.
+//   -DCPreviewFps=<n>                  the frame cap (default 30) and the drift, in degrees
+//   -DCPreviewDrift=<deg>              either side of the front (default 11; 0 = still).
 //   -DCStateTest[=<rounds>]            the state-across-a-swap exit test (plan v6 §14 step 6):
 //                                      walk in, open the door, turn light B on, set the screen
 //                                      to image 3, wait for the replacement the backend is
@@ -39,6 +61,7 @@
 
 #include "CoreMinimal.h"
 #include "DCContentActor.h"
+#include "DCPreview.h"
 #include "DCStateStore.h"
 #include "GameFramework/GameModeBase.h"
 #include "UObject/SoftObjectPath.h"
@@ -226,6 +249,29 @@ private:
 	void WriteStateResultFile();
 	void FaceTowards(const FVector& Where);
 
+	// ---------------------------------------------------------------- the preview window
+	//
+	// Plan v6 §7: "the same game, for a player in India". This copy has no Player and no
+	// input; it is a camera that stands in front of whatever slot the visitor has just been
+	// bidding on and drifts slowly, so a visitor glancing at the right-hand monitor sees
+	// the same spot in another region at the same moment.
+
+	/** The cheap settings, the window, and the camera. Called from BeginPlay. */
+	void StartPreview();
+
+	/** Borderless, placed, named and parked. Runs a couple of seconds in, once the engine
+	 *  has finished deciding things about its own window. */
+	void PlacePreviewWindow();
+
+	void TickPreview(float DeltaSeconds);
+
+	/** The slot this copy should be framing: the server's focus if this map has it. */
+	ADCSlot* PreviewFocusSlot() const;
+
+	/** Where to stand to see `Slot` from the front at eye level, `Drift` degrees round. */
+	void FramePreviewOn(const ADCSlot& Slot, float Drift, FVector& OutEye,
+		FRotator& OutLook) const;
+
 	void Finish();
 	void WriteResultFile();
 	void WriteTourFile();
@@ -252,6 +298,22 @@ private:
 	float TourWaitLeft = 0.0f;
 	bool bTourBuilt = false;
 	TArray<FTourWalk> Walks;
+
+	/** -DCTourFor: keep going round until the run is this old. 0 = one round. */
+	float TourForSeconds = 0.0f;
+	int32 TourRound = 0;
+
+	// preview state
+	bool bPreview = false;
+	bool bPreviewShown = false;
+	bool bPreviewWindowPlaced = false;
+	float PreviewFps = 30.0f;
+	float PreviewDriftDegrees = 11.0f;
+	FString PreviewFilePath;
+	FString PreviewTitle;
+	FDCPreviewRect PreviewHome;
+	FString PreviewFocusId;
+	double PreviewSeconds = 0.0;
 
 	TArray<FVector> WalkTargets;
 	int32 WalkTarget = -1;

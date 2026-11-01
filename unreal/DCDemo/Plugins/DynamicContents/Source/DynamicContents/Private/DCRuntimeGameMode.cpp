@@ -2,6 +2,7 @@
 
 #include "DCContentActor.h"
 #include "DCInteractor.h"
+#include "DCPreview.h"
 #include "DCSlot.h"
 #include "DCStateStore.h"
 #include "DCStatusHud.h"
@@ -17,17 +18,26 @@
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "HAL/FileManager.h"
+#include "HAL/IConsoleManager.h"
 #include "HAL/PlatformMisc.h"
 #include "HAL/PlatformProcess.h"
 #include "HAL/PlatformTime.h"
+#include "Misc/App.h"
 #include "Misc/CommandLine.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Parse.h"
 #include "Misc/Paths.h"
+#include "Scalability.h"
 #include "Serialization/JsonSerializer.h"
 #include "Serialization/JsonWriter.h"
 #include "TimerManager.h"
 #include "UnrealClient.h"
+
+#if PLATFORM_WINDOWS
+#include "Windows/AllowWindowsPlatformTypes.h"
+#include <Windows.h>
+#include "Windows/HideWindowsPlatformTypes.h"
+#endif
 
 namespace
 {
@@ -100,9 +110,42 @@ namespace
 	/** Further than this from the slot and the walk uses the map's approach path. */
 	constexpr float DCStateFarAway = 2800.0f;
 
+	// ---- the region preview window ------------------------------------------------------
+
+	/** Eye level. The same 1.7 m the slot-map tool's thumbnails are taken from. */
+	constexpr float DCPreviewEyeCm = 170.0f;
+
+	/** A narrower frame than the tour's: a 960 x 540 window wants the piece bigger in it. */
+	constexpr float DCPreviewFov = 65.0f;
+
+	/** One lap of the drift. Slow enough to read as a held shot rather than a pan. */
+	constexpr float DCPreviewDriftSeconds = 46.0f;
+
+	/** How long the camera takes to catch up with the drift (seconds to close 63 % of it). */
+	constexpr float DCPreviewSmoothing = 0.55f;
+
+	/** Further than this and a change of slot is a cut, not a fly-through of the map. */
+	constexpr float DCPreviewCutDistance = 6000.0f;
+
+	/** Seconds after BeginPlay before the window is restyled - see PlacePreviewWindow. */
+	constexpr float DCPreviewPlaceDelay = 2.0f;
+
 	FString TwoDigits(int32 N)
 	{
 		return FString::Printf(TEXT("%02d"), N);
+	}
+
+	void DCSetCvar(const TCHAR* Name, const TCHAR* Value)
+	{
+		IConsoleVariable* Var = IConsoleManager::Get().FindConsoleVariable(Name);
+		if (Var == nullptr)
+		{
+			DC_LOG(Warning, TEXT("CVAR  '%s' does not exist in this build"), Name);
+			return;
+		}
+		const FString Before = Var->GetString();
+		Var->Set(Value, ECVF_SetByCommandline);
+		DC_LOG(Log, TEXT("CVAR  %s: %s -> %s"), Name, *Before, *Var->GetString());
 	}
 
 	FString BoolWord(bool b)
@@ -132,6 +175,20 @@ void ADCRuntimeGameMode::InitGame(const FString& MapName, const FString& Options
 	Super::InitGame(MapName, Options, ErrorMessage);
 
 	const TCHAR* Cmd = FCommandLine::Get();
+	bPreview = FParse::Param(Cmd, TEXT("DCPreview"));
+	if (bPreview)
+	{
+		// No Player at all in the preview window: a bare APawn spawns, has no mesh and does
+		// nothing, which is what "no input, and nobody standing in the shot" looks like.
+		// It must not be the game module's mannequin Blueprint - that would put a character
+		// at the spawn point of a window that is meant to show a place, and it would be
+		// carrying the interaction component.
+		DefaultPawnClass = APawn::StaticClass();
+		HUDClass = ADCStatusHud::StaticClass();
+		DC_LOG(Log, TEXT("PREVIEW this copy is the region preview window: no Player pawn"));
+		return;
+	}
+
 	FString Override;
 	if (FParse::Value(Cmd, TEXT("DCPawn="), Override, false) && !Override.IsEmpty())
 	{
@@ -196,6 +253,10 @@ void ADCRuntimeGameMode::BeginPlay()
 		bTour = true;
 		TourWarmupSeconds = Warmup;
 	}
+	if (FParse::Value(Cmd, TEXT("DCTourFor="), TourForSeconds) && TourForSeconds > 0.0f)
+	{
+		bTour = true;
+	}
 	// Both scripted runs wait this long before they start, so the backend has filled every
 	// slot and the first picture is of a map that is already doing its job.
 	if (FParse::Value(Cmd, TEXT("DCWarmup="), Warmup) && Warmup > 0.0f)
@@ -236,6 +297,15 @@ void ADCRuntimeGameMode::BeginPlay()
 	{
 		bAutoShot = false;
 	}
+	// So does the preview window, and it has no Player to drive at all. Its evidence is a
+	// capture of the desktop, which is the only thing that can show it really is a window
+	// on the portal's monitor.
+	if (bPreview && (bTour || bStateTest || bAutoShot))
+	{
+		DC_LOG(Log, TEXT("PREVIEW ignoring the tour / state test / auto-shot: this copy is "
+			"the preview window"));
+		bTour = bStateTest = bAutoShot = false;
+	}
 	FParse::Value(Cmd, TEXT("DCRunSeconds="), RunSeconds);
 	if (FParse::Value(Cmd, TEXT("DCQuitWhenFileExists="), Value, false) && !Value.IsEmpty())
 	{
@@ -243,6 +313,13 @@ void ADCRuntimeGameMode::BeginPlay()
 		// Any file left over from a previous run would stop this one before it started.
 		IFileManager::Get().Delete(*QuitFilePath, false, true, true);
 	}
+
+	// Plan v6 §11, "insurance anyway": never throttle and never mute when this window is
+	// not the foreground one. Both copies run all day with the focus on whichever of them
+	// the staff last touched, and the engine's own default is to silence the unfocused one
+	// (BaseEngine.ini sets UnfocusedVolumeMultiplier=0).
+	DCSetCvar(TEXT("t.IdleWhenNotForeground"), TEXT("0"));
+	FApp::SetUnfocusedVolumeMultiplier(1.0f);
 
 	UDCSubsystem* Subsystem = UDCSubsystem::Get(this);
 	if (Subsystem == nullptr)
@@ -254,6 +331,11 @@ void ADCRuntimeGameMode::BeginPlay()
 	Subsystem->OnSlotActive.AddUObject(this, &ADCRuntimeGameMode::OnSlotActive);
 	Subsystem->OnSlotFallback.AddUObject(this, &ADCRuntimeGameMode::OnSlotFallback);
 	Subsystem->Start();
+
+	if (bPreview)
+	{
+		StartPreview();
+	}
 
 	DC_LOG(Log, TEXT("slots in map: %d   auto-shot=%s tour=%s state-test=%s dir=%s   "
 		"run_seconds=%.0f"),
@@ -548,6 +630,273 @@ void ADCRuntimeGameMode::PointCameraOverview()
 		*Eye.ToCompactString(), *Centre.ToCompactString());
 }
 
+// ================================================================ the preview window
+
+void ADCRuntimeGameMode::StartPreview()
+{
+	const TCHAR* Cmd = FCommandLine::Get();
+
+	bPreviewShown = FParse::Param(Cmd, TEXT("DCPreviewShown"));
+	FParse::Value(Cmd, TEXT("DCPreviewFps="), PreviewFps);
+	FParse::Value(Cmd, TEXT("DCPreviewDrift="), PreviewDriftDegrees);
+
+	PreviewTitle = FDCPreviewWindow::DefaultTitle();
+	FString Value;
+	if (FParse::Value(Cmd, TEXT("DCPreviewTitle="), Value, false) && !Value.IsEmpty())
+	{
+		PreviewTitle = Value.TrimQuotes();
+	}
+	PreviewFilePath = FPaths::ProjectSavedDir() / TEXT("dc_preview_window.json");
+	if (FParse::Value(Cmd, TEXT("DCPreviewFile="), Value, false) && !Value.IsEmpty())
+	{
+		PreviewFilePath = Value.TrimQuotes();
+	}
+	PreviewFilePath = FPaths::ConvertRelativePathToFull(PreviewFilePath);
+
+	// ---- the budget (plan v6 §11) ------------------------------------------------------
+	//
+	// "30 fps cap, half resolution, lowest settings, below-normal process priority, its own
+	// pack cache folder." The resolution is the window: 960 x 540 is half of 1080p on each
+	// axis, a quarter of the pixels, and the window is exactly the size it renders because
+	// it is borderless (DCPreview.h). The cache folder is -DCCacheDir, which the start
+	// script passes. The rest is here, so that -DCPreview alone is enough.
+	DCSetCvar(TEXT("t.MaxFPS"), *FString::Printf(TEXT("%.0f"), FMath::Max(PreviewFps, 1.0f)));
+	DCSetCvar(TEXT("r.ScreenPercentage"), TEXT("100"));
+
+	Scalability::FQualityLevels Levels;
+	Levels.SetFromSingleQualityLevel(0);
+	Scalability::SetQualityLevels(Levels);
+	DC_LOG(Log, TEXT("PREVIEW scalability set to the lowest level"));
+
+	// ...and this is why the preview needs `-UserDir=` (run_preview.ps1 passes it).
+	//
+	// The engine persists the scalability groups and the window resolution into
+	// GameUserSettings.ini under the project's user directory - which, for two copies of
+	// one packaged build, is the SAME file. Left alone, the preview's lowest-quality,
+	// half-resolution settings become the main game's settings the next time it starts:
+	// `sg.ResolutionQuality=50` and every group at 0, quietly, overnight, with nothing in
+	// any log to say why the booth's screen looks soft. It is caught here rather than
+	// trusted to a start script because the failure is invisible and a day late.
+	const FString SavedDir = FPaths::ConvertRelativePathToFull(FPaths::ProjectSavedDir());
+	if (!FParse::Param(Cmd, TEXT("UserDir")) &&
+		!FCString::Strifind(Cmd, TEXT("-UserDir=")))
+	{
+		DC_LOG(Warning, TEXT("PREVIEW no -UserDir= : this copy shares %s with the main "
+			"game, and the lowest-quality settings it has just applied will be saved into "
+			"the GameUserSettings.ini the main game reads"), *SavedDir);
+	}
+	else
+	{
+		DC_LOG(Log, TEXT("PREVIEW its own saved dir: %s"), *SavedDir);
+	}
+
+	// Silent, whether or not -nosound was passed.
+	FApp::SetVolumeMultiplier(0.0f);
+
+#if PLATFORM_WINDOWS
+	const BOOL bPriority = ::SetPriorityClass(::GetCurrentProcess(),
+		BELOW_NORMAL_PRIORITY_CLASS);
+	DC_LOG(Log, TEXT("PREVIEW process priority -> below normal: %s"),
+		bPriority ? TEXT("ok") : TEXT("FAILED"));
+#endif
+
+	// ---- out of sight before anything is drawn ----------------------------------------
+	FDCPreviewWindow::HideAtBoot();
+
+	// ---- the camera -------------------------------------------------------------------
+	if (UWorld* World = GetWorld())
+	{
+		FActorSpawnParameters Params;
+		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		ACameraActor* Cam = World->SpawnActor<ACameraActor>(ACameraActor::StaticClass(),
+			FTransform::Identity, Params);
+		Camera = Cam;
+		if (Cam != nullptr && Cam->GetCameraComponent() != nullptr)
+		{
+			Cam->GetCameraComponent()->SetFieldOfView(DCPreviewFov);
+		}
+		if (APlayerController* PC = World->GetFirstPlayerController())
+		{
+			if (Cam != nullptr)
+			{
+				PC->SetViewTargetWithBlend(Cam, 0.0f);
+			}
+			// Nothing a human does reaches this copy. Pad 2 is the helper's and pad 1 is
+			// the main game's; this window is furniture.
+			PC->SetIgnoreMoveInput(true);
+			PC->SetIgnoreLookInput(true);
+		}
+	}
+
+	// The engine is still making up its mind about its own window for a frame or two after
+	// BeginPlay (resolution, window mode), and a style change it then undoes leaves a
+	// bordered window in the wrong place. Two seconds is long after all of that, and the
+	// window is hidden for every one of them.
+	FTimerHandle Handle;
+	GetWorldTimerManager().SetTimer(Handle, this, &ADCRuntimeGameMode::PlacePreviewWindow,
+		DCPreviewPlaceDelay, false);
+}
+
+void ADCRuntimeGameMode::PlacePreviewWindow()
+{
+	FString How;
+	PreviewHome = FDCPreviewWindow::ComputeHomeRect(How);
+
+	FString Error;
+	if (!FDCPreviewWindow::Apply(PreviewHome, bPreviewShown, PreviewTitle, Error))
+	{
+		DC_LOG(Error, TEXT("PREVIEW could not place the window: %s"), *Error);
+		return;
+	}
+	bPreviewWindowPlaced = true;
+
+	FDCPreviewRect Now;
+	const bool bHaveNow = FDCPreviewWindow::GetWindowRect(Now);
+	DC_LOG(Log, TEXT("PREVIEW window '%s' borderless at %s (%s)%s, %s"),
+		*PreviewTitle, *PreviewHome.Describe(), *How,
+		bHaveNow ? *FString::Printf(TEXT("; now at %s"), *Now.Describe()) : TEXT(""),
+		bPreviewShown ? TEXT("shown") : TEXT("parked off-screen until the portal asks"));
+
+	if (FDCPreviewWindow::WriteStateFile(PreviewFilePath, PreviewTitle, PreviewHome,
+		bPreviewShown))
+	{
+		DC_LOG(Log, TEXT("PREVIEW wrote %s - the pad helper reads this to find the window"),
+			*PreviewFilePath);
+	}
+	else
+	{
+		DC_LOG(Warning, TEXT("PREVIEW could not write %s"), *PreviewFilePath);
+	}
+}
+
+ADCSlot* ADCRuntimeGameMode::PreviewFocusSlot() const
+{
+	const UDCSubsystem* Subsystem = UDCSubsystem::Get(this);
+	if (Subsystem == nullptr)
+	{
+		return nullptr;
+	}
+	const TArray<ADCSlot*> Slots = Subsystem->GetSlots();
+	if (Slots.Num() == 0)
+	{
+		return nullptr;
+	}
+
+	const FString WantGame = Subsystem->GetFocusGame();
+	const FString WantSlot = Subsystem->GetFocusSlot();
+
+	// The focus can name a slot in the *other* game - a visitor is free to bid on Game B
+	// while Game A is the one on the booth's screens. This copy plays the map it was
+	// started on, so it keeps framing the slot it has and the log says why; swapping map
+	// would be a level load in a window that is meant to be a still of somewhere else.
+	if (!WantSlot.IsEmpty() && (WantGame.IsEmpty() || WantGame == Subsystem->GetGame()))
+	{
+		for (ADCSlot* Slot : Slots)
+		{
+			if (Slot->SlotId.ToString() == WantSlot)
+			{
+				return Slot;
+			}
+		}
+	}
+	return Slots[0];                  // the map's first slot: always something to look at
+}
+
+void ADCRuntimeGameMode::FramePreviewOn(const ADCSlot& Slot, float Drift, FVector& OutEye,
+	FRotator& OutLook) const
+{
+	// What is actually standing there, not what the class allows: a small piece in a large
+	// slot would otherwise be a dot in the middle of an empty frame.
+	FBox Bounds = Slot.GetContentBounds();
+	if (!Bounds.IsValid)
+	{
+		const FVector Limits = Slot.GetClassLimits();
+		Bounds = FBox(Slot.GetActorLocation() - FVector(Limits.X, Limits.Y, 0.0f) * 0.5f,
+			Slot.GetActorLocation() + FVector(Limits.X * 0.5f, Limits.Y * 0.5f, Limits.Z));
+	}
+	const FVector Centre = Bounds.GetCenter();
+	const FVector Extent = Bounds.GetExtent();
+	const float GroundZ = Slot.GetActorLocation().Z;
+
+	// Stand far enough back that the piece fits the frame, in the tighter of the two axes:
+	// the window is 16:9, so a 20 m tall T piece is held by its height and a 14 m wide L
+	// piece by its width.
+	//
+	// The height needs one correction. The camera is at eye level and the piece is aimed at
+	// its own middle, so the camera is *below* what it is looking at and the top of the
+	// building is further off the middle of the frame than half its height: without the
+	// allowance for that drop, an L piece has its roof on the top edge of the window.
+	const float HalfFovH = FMath::DegreesToRadians(DCPreviewFov * 0.5f);
+	const float HalfFovV = FMath::Atan(FMath::Tan(HalfFovH) * 9.0f / 16.0f);
+	const float AimZ = Centre.Z;
+	const float HalfUp = FMath::Max(Bounds.Max.Z - AimZ, AimZ - Bounds.Min.Z)
+		+ FMath::Abs(AimZ - (GroundZ + DCPreviewEyeCm)) * 0.5f;
+	const float ReachW = FMath::Max(Extent.X, Extent.Y) / FMath::Tan(HalfFovH);
+	const float ReachH = HalfUp / FMath::Max(FMath::Tan(HalfFovV), 0.01f);
+	const float Reach = FMath::Max(ReachW, ReachH) * 1.15f + 250.0f;
+
+	// The slot's +X is the door direction (ADCSlot::GetDoorApproachPoint), so "from the
+	// front" is along it, and the drift swings a few degrees either side of that.
+	const FVector Forward = Slot.GetActorForwardVector().RotateAngleAxis(Drift,
+		FVector::UpVector);
+
+	OutEye = FVector(Centre.X, Centre.Y, GroundZ) + Forward * Reach
+		+ FVector(0.0f, 0.0f, DCPreviewEyeCm);
+	// Aim at the middle of the piece's height, which from eye level is a slight look up -
+	// the way somebody standing in front of a building looks at it.
+	const FVector Look(Centre.X, Centre.Y, Centre.Z);
+	OutLook = (Look - OutEye).Rotation();
+}
+
+void ADCRuntimeGameMode::TickPreview(float DeltaSeconds)
+{
+	ACameraActor* Cam = Camera.Get();
+	if (Cam == nullptr)
+	{
+		return;
+	}
+	// The camera is driven from the first tick, whether or not the window has been placed
+	// yet: the first frame the portal ever shows is then already framed.
+	const ADCSlot* Slot = PreviewFocusSlot();
+	if (Slot == nullptr)
+	{
+		return;
+	}
+
+	PreviewSeconds += DeltaSeconds;
+	const float Phase = static_cast<float>(PreviewSeconds) * 2.0f * PI / DCPreviewDriftSeconds;
+	const float Drift = PreviewDriftDegrees * FMath::Sin(Phase);
+
+	FVector Eye;
+	FRotator Look;
+	FramePreviewOn(*Slot, Drift, Eye, Look);
+
+	const FString Id = Slot->SlotId.ToString();
+	const bool bNewSlot = Id != PreviewFocusId;
+	if (bNewSlot)
+	{
+		DC_LOG(Log, TEXT("PREVIEW framing slot %s (%s): %s"), *Id,
+			*Slot->GetSizeClassName(),
+			*Slot->DescribeShowing());
+		PreviewFocusId = Id;
+	}
+
+	// A change of slot is a cut when the two are far apart - flying across a plaza and
+	// through a wall is not what "the same slot, another region" is meant to look like -
+	// and a smooth catch-up otherwise, which is what carries the drift.
+	const float Jump = FVector::Dist(Cam->GetActorLocation(), Eye);
+	if (bNewSlot && Jump > DCPreviewCutDistance)
+	{
+		Cam->SetActorLocationAndRotation(Eye, Look);
+		return;
+	}
+	const float Alpha = FMath::Clamp(DeltaSeconds / FMath::Max(DCPreviewSmoothing, 0.01f),
+		0.0f, 1.0f);
+	Cam->SetActorLocation(FMath::Lerp(Cam->GetActorLocation(), Eye, Alpha));
+	Cam->SetActorRotation(FMath::RInterpTo(Cam->GetActorRotation(), Look, DeltaSeconds,
+		1.0f / FMath::Max(DCPreviewSmoothing, 0.01f)));
+}
+
 // ===================================================================== the scripted tour
 
 void ADCRuntimeGameMode::BuildTour()
@@ -558,6 +907,12 @@ void ADCRuntimeGameMode::BuildTour()
 
 	auto Add = [this](ETourKind Kind, float Seconds, int32 Index, const FString& Label)
 	{
+		// Only the first round round photographs anything: a ten-minute -DCTourFor run is
+		// seven laps, and seven sets of the same pictures is not seven times the evidence.
+		if (Kind == ETourKind::Shot && TourRound > 0)
+		{
+			return;
+		}
 		FTourAction A;
 		A.Kind = Kind;
 		A.Seconds = Seconds;
@@ -591,7 +946,8 @@ void ADCRuntimeGameMode::BuildTour()
 
 	TourIndex = 0;
 	bTourBuilt = true;
-	DC_LOG(Log, TEXT("TOUR  %d action(s) over %d slot(s)"), Tour.Num(), SlotCount);
+	DC_LOG(Log, TEXT("TOUR  round %d: %d action(s) over %d slot(s)"), TourRound + 1,
+		Tour.Num(), SlotCount);
 }
 
 void ADCRuntimeGameMode::SetViewToPawn()
@@ -915,9 +1271,24 @@ void ADCRuntimeGameMode::TickTour(float DeltaSeconds)
 
 	case ETourKind::End:
 	default:
-		DC_LOG(Log, TEXT("TOUR  done"));
+	{
+		// -DCTourFor: go round again until the run is that old. That is how the ten-minute
+		// frame-time run of plan v6 §11 is driven - one lap of Game A is about 90 seconds,
+		// so a long measurement is laps of the same honest walk rather than a camera left
+		// standing still, which would measure nothing.
+		const float Elapsed = static_cast<float>(FPlatformTime::Seconds() - StartSeconds);
+		if (TourForSeconds > 0.0f && Elapsed < TourForSeconds)
+		{
+			++TourRound;
+			DC_LOG(Log, TEXT("TOUR  round %d done at %.0f s of %.0f - going round again"),
+				TourRound, Elapsed, TourForSeconds);
+			BuildTour();
+			return;
+		}
+		DC_LOG(Log, TEXT("TOUR  done (%d round(s), %.0f s)"), TourRound + 1, Elapsed);
 		Finish();
 		return;
+	}
 	}
 }
 
@@ -1633,7 +2004,21 @@ void ADCRuntimeGameMode::Tick(float DeltaSeconds)
 	}
 	if (bCollectFrames && DeltaSeconds > 0.0f && Now - LastShotSeconds > DCShotBlackout)
 	{
-		FrameMs.Add(DeltaSeconds * 1000.0f);
+		const float Ms = DeltaSeconds * 1000.0f;
+		FrameMs.Add(Ms);
+		// The same sample goes to the subsystem, which keeps the running counters the
+		// status file carries - so a script watching the file and the tour report at the
+		// end of the run can never disagree about what a frame cost.
+		if (UDCSubsystem* Subsystem = UDCSubsystem::Get(this))
+		{
+			Subsystem->NoteFrame(Ms);
+		}
+	}
+
+	if (bPreview)
+	{
+		TickPreview(DeltaSeconds);
+		return;
 	}
 
 	// The interaction component belongs to the plugin, not to the game module's pawn
@@ -1763,8 +2148,20 @@ void ADCRuntimeGameMode::WriteTourFile()
 	W->WriteValue(TEXT("map"), GetWorld()->GetMapName());
 	W->WriteValue(TEXT("build"), UDCSubsystem::GetBuildConfigName());
 	W->WriteValue(TEXT("tour"), bTour);
+	W->WriteValue(TEXT("rounds"), TourRound + 1);
 	W->WriteValue(TEXT("shots"), ShotCount);
 	W->WriteValue(TEXT("seconds"), FPlatformTime::Seconds() - StartSeconds);
+	W->WriteValue(TEXT("region"), Subsystem ? Subsystem->GetRegion() : FString());
+
+	int32 Over16 = 0;
+	int32 Over25 = 0;
+	int32 Over33 = 0;
+	for (float Ms : Sorted)
+	{
+		Over16 += Ms > 16.0f ? 1 : 0;
+		Over25 += Ms > 25.0f ? 1 : 0;
+		Over33 += Ms > 33.0f ? 1 : 0;
+	}
 
 	W->WriteObjectStart(TEXT("frame_ms"));
 	W->WriteValue(TEXT("frames"), Sorted.Num());
@@ -1773,6 +2170,11 @@ void ADCRuntimeGameMode::WriteTourFile()
 	W->WriteValue(TEXT("worst_1_percent"), Worst1);
 	W->WriteValue(TEXT("worst"), Worst);
 	W->WriteValue(TEXT("average_fps"), Average > 0.0f ? 1000.0f / Average : 0.0f);
+	// Plan v6 §11's pass line is "the worst 1 % stays under 25 ms", so the count of frames
+	// that did not is worth having next to it rather than derivable from it.
+	W->WriteValue(TEXT("over_16ms"), Over16);
+	W->WriteValue(TEXT("over_25ms"), Over25);
+	W->WriteValue(TEXT("over_33ms"), Over33);
 	W->WriteObjectEnd();
 
 	W->WriteArrayStart(TEXT("walks"));

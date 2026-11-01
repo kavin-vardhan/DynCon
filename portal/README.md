@@ -1,9 +1,9 @@
 # The brand portal — what is here and how to run it
 
 *The right-hand monitor of the booth, driven by controller 2. Built to `specs/portal_spec_v1.md`.
-**DONE**: the whole tour — the app shell and steps 0–4 (brief 014), and steps 5–11 plus the Start
-menu and the idle reset (brief 015). Nothing here is QUEUED; what is left is the game side of the
-deferred swap (plan v6 §14 step 6) and the preview window's own placement, both outside the portal.*
+**DONE**: the whole tour — the app shell and steps 0–4 (brief 014), steps 5–11 plus the Start
+menu and the idle reset (brief 015), and the region preview window's show/hide and the
+rectangle it lands on (brief 017). Nothing here is QUEUED.*
 
 ## Run it
 
@@ -38,6 +38,9 @@ reset from sixty seconds to five while rehearsing. The booth URL has no query at
 | `fonts/` | the bundled Noto Sans JP subset + `OFL.txt` + `make_subset.py` that cuts it |
 | `_shots/014/`, `_shots/015/` | the exit tests' contact sheets (the per-screen PNGs are git-ignored and rebuilt by the test) |
 
+The region preview window's own exit test lives in `booth/preview_exit_test.py` and writes
+to `booth/_shots/017/`, because it is two copies of the game as well as the portal.
+
 ## The rules this app keeps
 
 1. **Every string is Japanese and English at the same time**, JP on top. There is no language
@@ -53,7 +56,9 @@ reset from sixty seconds to five while rehearsing. The booth URL has no query at
    is exactly one focus ring on screen, and the button-hint bar is always visible. The exit test
    fails the build if any of that stops being true.
 4. **The pad never needs focus.** Presses arrive over a WebSocket from `booth/pad_helper.py`, so
-   the browser window can be behind anything. The keyboard is the emergency fallback.
+   the browser window can be behind anything. The keyboard is the emergency fallback. The same
+   socket carries one message the other way — show or hide the region preview window — because
+   a web page cannot move another program's window and the helper can.
 
 ## Keyboard fallback
 
@@ -102,7 +107,21 @@ reset from sixty seconds to five while rehearsing. The booth URL has no query at
    machine; the portal cannot see them and says so), and mount (the game's own telemetry, counted
    per region by `/report`). Beside it, what each region is showing right now.
 8. **Region check** — in the Start menu: pick the region the second copy of the game plays as,
-   and it says in plain words "this is the same game, for a player in India".
+   and it says in plain words "this is the same game, for a player in India". Opening this
+   step **shows the preview window** and leaving it hides it again: the portal cannot move
+   another program's window, so it asks the pad helper over the WebSocket the pad already
+   arrives on (`{"type":"preview","show":true}`), and the helper answers with what it did.
+   The menu's panel sits in the **left half** of the screen and the right half is left empty
+   for the window — `.preview-reserve` in `style.css` is exactly the rectangle it lands on:
+   the right half of the monitor, vertically centred, half its width and height, which is
+   the same rule the game computes from the monitor it is on. While the window is missing
+   (the second copy is not running), that rectangle says so instead.
+
+   The menu's second row is the **fallback** for the same step (plan v6 §11): *"Play the
+   main game as this region"* posts `/preview/flip`, and the **main** game plays as the
+   chosen region for twenty seconds — the slot swaps in front of the Player and swaps back.
+   It is there whether or not the preview window is running, because it is also the quickest
+   way for staff to show the same thing on one screen.
 9. **Report** — per region: views as two columns, simulated and counted, never added up into one
    number; visits, dwell, interactions, credits charged and credits per 1,000 views; the time
    left in the block; Pause (which takes your content down and puts the game's own back); "book

@@ -59,6 +59,9 @@ export const api = {
   report: () => get('/report'),
   previewRegion: () => get('/preview/region'),
   setPreviewRegion: (region) => post('/preview/region', { region }),
+  // The fallback when there is no second copy of the game: the main game plays as another
+  // region for a few seconds and the slot swaps in front of the Player (plan v6 §11).
+  liveFlip: (region, seconds) => post('/preview/flip', { region, seconds }),
   setPaused: (paused) => post('/campaign/pause', { paused }),
 
   /** The bytes of one file on "the brand's computer", with real read progress. */

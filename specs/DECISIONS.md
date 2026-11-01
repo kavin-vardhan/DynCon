@@ -256,3 +256,81 @@ decisions. Each line: date · decision · why. Kavin can overturn any of these; 
   straight above, with every other reflection method already off, the sky light's cubemap was
   all it had to reflect - so the sea came out white, and because the white sea is half the frame
   the histogram exposure then pulled the roofs down to black.
+
+- 2026-11-01 · The region preview window is the **same packaged build with `-DCPreview`**,
+  not a second program or a second project. · Plan v6 §7 says "a second copy of the same
+  game"; one flag that turns off the Player, the audio, the telemetry and the HUD, and turns
+  on the window placement and the auto-pilot camera, is the only version of that which cannot
+  drift from what the main game does.
+- 2026-11-01 · The preview window's home is **the right half of the portal's monitor,
+  vertically centred, half the monitor's width and height** - 960 x 540 at (960, 270) on a
+  1920 x 1080 screen. The rule is written in three places that must agree: the game
+  (`DCPreview.cpp::ComputeHomeRect`), the portal's reserved rectangle
+  (`portal/style.css .preview-reserve`) and the pad helper's fallback
+  (`pad_helper.py::PreviewWindow.monitor_rect`). · Each of the three has to be able to work
+  it out alone - the game has no portal, the portal has no monitor list, the helper may be
+  started before either - so the rule is stated in each rather than passed between them. The
+  Start menu's panel moved to the left half to make room.
+- 2026-11-01 · Hidden means **moved off-screen (x = 30,000), not minimised**. · A minimised
+  Unreal window stops drawing, and the window has to be already showing the right thing the
+  instant the portal asks for it. 30,000 and not more because Windows clamps a window
+  position to a signed 16-bit number: 40,000 came back as 32,767 and "is it hidden?" read as
+  a bug. "Shown" is tested as *does this window overlap a monitor*, not as a comparison with
+  the constant.
+- 2026-11-01 · Every move of that window carries **SWP_NOACTIVATE**, and the booth's start
+  order is server -> portal -> **preview** -> main game. · Nothing after boot can take focus;
+  creating a window always does, so the main game is started last and keeps focus - and with
+  it pad 1 - for the rest of the day (plan v6 §11).
+- 2026-11-01 · The window is hidden from the plugin's **module startup**, not from the game
+  mode. · A Shipping build starts in the default map and travels (`-DCMap=`), so the runtime
+  game mode's BeginPlay is several seconds after the window exists - and for those seconds
+  the booth would be looking at a bordered window of the spike map.
+- 2026-11-01 · **The preview window posts no telemetry at all.** · It is a camera parked in
+  front of content for minutes at a time: every slot it frames would post a `view` nobody
+  saw, and a `mount` from a machine nobody is playing is exactly what the portal's
+  push-update screen reads as "the game swapped it".
+- 2026-11-01 · The slot the preview frames comes from the **server** (`GET /preview/region`'s
+  new `focus` block), derived in three steps: the lot the visitor last bid on, else their
+  newest allocation, else the busiest slot of the game at the booth. · "The slot just
+  auctioned" is right from the moment a bid is placed, before the auction has even closed;
+  the second rule is what a rehearsal driven by `/admin/allocate` has instead; the third
+  means the window always has something to frame during the attract loop.
+- 2026-11-01 · The region's **Japanese name is in `server/config/demo.json`** (`label_jp`),
+  served by `/preview/region` and `/config/public`, with `tests/test_preview.py` failing if
+  it disagrees with `portal/strings.js`. · The preview's caption is drawn on the game's HUD
+  canvas and cannot import the portal's string table; the same pattern as the art kit's
+  `PREVIEW_IDENTITY` table and `test_rival_identity.py`. CJK renders on the canvas because
+  the engine's `Roboto` is a composite font whose fallback face, DroidSansFallback, is
+  cooked into the build.
+- 2026-11-01 · The ten-minute frame-time run is **laps of the scripted tour**
+  (`-DCTourFor=<seconds>`), not a camera left standing. Only the first lap photographs
+  anything. · What costs frames is a Player walking the plaza and going inside three pieces
+  of content; a still camera would measure the cheapest thing the booth ever does.
+- 2026-11-01 · The preview copy is started with **`-UserDir=<its own folder>`**, and
+  `-DCPreview` warns when it is not. · Two copies of one packaged build share one
+  `GameUserSettings.ini`, and the engine persists the scalability groups and the window
+  resolution into it - so the preview's lowest settings and half resolution became the
+  *main* game's settings the next time it started (375 fps instead of 80, found only
+  because a soak run's frame times were implausibly good). The test drivers give both
+  copies their own, so a measurement starts from the build's own settings.
+- 2026-11-01 · The **live-flip fallback** of plan v6 §11 is built: `POST /preview/flip
+  {region, seconds}` stores a timestamp, `/changes` carries it to every copy of the game,
+  and the main game switches its own region for that long and back. The preview window
+  ignores it. · The frame-time run is a FAIL by the stated rule, which is the condition the
+  plan attaches the fallback to - though what failed is the PC and not the preview (the
+  solo run misses the 25 ms line too; the preview adds about 5 %). It rides on `/changes`
+  rather than a new endpoint because it is a thing the game has to act on within a second,
+  and that is the request that happens within a second.
+- 2026-11-01 · **Two slots that want the same pack do not both download it.** The second
+  job keeps what is on screen and falls back with the ordinary backoff; by the retry the
+  pack is cached. · A region's large rival stands in both of a game's large slots, so A1
+  and A2 resolve to the same pack at the same instant - and the cache is one folder per
+  pack, so two downloads wrote over each other and both failed their SHA-256. Live since
+  brief 011; found by brief 017's live flip, and the attract rotation would have found it
+  at the booth.
+- 2026-11-01 · The game's status file carries **cumulative frame counters** (frames, summed
+  ms, and the count of frames over 16 / 25 / 33 ms) as well as whole-run percentiles, and the
+  percentiles are recomputed at most once every five seconds. · A test differences two
+  readings to get the average over any window it likes - "while the preview window was up" -
+  and sorting ten minutes of samples four times a second would itself cost frame time in the
+  one run whose purpose is to measure frame time.
