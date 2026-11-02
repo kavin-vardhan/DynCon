@@ -156,29 +156,55 @@ PREBUILT: list[dict[str, object]] = [
 _USER = os.environ.get("USERNAME") or "\x00no-such-user\x00"
 _MACHINE = os.environ.get("COMPUTERNAME") or "\x00no-such-machine\x00"
 
-GUARD_TERMS: list[tuple[str, re.Pattern[str], bool]] = [
+# Two folders in the export are somebody else's build: `game/` is staged out of the Unreal
+# engine and `python/` is CPython from python.org with packages from PyPI. Hundreds of
+# megabytes of binaries and source written by other people, and the terms below divide into
+# two kinds accordingly.
+#
+# IDENTITY_TERMS are about how THIS PROJECT was written, so they are checked over what this
+# project wrote. Inside the two folders above they are reported instead: the engine's audio
+# code names the Opus codec, Pillow credits a contributor called Jean-Claude, and every
+# package on PyPI records its author's e-mail address. None of that is this project.
+#
+# PERSONAL_TERMS are about a person or a machine, and those are checked everywhere, third
+# party or not: a third-party binary has no business naming this machine either, and if one
+# ever did we would want the export to stop.
+THIRD_PARTY_TREES = ("game/", "python/")
+
+IDENTITY_TERMS: list[tuple[str, re.Pattern[str], bool]] = [
     ("claude", re.compile(r"claude", re.I), False),
     ("anthropic", re.compile(r"anthropic", re.I), False),
     ("gmail", re.compile(r"gmail", re.I), False),
+    ("cowork", re.compile(r"cowork", re.I), False),
+    ("Co-Authored-By", re.compile(r"co-authored-by", re.I), False),
+    ("opus (as a word)", re.compile(r"(?<![A-Za-z])opus(?![A-Za-z])", re.I), True),
+]
+
+PERSONAL_TERMS: list[tuple[str, re.Pattern[str], bool]] = [
     ("kavinvardhan", re.compile(r"kavinvardhan", re.I), False),
     ("kavin-vardhan", re.compile(r"kavin-vardhan", re.I), False),
     ("dyncon", re.compile(r"dyncon", re.I), False),
     ("mrtocsik", re.compile(r"mrtocsik", re.I), False),
-    ("cowork", re.compile(r"cowork", re.I), False),
-    ("Co-Authored-By", re.compile(r"co-authored-by", re.I), False),
-    ("opus (as a word)", re.compile(r"(?<![A-Za-z])opus(?![A-Za-z])", re.I), True),
-    # This machine. A drive letter in front of the project or the engine folder is what
-    # makes these paths rather than words: "DynamicContents" on its own is the plugin's
-    # name and is in the game's own binaries by design, and "EpicGames" on its own is in
-    # Epic's own engine strings (see ADVISORY_TERMS).
-    ("a path into this project", re.compile(r"[A-Za-z]:[\\/]{1,2}DynamicContents", re.I), False),
-    ("a path into the engine", re.compile(r"[A-Za-z]:[\\/]{1,2}EpicGames", re.I), False),
+    # An e-mail address belonging to whoever is logged in here, whatever the domain.
+    ("an address of this machine's user",
+     re.compile(re.escape(_USER) + r"[\w.+-]*@", re.I), False),
+    # This machine's folders. A drive letter in front of the project or the engine folder is
+    # what makes these paths rather than words - "DynamicContents" on its own is the
+    # plugin's name and is in the game's own binaries by design, and "EpicGames" on its own
+    # is in Epic's own engine strings (see ADVISORY_TERMS). The lookbehind is what keeps a
+    # URL out: "https://epicgames.com" is a letter, a colon and two slashes too.
+    ("a path into this project",
+     re.compile(r"(?<![A-Za-z])[A-Za-z]:[\\/]{1,2}DynamicContents", re.I), False),
+    ("a path into the engine",
+     re.compile(r"(?<![A-Za-z])[A-Za-z]:[\\/]{1,2}EpicGames", re.I), False),
     ("a Steam library path", re.compile(r"steamapps", re.I), False),
     ("this machine's user folder",
      re.compile(r"C:[\\/]{1,2}Users[\\/]{1,2}" + re.escape(_USER), re.I), False),
     ("this machine's user name", re.compile(re.escape(_USER), re.I), len(_USER) < 6),
     ("this machine's name", re.compile(re.escape(_MACHINE), re.I), len(_MACHINE) < 6),
 ]
+
+GUARD_TERMS = IDENTITY_TERMS + PERSONAL_TERMS
 
 # Reported in full on every run, and not a reason to refuse.
 #
@@ -244,6 +270,12 @@ def _string_run(text: str, match: re.Match[str]) -> int:
     return end - start
 
 
+def third_party(rel: str) -> bool:
+    """Is this file part of somebody else's build? See THIRD_PARTY_TREES."""
+    return any(rel == tree.rstrip("/") or rel.startswith(tree)
+               for tree in THIRD_PARTY_TREES)
+
+
 def _search(text: str, rel: str, where: str, hits: list[Hit], advisories: list[Hit],
             *, textual: bool = True) -> None:
     """Every term, hard and advisory, over one view of one file.
@@ -252,11 +284,16 @@ def _search(text: str, rel: str, where: str, hits: list[Hit], advisories: list[H
     chunk - so a match counts wherever it falls. A view of binary bytes is held to the
     string test above for the terms that ask for it.
     """
+    outside = not third_party(rel)
     for term, pattern, needs_string in GUARD_TERMS:
+        hard = outside or (term, pattern, needs_string) in PERSONAL_TERMS
         for match in pattern.finditer(text):
             if needs_string and not textual and _string_run(text, match) < MIN_STRING_RUN:
                 continue               # a few letters of compressor output, not a string
-            hits.append(Hit(rel, term, where, _snippet(text, match)))
+            where_from = where if hard else f"{where} (third-party: {term})"
+            (hits if hard else advisories).append(
+                Hit(rel, term if hard else f"{term}, in somebody else's build",
+                    where_from, _snippet(text, match)))
             break                      # one example per term per view is enough
     for term, pattern in ADVISORY_TERMS:
         match = pattern.search(text)

@@ -69,17 +69,21 @@ GET_PIP_URL = "https://bootstrap.pypa.io/get-pip.py"
 # in this tree is drawn with, and what both exit tests compare screenshots with.
 EXTRA_PACKAGES = ["pillow==13.0.0"]
 
-# Anything that would say which machine built the bundle. The export's own guard checks the
-# same shapes over everything; this is the earlier, narrower check, so a bad bundle is
-# caught here rather than at the end of an export.
+# Anything that would say which machine built the bundle, and nothing that would say which
+# machine built it: both halves of the pattern are worked out at run time, from the name of
+# the folder this tree happens to sit in and from the environment, so this file carries
+# neither written down. (The export's own guard searches for the same shapes over
+# everything; this is the earlier, narrower check, so a bad bundle is caught here rather
+# than at the end of an export.)
 #
-# THIS_MACHINE must be empty. A .pyc holds the absolute path of the source it was compiled
-# from, so one careless import while building the bundle writes this folder into hundreds of
-# files; everything here runs with -B, and `scrub` deletes every __pycache__ anyway.
+# THIS_MACHINE must find nothing. A .pyc holds the absolute path of the source it was
+# compiled from, so one careless import while building the bundle writes this folder into
+# hundreds of files; everything here runs with -B, and `scrub` deletes every __pycache__
+# anyway.
 THIS_MACHINE = re.compile(
-    (r"(?i)(?:[A-Za-z]:[\\/]{1,2}(?:DynamicContents|EpicGames)|steamapps|" +
-     r"C:[\\/]{1,2}Users[\\/]{1,2}" + re.escape(os.environ.get("USERNAME", "\x00")) + ")")
-    .encode("utf-8"))
+    (r"(?i)(?:[A-Za-z]:[\\/]{1,2}" + re.escape(REPO_DIR.name) +
+     r"|C:[\\/]{1,2}Users[\\/]{1,2}" +
+     re.escape(os.environ.get("USERNAME") or "\x00no-such-user\x00") + ")").encode("utf-8"))
 
 # Somebody ELSE's user folder, which third-party packages carry and nothing can be done
 # about: a docstring in `click` that explains where Windows keeps application data, a
