@@ -39,10 +39,24 @@ and to its own update service, and it renders the portal rather than being the d
 
 ## The pictures
 
-`contact_sheet.png` — the game's own window, five of the seven beats. Two were skipped
-because something else on the machine took the foreground back in the half second before
-the grab, and a picture of the game's rectangle taken then is a picture of that something
-else; the test refuses to save one rather than save the wrong thing.
+`contact_sheet.png` — the game's own window, all seven beats, and it reads as a sequence:
+
+1. **01 / 02 attract** — A1 `rival1 v1 #1FA39A triangle`, A2 `default v1 no-brand`, A3
+   `rivalsmall v1`; three packs mounted, the manifest panel saying *signature RS256 ok,
+   checked on this machine*.
+2. **03** — `A1 L ACTIVE content1 v1 #2F6FEB chevron`: the visitor's own building, in the
+   visitor's colour, standing in the slot. Four packs mounted.
+3. **04 the live flip** — the strip says **region r2** and A1 is `DOWNLOADING` the other
+   region's content while A3 already wears that region's rival colour, `#F28C28 ring`.
+4. **05 / 06** — `A1 L ACTIVE content1 v2 #2F6FEB chevron`: a different building, the same
+   brand, no restart. Six packs mounted.
+5. **07 the block ends** — A1 back to `rival1 v1 #1FA39A triangle`.
+
+A picture is only saved when the game's window is genuinely in front, checked twice: once
+after it is raised and again immediately before the grab. A screen grab photographs a
+rectangle, not a window, so one taken while something else is over it is a picture of that
+something else. An earlier run produced seven of those, and the check is why this one did
+not.
 
 ## State kept across a swap
 
