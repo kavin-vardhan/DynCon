@@ -114,6 +114,35 @@ def game_cmdline(args: list[str] | tuple[str, ...]) -> str:
     return " ".join(out)
 
 
+def without_repo_prefix(value):
+    """The same thing, with every path into this copy of the tree made relative to it.
+
+    Walks a JSON-shaped structure - dicts, lists, strings - and rewrites
+    ``E:/Somewhere/DynamicContents/unreal/_build/x`` to ``unreal/_build/x``.
+
+    Why it exists: a few of the result files in this tree are committed as evidence, and
+    what goes into them comes partly from the game, which records the folders it is using -
+    its pack cache, its log - as absolute paths, because at run time that is what they are.
+    Committed, they are a record of the folder one machine happened to use, and a copy of
+    this tree must not carry one. Stripping the prefix keeps the information (which folder,
+    relative to the tree) and loses the part that is nobody's business (which machine).
+    """
+    if isinstance(value, dict):
+        return {key: without_repo_prefix(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [without_repo_prefix(item) for item in value]
+    if isinstance(value, str):
+        root = str(REPO_ROOT)
+        for form in (root, root.replace("\\", "/"), root.replace("\\", "\\\\")):
+            if form.lower() in value.lower():
+                # Case-insensitive, because Windows is, and a drive letter can arrive
+                # either way round.
+                import re
+                value = re.sub(re.escape(form) + r"[\\/]?", "", value, flags=re.IGNORECASE)
+        return value
+    return value
+
+
 def log_dir() -> Path:
     """Where a run may write its logs: ``_logs`` at the root of this copy of the tree.
 

@@ -294,8 +294,11 @@ class MenuExitTest:
 
         path = self.shots / "result.md"
         path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-        (self.shots / "result.json").write_text(json.dumps(result, indent=2),
-                                                encoding="utf-8")
+        # This file is committed as evidence, and part of what goes into it comes from the
+        # game, which records the folders it is using as the absolute paths they are at run
+        # time. Relative to the tree is what is worth keeping; which machine is not.
+        (self.shots / "result.json").write_text(
+            json.dumps(dc_paths.without_repo_prefix(result), indent=2), encoding="utf-8")
         print("\n" + "\n".join(lines), flush=True)
         print(f"wrote {path}", flush=True)
 
