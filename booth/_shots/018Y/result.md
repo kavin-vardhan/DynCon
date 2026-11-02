@@ -48,9 +48,13 @@ and to its own update service, and it renders the portal rather than being the d
    visitor's colour, standing in the slot. Four packs mounted.
 3. **04 the live flip** — the strip says **region r2** and A1 is `DOWNLOADING` the other
    region's content while A3 already wears that region's rival colour, `#F28C28 ring`.
-4. **05 / 06** — `A1 L ACTIVE content1 v2 #2F6FEB chevron`: a different building, the same
-   brand, no restart. Six packs mounted.
-5. **07 the block ends** — A1 back to `rival1 v1 #1FA39A triangle`.
+4. **05 / 06** — the strip reads `A1 L ACTIVE content1 v2 #2F6FEB chevron`: a new version
+   in the live slot, same brand, no restart. Six packs mounted.
+5. **07 the block ends** — the strip reads `A1 L ACTIVE rival1 v1 #1FA39A triangle` again.
+
+The camera is wherever the attract loop has got to, which is not always A1; the status
+strip at the top of each picture is the thing to read, and it is the game's own account of
+what is mounted in every slot at that moment.
 
 A picture is only saved when the game's window is genuinely in front, checked twice: once
 after it is raised and again immediately before the grab. A screen grab photographs a
