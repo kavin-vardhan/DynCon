@@ -102,7 +102,11 @@ function Save-State([string]$note) {
 }
 
 function Fail([string]$sentence) {
-    Save-State "failed to start: $sentence"
+    # Only if THIS run started something. A second double-click finds the port busy and
+    # stops here, and the record in _run\demo_run.json belongs to the copy that is already
+    # running - overwriting it with an empty one leaves Stop-Demo with nothing to stop and
+    # a demo nobody can turn off except by hand.
+    if ($started.Count -gt 0) { Save-State "failed to start: $sentence" }
     Write-Host ''
     Write-Host "COULD NOT START: $sentence" -ForegroundColor Red
     Write-Host "the log of this attempt is $transcript"
