@@ -105,14 +105,20 @@ if ($PidFile) {
     "$($proc.Id)" | Set-Content $PidFile -Encoding ascii
 }
 
-# Give it long enough to place its window, then say where it went - that is the one thing
-# worth seeing on a booth start-up screen.
-Start-Sleep -Seconds 6
+# Wait for it to place its window, then say where it went - that is the one thing worth
+# seeing on a booth start-up screen. Waiting for the file rather than for a fixed six
+# seconds: a packaged build takes as long as the machine takes, and a warning that only
+# means "not yet" is a warning somebody has to learn to ignore.
+$deadline = (Get-Date).AddSeconds(60)
+while ((Get-Date) -lt $deadline -and -not (Test-Path $WindowFile)) {
+    if ($proc.HasExited) { throw "the preview copy stopped on its own (exit $($proc.ExitCode)) - see $dcLog" }
+    Start-Sleep -Milliseconds 500
+}
 if (Test-Path $WindowFile) {
     Write-Host '  placed:'
     Get-Content $WindowFile | Write-Host
 } else {
-    Write-Warning "  the window file has not appeared yet - see $dcLog"
+    Write-Warning "  the window file never appeared - see $dcLog"
 }
 
 if ($Wait) {

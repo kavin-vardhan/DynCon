@@ -914,6 +914,23 @@ def main(argv: list[str] | None = None) -> int:
                   f"{BIG_FILE_BYTES / 1024 / 1024:.0f} MB into {build_zip_path.name}")
             for rel, size in moved:
                 print(f"    {size / 1024 / 1024:>8.1f} MiB  {rel}")
+            # And name them in .gitignore. Without this, unzipping the side zip over the
+            # tree - which is step one of using the copy, and is what README.txt says to
+            # do - leaves two files of a few hundred megabytes showing as untracked, and
+            # the next `git add .` puts them straight into the git that has no LFS to hold
+            # them. That is the exact thing --no-lfs exists to avoid.
+            with (out / ".gitignore").open("a", encoding="utf-8", newline="\n") as handle:
+                handle.write(
+                    "\n# Exported with --no-lfs: these travel in "
+                    "DynamicContents_office_build.zip beside this folder, not in git,\n"
+                    "# because they are too big for a git server without LFS. Unzip that "
+                    "over the top of\n# this folder after cloning. They are ignored here so "
+                    "that doing so does not put them\n# into the repository by the back "
+                    "door.\n")
+                for rel, _size in moved:
+                    handle.write(f"/{rel}\n")
+            print(f"    and named them in .gitignore, so unzipping it back over the tree "
+                  f"cannot commit them by accident")
 
     print("  searching every file for anything that must not leave")
     hits, advisories = guard(out)

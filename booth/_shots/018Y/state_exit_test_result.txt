@@ -1,0 +1,15 @@
+
+============================================================================================================================
+rd  what the backend did   before           after            kind                 pend  swap  left -> found                      ok
+----------------------------------------------------------------------------------------------------------------------------
+ 1  pushed a new version   content1 v1      content1 v2      same content          5.9   1.9  A+B+ door open scr 3 -> A+B+ door open scr 3 PASS
+ 2  ended the block        content1 v2      rival1 v1        different content     5.9   1.9  A+B+ door open scr 3 -> A+B- door shut scr 1 PASS
+ 3  pushed a new version   content1 v2      content1 v1      same content          0.7   1.8  A+B+ door open scr 3 -> A+B+ door open scr 3 PASS
+============================================================================================================================
+STATE EXIT TEST: 3/3 rounds
+  block-end rounds (a different winner took the block while the Player was inside): 1 - #2 rival1
+  the record outlived somebody else's block and came back on rounds: #2
+  interactions: 20 (door 5, lights A 0, lights B 5, screen 10); the prompt already showed the right thing 15/20 times
+  state store: A1|content1  schema 1  lights A on / B on, door open, screen 3  (saved 3, restored 3)
+  state store: A1|rival1  schema 1  lights A on / B off, door closed, screen 1  (saved 1, restored 0)
+  /report r1: views 7205 (7200 simulated + 5 counted)  visits 5  dwell 58.2 s  interactions 20  mounts 2  blocks 2

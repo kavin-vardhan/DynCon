@@ -1,0 +1,247 @@
+{
+ "started_utc": "2026-11-02T10:53:57Z",
+ "seconds": 59.8,
+ "root": "C:\\DC Office Test\\DynamicContents",
+ "url": "http://127.0.0.1:8700",
+ "checks": [
+  {
+   "ok": true,
+   "label": "the server answers",
+   "detail": "block 180s, 39s of this one left"
+  },
+  {
+   "ok": true,
+   "label": "the game's own packs are registered",
+   "detail": "default, rival1, rival2, rival3, rivalsmall"
+  },
+  {
+   "ok": true,
+   "label": "both games are registered with their maps",
+   "detail": ""
+  },
+  {
+   "ok": true,
+   "label": "the game is writing its status file",
+   "detail": "_run\\dc_status.json"
+  },
+  {
+   "ok": true,
+   "label": "every slot is filled, downloaded and mounted at run time",
+   "detail": "3 slots"
+  },
+  {
+   "ok": true,
+   "label": "the game talks to this machine and nowhere else",
+   "detail": "http://127.0.0.1:8700"
+  },
+  {
+   "ok": true,
+   "label": "a brand is a colour and an emblem",
+   "detail": "#2F6FEB chevron"
+  },
+  {
+   "ok": true,
+   "label": "the wallet starts at 2,000",
+   "detail": "{'available': 2000, 'held': 0, 'charged': 0}"
+  },
+  {
+   "ok": true,
+   "label": "the list is one file per piece plus one built to fail",
+   "detail": "5 files"
+  },
+  {
+   "ok": true,
+   "label": "approved, with all four checks shown",
+   "detail": "c1 content1 v1"
+  },
+  {
+   "ok": true,
+   "label": "it fits A1",
+   "detail": "12.5 x 11.1 x 7.3 m"
+  },
+  {
+   "ok": true,
+   "label": "refused, and it says why in a sentence",
+   "detail": "package: Made for engine 5.3 \u2014 this game runs 5.7."
+  },
+  {
+   "ok": true,
+   "label": "no clock until the first bid",
+   "detail": ""
+  },
+  {
+   "ok": true,
+   "label": "the first bid starts the clock",
+   "detail": "45s left"
+  },
+  {
+   "ok": true,
+   "label": "the rival raised and took the lead",
+   "detail": "350, its ceiling is 600"
+  },
+  {
+   "ok": true,
+   "label": "back in front",
+   "detail": "375"
+  },
+  {
+   "ok": true,
+   "label": "the auction closed and the visitor won",
+   "detail": "charged 375, allocation 3"
+  },
+  {
+   "ok": true,
+   "label": "the credits were charged",
+   "detail": "{'available': 1625, 'held': 0, 'charged': 375}"
+  },
+  {
+   "ok": true,
+   "label": "A1 is showing the visitor's own content, version 1",
+   "detail": ""
+  },
+  {
+   "ok": true,
+   "label": "in the brand's colour, with the brand's emblem",
+   "detail": ""
+  },
+  {
+   "ok": true,
+   "label": "the main game is playing as the other region",
+   "detail": "r1 -> r2, A1 is rival2 (rival)"
+  },
+  {
+   "ok": true,
+   "label": "and back again, on its own",
+   "detail": "A1 is rival2 v1 (rival)"
+  },
+  {
+   "ok": true,
+   "label": "version 2 approved",
+   "detail": "content1 v2"
+  },
+  {
+   "ok": true,
+   "label": "the live game swapped to version 2 without restarting",
+   "detail": "content1 v2"
+  },
+  {
+   "ok": true,
+   "label": "the brand came through the swap",
+   "detail": "#2F6FEB"
+  },
+  {
+   "ok": true,
+   "label": "the report is the block the visitor bought",
+   "detail": "1 block(s), 375 charged"
+  },
+  {
+   "ok": true,
+   "label": "and it counts what the live game told the server",
+   "detail": "0 live view(s) from 3 mount(s)"
+  },
+  {
+   "ok": true,
+   "label": "the slot went back to what wins it next",
+   "detail": "rival1 v1 (rival)"
+  },
+  {
+   "ok": true,
+   "label": "and the server agrees about what is showing",
+   "detail": "rival1 (rival)"
+  },
+  {
+   "ok": true,
+   "label": "every connection this copy opened was to this machine",
+   "detail": "18 samples, 53 distinct connection(s)"
+  }
+ ],
+ "passed": 30,
+ "failed": 0,
+ "shots": [
+  {
+   "name": "attract_all_slots_mounted",
+   "file": "01_attract_all_slots_mounted.png"
+  },
+  {
+   "name": "slot_map",
+   "file": "02_slot_map.png"
+  },
+  {
+   "name": "A1_visitor_v1_mounted",
+   "file": "03_A1_visitor_v1_mounted.png"
+  },
+  {
+   "name": "live_flip",
+   "file": "04_live_flip.png"
+  },
+  {
+   "name": "block_ended",
+   "file": "05_block_ended.png"
+  }
+ ],
+ "contact_sheet": "contact_sheet.png",
+ "connections": [
+  "the demo's own processes that opened a socket, and why each one counts:",
+  "  DCDemo-Win64-Shipping.exe (pid 37856)  its program is in this folder",
+  "  python.exe (pid 19004)                 its program is in this folder",
+  "  python.exe (pid 24284)                 its program is in this folder",
+  "  and 21 more in the set that never opened one",
+  "",
+  "process                                local                    remote                   state",
+  "DCDemo-Win64-Shipping.exe (pid 37856)  127.0.0.1:49678          127.0.0.1:8700           ESTABLISHED",
+  "DCDemo-Win64-Shipping.exe (pid 37856)  127.0.0.1:49679          127.0.0.1:8700           ESTABLISHED",
+  "DCDemo-Win64-Shipping.exe (pid 37856)  127.0.0.1:51598          127.0.0.1:8700           ESTABLISHED",
+  "DCDemo-Win64-Shipping.exe (pid 37856)  127.0.0.1:51599          127.0.0.1:8700           ESTABLISHED",
+  "DCDemo-Win64-Shipping.exe (pid 37856)  127.0.0.1:51600          127.0.0.1:8700           ESTABLISHED",
+  "DCDemo-Win64-Shipping.exe (pid 37856)  127.0.0.1:51602          127.0.0.1:8700           ESTABLISHED",
+  "DCDemo-Win64-Shipping.exe (pid 37856)  127.0.0.1:62639          127.0.0.1:8700           ESTABLISHED",
+  "DCDemo-Win64-Shipping.exe (pid 37856)  127.0.0.1:63528          127.0.0.1:8700           ESTABLISHED",
+  "DCDemo-Win64-Shipping.exe (pid 37856)  127.0.0.1:63529          127.0.0.1:8700           ESTABLISHED",
+  "DCDemo-Win64-Shipping.exe (pid 37856)  127.0.0.1:63532          127.0.0.1:8700           ESTABLISHED",
+  "DCDemo-Win64-Shipping.exe (pid 37856)  127.0.0.1:63870          127.0.0.1:8700           ESTABLISHED",
+  "DCDemo-Win64-Shipping.exe (pid 37856)  127.0.0.1:63871          127.0.0.1:8700           ESTABLISHED",
+  "DCDemo-Win64-Shipping.exe (pid 37856)  127.0.0.1:63872          127.0.0.1:8700           ESTABLISHED",
+  "python.exe (pid 19004)                 127.0.0.1:55399          127.0.0.1:8700           ESTABLISHED",
+  "python.exe (pid 19004)                 127.0.0.1:60597          127.0.0.1:8700           CLOSE_WAIT",
+  "python.exe (pid 19004)                 127.0.0.1:60597          127.0.0.1:8700           ESTABLISHED",
+  "python.exe (pid 19004)                 127.0.0.1:63533          127.0.0.1:8700           CLOSE_WAIT",
+  "python.exe (pid 19004)                 127.0.0.1:63533          127.0.0.1:8700           ESTABLISHED",
+  "python.exe (pid 19004)                 127.0.0.1:63868          127.0.0.1:8700           CLOSE_WAIT",
+  "python.exe (pid 19004)                 127.0.0.1:63868          127.0.0.1:8700           ESTABLISHED",
+  "python.exe (pid 24284)                 127.0.0.1:64907          127.0.0.1:64908          ESTABLISHED",
+  "python.exe (pid 24284)                 127.0.0.1:64908          127.0.0.1:64907          ESTABLISHED",
+  "python.exe (pid 24284)                 127.0.0.1:8700           0.0.0.0:0                LISTENING",
+  "python.exe (pid 24284)                 127.0.0.1:8700           127.0.0.1:49678          ESTABLISHED",
+  "python.exe (pid 24284)                 127.0.0.1:8700           127.0.0.1:49679          ESTABLISHED",
+  "python.exe (pid 24284)                 127.0.0.1:8700           127.0.0.1:50162          FIN_WAIT_2",
+  "python.exe (pid 24284)                 127.0.0.1:8700           127.0.0.1:51423          ESTABLISHED",
+  "python.exe (pid 24284)                 127.0.0.1:8700           127.0.0.1:51472          ESTABLISHED",
+  "python.exe (pid 24284)                 127.0.0.1:8700           127.0.0.1:51597          FIN_WAIT_2",
+  "python.exe (pid 24284)                 127.0.0.1:8700           127.0.0.1:51598          ESTABLISHED",
+  "python.exe (pid 24284)                 127.0.0.1:8700           127.0.0.1:51599          ESTABLISHED",
+  "python.exe (pid 24284)                 127.0.0.1:8700           127.0.0.1:51600          ESTABLISHED",
+  "python.exe (pid 24284)                 127.0.0.1:8700           127.0.0.1:51602          ESTABLISHED",
+  "python.exe (pid 24284)                 127.0.0.1:8700           127.0.0.1:51927          ESTABLISHED",
+  "python.exe (pid 24284)                 127.0.0.1:8700           127.0.0.1:55399          ESTABLISHED",
+  "python.exe (pid 24284)                 127.0.0.1:8700           127.0.0.1:57721          FIN_WAIT_2",
+  "python.exe (pid 24284)                 127.0.0.1:8700           127.0.0.1:59925          ESTABLISHED",
+  "python.exe (pid 24284)                 127.0.0.1:8700           127.0.0.1:60597          ESTABLISHED",
+  "python.exe (pid 24284)                 127.0.0.1:8700           127.0.0.1:60597          FIN_WAIT_2",
+  "python.exe (pid 24284)                 127.0.0.1:8700           127.0.0.1:62639          ESTABLISHED",
+  "python.exe (pid 24284)                 127.0.0.1:8700           127.0.0.1:62744          ESTABLISHED",
+  "python.exe (pid 24284)                 127.0.0.1:8700           127.0.0.1:63005          ESTABLISHED",
+  "python.exe (pid 24284)                 127.0.0.1:8700           127.0.0.1:63528          ESTABLISHED",
+  "python.exe (pid 24284)                 127.0.0.1:8700           127.0.0.1:63529          ESTABLISHED",
+  "python.exe (pid 24284)                 127.0.0.1:8700           127.0.0.1:63532          ESTABLISHED",
+  "python.exe (pid 24284)                 127.0.0.1:8700           127.0.0.1:63533          ESTABLISHED",
+  "python.exe (pid 24284)                 127.0.0.1:8700           127.0.0.1:63533          FIN_WAIT_2",
+  "python.exe (pid 24284)                 127.0.0.1:8700           127.0.0.1:63868          ESTABLISHED",
+  "python.exe (pid 24284)                 127.0.0.1:8700           127.0.0.1:63868          FIN_WAIT_2",
+  "python.exe (pid 24284)                 127.0.0.1:8700           127.0.0.1:63870          ESTABLISHED",
+  "python.exe (pid 24284)                 127.0.0.1:8700           127.0.0.1:63871          ESTABLISHED",
+  "python.exe (pid 24284)                 127.0.0.1:8700           127.0.0.1:63872          ESTABLISHED",
+  "python.exe (pid 24284)                 127.0.0.1:8700           127.0.0.1:63882          ESTABLISHED"
+ ],
+ "outward_connections": [],
+ "samples": 18
+}
