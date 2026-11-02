@@ -276,7 +276,14 @@ if (-not $NoGame) {
         '-DCShell', '-DCXray', "-DCStartIn=attract",
         "-DCCacheDir=$(Join-Path $runDir 'packcache')",
         "-DCStatusFile=$(Join-Path $runDir 'dc_status.json')",
-        "-DCLogFile=$gameLog"
+        "-DCLogFile=$gameLog",
+        # Its own saved folder, inside this copy. Without it a Shipping build writes to
+        # %LOCALAPPDATA%\DCDemo\Saved - its window size, its scalability settings and its
+        # crash folder - and a run of the demo would leave things behind outside the folder
+        # it was started from. It also keeps the two copies in -Booth mode from sharing one
+        # GameUserSettings.ini (see unreal\Tools\run_preview.ps1, which has the same flag
+        # for the same reason, and the afternoon it cost).
+        "-UserDir=$(Join-Path $runDir 'userdir')"
     )
     if ($Booth) {
         $left = Get-DCMonitorRect -Which 'left'
