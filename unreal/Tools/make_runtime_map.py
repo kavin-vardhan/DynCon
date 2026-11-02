@@ -2,9 +2,9 @@
 
 Run inside the headless editor:
 
-    "E:\\EpicGames\\UE_5.7\\Engine\\Binaries\\Win64\\UnrealEditor-Cmd.exe" ^
-      "E:\\DynamicContents\\unreal\\DCDemo\\DCDemo.uproject" ^
-      -run=pythonscript -script="E:\\DynamicContents\\unreal\\Tools\\make_runtime_map.py" ^
+    "<engine>\\Engine\\Binaries\\Win64\\UnrealEditor-Cmd.exe" ^
+      "unreal\\DCDemo\\DCDemo.uproject" ^
+      -run=pythonscript -script="<full path to unreal\\Tools\\make_runtime_map.py>" ^
       -unattended -nosplash
 
 Three slots with the demo's own names and size classes - A1 (L), A2 (T), A3 (S) - on the same
@@ -22,7 +22,8 @@ import os
 
 import unreal
 
-REPO = r"E:\DynamicContents"
+# The root of this copy of the tree, from this file's own location: unreal/Tools/.
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 CORE_MATERIALS = "/Game/DCCore/Materials"
 DEFAULT_MASTER = "M_DC_Master"
 MAP_PATH = "/Game/Maps/DCRuntime"

@@ -965,7 +965,7 @@
  "notes": [
   "Mono-pitch roof low at the door (4.25 m) and high at the back (4.80 m), inside the 5.0 m the small class allows."
  ],
- "build_seconds": 0.33,
+ "build_seconds": 0.52,
  "exports": {
   "fbx": "export/rivalsmall_v1/rivalsmall_v1.fbx",
   "glb": "export/rivalsmall_v1/rivalsmall_v1.glb"
@@ -986,7 +986,7 @@
   "dc_kit_sha256": "bb5a3473ce162fa2e6a00d5e1ebe7a22df324ed05eaf89d6de3aa7cd84bda4bc",
   "piece_script": "blender/pieces/rivalsmall.py",
   "piece_sha256": "aafb98beb3a4446fea193b79a7eca68f4cf3a1ba0776560b598a3eecd0a9ed3f",
-  "blender": "5.2.2 LTS",
-  "built_utc": "2026-10-25T23:53:43Z"
+  "blender": "5.2.3 LTS",
+  "built_utc": "2026-11-02T08:38:50Z"
  }
 }

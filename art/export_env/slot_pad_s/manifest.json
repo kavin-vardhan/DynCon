@@ -111,7 +111,7 @@
   "Its own ground tone (M_SlotPad) and a darker kerb band (M_SlotKerb), so an empty slot reads as a prepared spot in a thumbnail.",
   "Never carries a brand or a marking."
  ],
- "build_seconds": 0.11,
+ "build_seconds": 0.15,
  "exports": {
   "fbx": "export_env/slot_pad_s/slot_pad_s.fbx",
   "glb": "export_env/slot_pad_s/slot_pad_s.glb"
@@ -126,6 +126,6 @@
   "piece_sha256": "e5dc71e1a89387d19ccc9de643855130c9017e598105af93b3fa844629e433d1",
   "dc_kit_sha256": "bb5a3473ce162fa2e6a00d5e1ebe7a22df324ed05eaf89d6de3aa7cd84bda4bc",
   "blender": "5.2.3 LTS",
-  "built_utc": "2026-11-01T14:55:41Z"
+  "built_utc": "2026-11-02T08:39:14Z"
  }
 }

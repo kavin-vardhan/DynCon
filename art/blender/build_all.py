@@ -95,13 +95,22 @@ def build_one(pid, version, args):
     piece.bevel = not args.no_bevel
     meta = piece.finish()
 
+    # EXPORT FIRST, SAVE AFTER. The order matters, and not for the geometry.
+    #
+    # Blender's FBX exporter copies `bpy.data.filepath` into the file, as the SceneInfo
+    # property `Original|ApplicationNativeFile`. Save the .blend first and that is the full
+    # path of the .blend *on whichever machine ran the build*, baked into every .fbx this
+    # tree ships - which is exactly the kind of thing that must not travel with a copy of
+    # it. `bpy.data.filepath` is read-only, so the only way to keep it out is to export
+    # while the scene has never been saved, which is what this order does. The scene is
+    # identical either way: `export_piece` rescales for the FBX and puts it back.
+    out_dir = os.path.join(ART, "export", "%s_%s" % (pid, version))
+    fbx, glb = K.export_piece(meta, piece.mesh_objects(), piece.socket_objects(), out_dir)
+
     blend_dir = os.path.join(ART, "blend")
     os.makedirs(blend_dir, exist_ok=True)
     blend = os.path.join(blend_dir, "%s_%s.blend" % (pid, version))
     bpy.ops.wm.save_as_mainfile(filepath=blend, compress=True)
-
-    out_dir = os.path.join(ART, "export", "%s_%s" % (pid, version))
-    fbx, glb = K.export_piece(meta, piece.mesh_objects(), piece.socket_objects(), out_dir)
 
     previews = {}
     brand, emblem = K.preview_identity(pid)

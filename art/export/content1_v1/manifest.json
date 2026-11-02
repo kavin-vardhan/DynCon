@@ -1009,7 +1009,7 @@
  "notes": [
   "The glazed front stops at 3.80 m and a solid 2.30 m fascia carries the sign and the brand band \u2014 signs never mount on glazing."
  ],
- "build_seconds": 0.2,
+ "build_seconds": 0.58,
  "exports": {
   "fbx": "export/content1_v1/content1_v1.fbx",
   "glb": "export/content1_v1/content1_v1.glb"
@@ -1030,7 +1030,7 @@
   "dc_kit_sha256": "bb5a3473ce162fa2e6a00d5e1ebe7a22df324ed05eaf89d6de3aa7cd84bda4bc",
   "piece_script": "blender/pieces/content1.py",
   "piece_sha256": "eaddae1cc6cb76e800c7527968db2de8bfba47e2ae884be412779e7d8264a7a2",
-  "blender": "5.2.2 LTS",
-  "built_utc": "2026-10-25T23:53:40Z"
+  "blender": "5.2.3 LTS",
+  "built_utc": "2026-11-02T08:38:25Z"
  }
 }

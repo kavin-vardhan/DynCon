@@ -11,10 +11,11 @@
         powershell -ExecutionPolicy Bypass -File unreal\Tools\run_all_packs.ps1 -Only content4_v1,default_v1
 #>
 param(
-    [string]$Exe      = 'E:\DynamicContents\unreal\_build\archive\Windows\DCDemo.exe',
-    [string]$Packs    = 'E:\DynamicContents\unreal\_packs',
-    [string]$ShotDir  = 'E:\DynamicContents\unreal\spike\shots',
-    [string]$ChunkIds = 'E:\DynamicContents\unreal\Tools\chunk_ids.json',
+    # Empty means "find it" - see tools\dc_paths.ps1.
+    [string]$Exe      = '',
+    [string]$Packs    = (Join-Path $PSScriptRoot '..\_packs'),
+    [string]$ShotDir  = (Join-Path $PSScriptRoot '..\spike\shots'),
+    [string]$ChunkIds = (Join-Path $PSScriptRoot 'chunk_ids.json'),
     [string[]]$Only   = @(),
     # Console variables to force before the run, "r.Name=Value,r.Other=Value". A Shipping
     # build has no console and ignores a user Engine.ini, so this is the only way in; see
@@ -23,11 +24,13 @@ param(
     [int]$ResX = 1280,
     [int]$ResY = 720,
     [int]$TimeoutSeconds = 600,
-    [string]$LogDir = 'E:\DynamicContents\unreal\_build\logs',
+    [string]$LogDir = (Join-Path $PSScriptRoot '..\_build\logs'),
     [switch]$NoSheet
 )
 
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot '..\..\tools\dc_paths.ps1')
+if (-not $Exe) { $Exe = Find-DCGameExe }
 
 if (-not (Test-Path $Exe)) { throw "no packaged exe at $Exe" }
 New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
@@ -117,7 +120,7 @@ if ($shots.Count -ne $expected) { Write-Warning "expected $expected shots, got $
 if (-not $NoSheet) {
     Write-Host ''
     Write-Host 'building the contact sheet...'
-    python 'E:\DynamicContents\unreal\Tools\make_engine_sheet.py' --shots $ShotDir `
+    & (Find-DemoPython) (Join-Path $PSScriptRoot 'make_engine_sheet.py') --shots $ShotDir `
         --out (Join-Path $ShotDir 'engine_contact.png')
     if ($LASTEXITCODE -ne 0) { Write-Warning "contact sheet failed (exit $LASTEXITCODE)" }
 }

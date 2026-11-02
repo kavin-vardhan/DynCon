@@ -1,6 +1,6 @@
 """What the lamps inside a piece of content cost, measured one setting at a time.
 
-    server\\.venv\\Scripts\\python.exe unreal\\Tools\\light_sweep.py
+    python\\python.exe unreal\\Tools\\light_sweep.py
     ... --minutes 3            how long each variant's scripted tour runs
     ... --only no_gi,baseline  just these variants
     ... --list                 print the variants and exit
@@ -35,8 +35,11 @@ import httpx
 
 REPO = Path(__file__).resolve().parent.parent.parent
 SERVER_DIR = REPO / "server"
-PYTHON = SERVER_DIR / ".venv" / "Scripts" / "python.exe"
-EXE = REPO / "unreal" / "_build" / "archive" / "Windows" / "DCDemo.exe"
+sys.path.insert(0, str(REPO / "tools"))
+import dc_paths                                                          # noqa: E402
+
+PYTHON = dc_paths.demo_python()
+EXE = dc_paths.game_exe()
 OUT = REPO / "unreal" / "_build" / "lights"
 LOG_DIR = REPO / "unreal" / "_build" / "logs"
 

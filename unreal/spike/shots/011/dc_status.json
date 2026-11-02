@@ -12,7 +12,7 @@
 	"polls": 46,
 	"changes": 19,
 	"packs_mounted": 10,
-	"cache_dir": "E:/DynamicContents/unreal/_build/runtime/exit_test/packcache",
+	"cache_dir": "unreal/_build/runtime/exit_test/packcache",
 	"cache_packs": 10,
 	"crypto": "IPlatformCrypto::CreateContext -> FEncryptionContext{GetPublicKey_RSA, CalcSHA256, DigestVerify_RS256}  (PlatformCrypto / OpenSSL); SHA-256 self-test ok",
 	"telemetry_sent": 34,

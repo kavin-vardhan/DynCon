@@ -1,8 +1,8 @@
 """Run the slot-map tool on both demo maps, in one headless editor session (brief 013).
 
-    "E:\\EpicGames\\UE_5.7\\Engine\\Binaries\\Win64\\UnrealEditor-Cmd.exe" ^
-      "E:\\DynamicContents\\unreal\\DCDemo\\DCDemo.uproject" ^
-      -run=pythonscript -script="E:\\DynamicContents\\unreal\\Tools\\register_games.py" ^
+    "<engine>\\Engine\\Binaries\\Win64\\UnrealEditor-Cmd.exe" ^
+      "unreal\\DCDemo\\DCDemo.uproject" ^
+      -run=pythonscript -script="<full path to unreal\\Tools\\register_games.py>" ^
       -AllowCommandletRendering -unattended -nosplash
 
 **-AllowCommandletRendering is not optional.** A commandlet runs with rendering switched off
@@ -42,7 +42,8 @@ import sys
 
 import unreal
 
-REPO = r"E:\DynamicContents"
+# The root of this copy of the tree, from this file's own location: unreal/Tools/.
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 REPORT_PATH = os.path.join(REPO, "unreal", "_build", "logs", "register_games.json")
 DEFAULT_OUT = os.path.join(REPO, "unreal", "_build", "slotmap")
 

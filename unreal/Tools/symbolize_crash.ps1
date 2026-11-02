@@ -10,7 +10,7 @@
 #>
 param(
     [string]$CrashXml,
-    [string]$Exe = 'E:\DynamicContents\unreal\DCDemo\Binaries\Win64\DCDemo.exe',
+    [string]$Exe = (Join-Path $PSScriptRoot '..\DCDemo\Binaries\Win64\DCDemo.exe'),
     [string[]]$Offsets
 )
 

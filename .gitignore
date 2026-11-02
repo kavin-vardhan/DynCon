@@ -1,4 +1,4 @@
-_mailbox/
+﻿_mailbox/
 _to_delete/
 __pycache__/
 *.pyc
@@ -63,7 +63,7 @@ server/data/
 server/demo_files/*.dcpack
 server/.pytest_cache/
 
-# the portal's exit-test screenshots: same rule as the art previews — the per-screen PNGs
+# the portal's exit-test screenshots: same rule as the art previews â€” the per-screen PNGs
 # are 5 MB a run and `booth\portal_exit_test.py` rebuilds all of them in under a minute,
 # so only the contact sheet goes in git.
 portal/_shots/*/[0-9]*.png
@@ -80,3 +80,10 @@ booth/_shots/*/*.log
 !booth/_shots/*/contact_sheet*.png
 !booth/_shots/*/previewarea_*.png
 !booth/_shots/*/mainwindow_*.png
+
+# Build outputs that the office export carries but this repository does not: the bundled
+# interpreter (tools/make_python_bundle.py) and the files it downloads to make it, plus the
+# logs any run of the demo writes.
+_prebuilt/
+_logs/
+_run/

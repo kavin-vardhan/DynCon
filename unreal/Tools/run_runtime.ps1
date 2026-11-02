@@ -12,14 +12,16 @@
     same idea with ten hand-written allocations and a pass/fail table.
 #>
 param(
-    [string]$Exe       = 'E:\DynamicContents\unreal\_build\archive\Windows\DCDemo.exe',
+    # Empty means "find it": game\DCDemo.exe in a ready-to-run copy of this tree, else the
+    # packaging run's output under unreal\_build\. See tools\dc_paths.ps1.
+    [string]$Exe       = '',
     [string]$Backend   = 'http://127.0.0.1:8700',
     [string]$Game      = 'A',
     [string]$Region    = 'r1',
     [string]$Map       = '/Game/Maps/DCRuntime',
-    [string]$ShotDir   = 'E:\DynamicContents\unreal\_build\runtime\shots',
-    [string]$CacheDir  = 'E:\DynamicContents\unreal\_build\runtime\packcache',
-    [string]$LogDir    = 'E:\DynamicContents\unreal\_build\logs',
+    [string]$ShotDir   = (Join-Path $PSScriptRoot '..\_build\runtime\shots'),
+    [string]$CacheDir  = (Join-Path $PSScriptRoot '..\_build\runtime\packcache'),
+    [string]$LogDir    = (Join-Path $PSScriptRoot '..\_build\logs'),
     [string]$ServerData = '',
     [int]$Port         = 8700,
     [int]$Seconds      = 60,
@@ -36,9 +38,11 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$repo = 'E:\DynamicContents'
+. (Join-Path $PSScriptRoot '..\..\tools\dc_paths.ps1')
+$repo = Get-DCRepoRoot
 $serverDir = Join-Path $repo 'server'
-$python = Join-Path $serverDir '.venv\Scripts\python.exe'
+$python = Find-DemoPython
+if (-not $Exe) { $Exe = Find-DCGameExe }
 
 if (-not (Test-Path $Exe)) { throw "no packaged exe at $Exe" }
 New-Item -ItemType Directory -Force -Path $ShotDir, $CacheDir, $LogDir | Out-Null

@@ -856,6 +856,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--script", help="a file of simulate lines to run at startup")
     parser.add_argument("--stdin", action="store_true",
                         help="read simulate lines from standard input, one per line")
+    parser.add_argument("--connected", action="store_true",
+                        help="say which pads are plugged in and exit 0 if any is, 1 if none "
+                             "is - what a start script asks before starting this helper")
     parser.add_argument("--list", action="store_true",
                         help="print which controllers are plugged in and exit")
     parser.add_argument("--quiet", action="store_true")
@@ -877,6 +880,11 @@ def main(argv: list[str] | None = None) -> int:
     if args.list:
         helper.report_controllers()
         return 0
+    if args.connected:
+        # For a start script: exit 0 if there is a pad to read, 1 if there is not, so it
+        # can decide whether to start this helper at all without parsing any output.
+        rows = helper.report_controllers()
+        return 0 if any(row["connected"] for row in rows) else 1
     if args.preview:
         # Without starting anything: how a start script or a rehearsal pokes the window.
         window = helper.preview or PreviewWindow()

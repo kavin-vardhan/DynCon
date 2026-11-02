@@ -9,15 +9,19 @@
         powershell -ExecutionPolicy Bypass -File unreal\Tools\run_spike.ps1
 #>
 param(
-    [string]$Exe = 'E:\DynamicContents\unreal\_build\archive\Windows\DCDemo.exe',
-    [string]$Packs = 'E:\DynamicContents\unreal\_packs',
-    [string]$ShotDir = 'E:\DynamicContents\unreal\spike\shots',
+    # Empty means "find it" - see tools\dc_paths.ps1.
+    [string]$Exe = '',
+    [string]$Packs = (Join-Path $PSScriptRoot '..\_packs'),
+    [string]$ShotDir = (Join-Path $PSScriptRoot '..\spike\shots'),
     [string[]]$Order = @('content4_v1', 'content1_v1'),
     [int]$TimeoutSeconds = 240,
-    [string]$LogCopy = 'E:\DynamicContents\unreal\_build\logs\010_spike_run.log'
+    [string]$LogCopy = (Join-Path $PSScriptRoot '..\_build\logs\010_spike_run.log')
 )
 
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot '..\..\tools\dc_paths.ps1')
+if (-not $Exe) { $Exe = Find-DCGameExe }
+New-Item -ItemType Directory -Force -Path (Split-Path $LogCopy -Parent) | Out-Null
 
 if (-not (Test-Path $Exe)) { throw "no packaged exe at $Exe" }
 

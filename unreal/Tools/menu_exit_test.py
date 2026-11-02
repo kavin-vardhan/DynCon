@@ -1,6 +1,6 @@
 """Brief 018's exit test: the title menu, game switching, the X-ray and the attract loop.
 
-    server\\.venv\\Scripts\\python.exe unreal\\Tools\\menu_exit_test.py
+    python\\python.exe unreal\\Tools\\menu_exit_test.py
     ... --res 1920x1080        the second pass, for the X-ray at 1080p
     ... --xray-only            skip the menu run; one lap of the tour with the X-ray on
     ... --keep                 leave the server up afterwards
@@ -40,8 +40,11 @@ import httpx
 
 REPO = Path(__file__).resolve().parent.parent.parent
 SERVER_DIR = REPO / "server"
-PYTHON = SERVER_DIR / ".venv" / "Scripts" / "python.exe"
-EXE = REPO / "unreal" / "_build" / "archive" / "Windows" / "DCDemo.exe"
+sys.path.insert(0, str(REPO / "tools"))
+import dc_paths                                                          # noqa: E402
+
+PYTHON = dc_paths.demo_python()
+EXE = dc_paths.game_exe()
 OUT_ROOT = REPO / "unreal" / "spike" / "shots" / "018"
 WORK = REPO / "unreal" / "_build" / "menu"
 LOG_DIR = REPO / "unreal" / "_build" / "logs"

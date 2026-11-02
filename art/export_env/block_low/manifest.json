@@ -137,7 +137,7 @@
  "notes": [
   "Closed: no door and no opening. It frames a slot, it is not content."
  ],
- "build_seconds": 2.24,
+ "build_seconds": 0.28,
  "exports": {
   "fbx": "export_env/block_low/block_low.fbx",
   "glb": "export_env/block_low/block_low.glb"
@@ -147,11 +147,11 @@
   "warm": "previews_env/warm/block_low.png"
  },
  "generator": {
-  "env_kit_sha256": "4f8523c94c58efb50716510b58a4b1b0e79aee14d6c5551d2d99a0e3df32ba14",
+  "env_kit_sha256": "de5af8d15e515714fbffd79eb98e535539b3dd0921ca3367a557474c10052772",
   "piece_script": "blender/env/buildings.py",
   "piece_sha256": "93d09a67f21f1010ef54fcc9f49e56e67cc4f125ea4cff26b50531dfe37010d5",
   "dc_kit_sha256": "bb5a3473ce162fa2e6a00d5e1ebe7a22df324ed05eaf89d6de3aa7cd84bda4bc",
   "blender": "5.2.3 LTS",
-  "built_utc": "2026-11-01T07:47:32Z"
+  "built_utc": "2026-11-02T08:39:15Z"
  }
 }

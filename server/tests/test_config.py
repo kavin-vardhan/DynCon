@@ -11,9 +11,22 @@ from conftest import CONFIG_PATH, REPO_DIR
 from dcserver.config import Config, ConfigError
 
 # The written content-asset spec, when this copy of the tree carries it. It is the only
-# document any test reads, and `test_size_classes_match_the_asset_spec` skips when it is
-# not there.
+# document any test reads.
 ASSET_SPEC = REPO_DIR / "specs" / "content_assets_spec_v1.md"
+
+# The size classes, written out here as well as in the spec, deliberately.
+#
+# A copy of this tree need not carry the documentation set, and when it does not there is
+# no spec table to compare the config against. That used to make the one test that checks
+# the size classes skip, so the copy that most needs checking was the copy with the least
+# coverage. So the numbers live here too: this baseline is always checked against the
+# config, and the spec - when it is present - is checked against the same baseline. Three
+# things now have to agree instead of two, and a drift in any one of them fails.
+SIZE_CLASSES = {
+    "S": (7.0, 7.0, 5.0, ["A3", "B2"]),
+    "L": (14.0, 14.0, 9.0, ["A1", "B1"]),
+    "T": (14.0, 14.0, 20.0, ["A2"]),
+}
 
 
 @pytest.fixture(scope="module")
@@ -85,21 +98,33 @@ def parse_asset_spec_classes() -> dict[str, tuple[float, float, float, list[str]
     return out
 
 
-def test_size_classes_match_the_asset_spec(cfg: Config) -> None:
+def test_size_classes_match_the_baseline(cfg: Config) -> None:
     """One set of numbers for the art and for the server's fit check.
 
-    The numbers live in a written document, and a copy of this tree need not carry it.
-    With the document absent there is nothing to compare the config against, so this is
-    skipped; every other test in this file checks the config on its own.
+    This runs in every copy of the tree, documentation or no documentation: it is the
+    config against `SIZE_CLASSES` above.
+    """
+    assert set(cfg.size_classes) == set(SIZE_CLASSES)
+    for cls, (x, y, z, slots) in SIZE_CLASSES.items():
+        limits = cfg.limits(cls)
+        assert (limits["x"], limits["y"], limits["z"]) == (x, y, z), cls
+        assert sorted(slots) == sorted(s.id for s in cfg.slots if s.size_class == cls), cls
+
+
+def test_size_classes_match_the_asset_spec() -> None:
+    """And the written spec against the same baseline, when the spec is in this copy.
+
+    Skipped rather than failed when the document is absent - there is then nothing to
+    read - and `test_size_classes_match_the_baseline` has already checked the config.
     """
     if not ASSET_SPEC.is_file():
         pytest.skip(f"{ASSET_SPEC.name} is not in this copy of the tree")
     table = parse_asset_spec_classes()
     assert set(table) == {"S", "L", "T"}, f"could not read the spec table: {table}"
     for cls, (x, y, z, slots) in table.items():
-        limits = cfg.limits(cls)
-        assert (limits["x"], limits["y"], limits["z"]) == (x, y, z), cls
-        assert sorted(slots) == sorted(s.id for s in cfg.slots if s.size_class == cls), cls
+        bx, by, bz, bslots = SIZE_CLASSES[cls]
+        assert (x, y, z) == (bx, by, bz), f"{cls}: the spec and SIZE_CLASSES disagree"
+        assert sorted(slots) == sorted(bslots), f"{cls}: the spec and SIZE_CLASSES disagree"
 
 
 def test_validate_rejects_a_broken_config(cfg: Config) -> None:

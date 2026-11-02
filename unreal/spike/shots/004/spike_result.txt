@@ -6,8 +6,8 @@ precheck  package=/Game/DCContent/content1_v1/BP_DC_content1_v1  in_build_before
 step 1  built     content4_v1  shell=SM_content4_v1_Shell unit_scale=100 door=1 screen=1 sign=1 switches=2 lightsA=2 lightsB=6 sockets=16 bounds=602x651x490 cm door_local=(-85,239,14) brand=(0.01,0.43,0.39) emblem=T_Emblem_circle screen_img=T_DC_Screen_Sample
 step 1  fit       content 602x651x490 cm in slot class 700x700x500 cm -> fits
 step 1  pack=content4_v1  slot=slot1  mount=ok(FCoreDelegates::MountPak, 17.8 ms)  shaders=none(0.0 ms)  load=ok(2.7 ms)  spawn=ok(0.6 ms)  pak=339 B  utoc=3053 B  ucas=244992 B  mountpoint=/
-step 1  shot=E:/DynamicContents/unreal/spike/shots/01_content4_v1.png
+step 1  shot=unreal/spike/shots/01_content4_v1.png
 step 2  built     content1_v1  shell=SM_content1_v1_Shell unit_scale=100 door=1 screen=1 sign=1 switches=2 lightsA=6 lightsB=6 sockets=20 bounds=1168x1250x726 cm door_local=(-90,488,14) brand=(0.83,0.26,0.01) emblem=T_Emblem_diamond screen_img=T_DC_Screen_Sample
 step 2  fit       content 1168x1250x726 cm in slot class 1400x1400x900 cm -> fits
 step 2  pack=content1_v1  slot=slot2  mount=ok(FCoreDelegates::MountPak, 12.1 ms)  shaders=none(0.0 ms)  load=ok(3.4 ms)  spawn=ok(0.5 ms)  pak=339 B  utoc=3233 B  ucas=439584 B  mountpoint=/
-step 2  shot=E:/DynamicContents/unreal/spike/shots/02_content1_v1.png
+step 2  shot=unreal/spike/shots/02_content1_v1.png

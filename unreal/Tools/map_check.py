@@ -1,7 +1,7 @@
 """Walk and photograph one of the demo maps with the server up (brief 012 §5).
 
-    server\\.venv\\Scripts\\python.exe unreal\\Tools\\map_check.py --game A
-    server\\.venv\\Scripts\\python.exe unreal\\Tools\\map_check.py --game B --keep-server-data
+    python\\python.exe unreal\\Tools\\map_check.py --game A
+    python\\python.exe unreal\\Tools\\map_check.py --game B --keep-server-data
 
 What it does, for one map:
 
@@ -35,8 +35,11 @@ import httpx
 
 REPO = Path(__file__).resolve().parent.parent.parent
 SERVER_DIR = REPO / "server"
-PYTHON = SERVER_DIR / ".venv" / "Scripts" / "python.exe"
-EXE = REPO / "unreal" / "_build" / "archive" / "Windows" / "DCDemo.exe"
+sys.path.insert(0, str(REPO / "tools"))
+import dc_paths                                                          # noqa: E402
+
+PYTHON = dc_paths.demo_python()
+EXE = dc_paths.game_exe()
 OUT_ROOT = REPO / "unreal" / "_build" / "runtime" / "maps"
 LOG_DIR = REPO / "unreal" / "_build" / "logs"
 

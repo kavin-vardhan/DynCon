@@ -963,7 +963,7 @@
  "notes": [
   "Twelve facets with one of them flat to the front, so the door, the sign and the brand-wrapped columns all sit on straight surfaces."
  ],
- "build_seconds": 0.2,
+ "build_seconds": 3.99,
  "exports": {
   "fbx": "export/content2_v2/content2_v2.fbx",
   "glb": "export/content2_v2/content2_v2.glb"
@@ -984,7 +984,7 @@
   "dc_kit_sha256": "bb5a3473ce162fa2e6a00d5e1ebe7a22df324ed05eaf89d6de3aa7cd84bda4bc",
   "piece_script": "blender/pieces/content2.py",
   "piece_sha256": "e5c0b8e2c6deff934b526021dd849656e0d8f303e87070003cfa44ea66261383",
-  "blender": "5.2.2 LTS",
-  "built_utc": "2026-10-25T23:53:40Z"
+  "blender": "5.2.3 LTS",
+  "built_utc": "2026-11-02T08:38:31Z"
  }
 }

@@ -38,17 +38,22 @@
     portal's Region-check step.
 #>
 param(
-    [string]$Exe        = 'E:\DynamicContents\unreal\_build\archive\Windows\DCDemo.exe',
+    # Empty means "find it" - see tools\dc_paths.ps1.
+    [string]$Exe        = '',
     [string]$Backend    = 'http://127.0.0.1:8700',
     [string]$Game       = 'A',
     [string]$Region     = 'r2',
     [string]$Map        = '/Game/Maps/GameA',
-    [string]$CacheDir   = 'E:\DynamicContents\unreal\_build\preview\packcache',
-    [string]$UserDir    = 'E:\DynamicContents\unreal\_build\preview\userdir',
-    [string]$LogDir     = 'E:\DynamicContents\unreal\_build\logs',
-    [string]$StatusFile = 'E:\DynamicContents\unreal\_build\preview\dc_status.json',
-    [string]$WindowFile = 'E:\DynamicContents\unreal\_build\preview\dc_preview_window.json',
+    [string]$CacheDir   = (Join-Path $PSScriptRoot '..\_build\preview\packcache'),
+    [string]$UserDir    = (Join-Path $PSScriptRoot '..\_build\preview\userdir'),
+    [string]$LogDir     = (Join-Path $PSScriptRoot '..\_build\logs'),
+    [string]$StatusFile = (Join-Path $PSScriptRoot '..\_build\preview\dc_status.json'),
+    [string]$WindowFile = (Join-Path $PSScriptRoot '..\_build\preview\dc_preview_window.json'),
     [string]$Rect       = '',
+    # Where to write the pid of the copy this starts. The booth's start script asks for it,
+    # because it has to be able to stop exactly what it started - and the pid cannot be read
+    # back off the console of a script someone else ran.
+    [string]$PidFile    = '',
     [int]$Monitor       = 0,
     [int]$Fps           = 30,
     [int]$Seconds       = 0,
@@ -57,6 +62,8 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot '..\..\tools\dc_paths.ps1')
+if (-not $Exe) { $Exe = Find-DCGameExe }
 if (-not (Test-Path $Exe)) { throw "no packaged exe at $Exe" }
 New-Item -ItemType Directory -Force -Path $CacheDir, $UserDir, $LogDir,
     (Split-Path $StatusFile), (Split-Path $WindowFile) | Out-Null
@@ -92,6 +99,10 @@ Write-Host "  log         $dcLog"
 Write-Host "  window file $WindowFile"
 $proc = Start-Process -FilePath $Exe -ArgumentList $gameArgs -PassThru
 Write-Host ("  pid         {0}" -f $proc.Id)
+if ($PidFile) {
+    New-Item -ItemType Directory -Force -Path (Split-Path $PidFile -Parent) | Out-Null
+    "$($proc.Id)" | Set-Content $PidFile -Encoding ascii
+}
 
 # Give it long enough to place its window, then say where it went - that is the one thing
 # worth seeing on a booth start-up screen.

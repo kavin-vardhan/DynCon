@@ -1,6 +1,6 @@
 """The brand portal's exit test — the whole tour, driven by a simulated game pad.
 
-    server\\.venv\\Scripts\\python.exe booth\\portal_exit_test.py
+    python\\python.exe booth\\portal_exit_test.py
     ... --headed            watch it happen in a visible browser
     ... --keep              leave the server, the game and the helper up afterwards
     ... --only full         just the long tour (or: express, idle)
@@ -52,7 +52,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 SERVER_DIR = ROOT / "server"
 PORTAL_DIR = ROOT / "portal"
-VENV_PY = SERVER_DIR / ".venv" / "Scripts" / "python.exe"
+sys.path.insert(0, str(ROOT / "tools"))
+import dc_paths                                                          # noqa: E402
+
+VENV_PY = dc_paths.demo_python()
 
 VIEWPORT = {"width": 1920, "height": 1080}
 

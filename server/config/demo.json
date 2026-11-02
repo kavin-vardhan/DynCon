@@ -98,7 +98,14 @@
     "url_ttl_s": 300,
     "manifest_ttl_s": 300,
     "fake_filler_min_bytes": 15728640,
-    "fake_filler_max_bytes": 41943040
+    "fake_filler_max_bytes": 41943040,
+    "_bad_filler_comment": [
+      "The two built-to-fail files are small on purpose. A fake pack is 15-40 MB so that",
+      "uploading one feels like uploading real content; these two are rejected at the first",
+      "check and nothing ever mounts them, so the megabytes buy nothing and a copy of this",
+      "tree has to carry them."
+    ],
+    "bad_filler_bytes": 786432
   },
 
   "demo_files": {

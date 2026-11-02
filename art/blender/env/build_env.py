@@ -66,12 +66,16 @@ def build_one(pid, mod_name, builder, args):
         m = piece.finish()
         if palette == E.DEFAULT_PALETTE:
             meta = m
+            # Export first, save after - see the long comment on the same two lines in
+            # art/blender/build_all.py. Blender's FBX exporter writes bpy.data.filepath
+            # into the file, so the .blend must not have been saved yet.
+            out_dir = os.path.join(E.EXPORT_ROOT, pid)
+            fbx, glb = E.export_env_piece(m, piece.mesh_objects(), out_dir)
+
             blend_dir = os.path.join(ART, "blend_env")
             os.makedirs(blend_dir, exist_ok=True)
             bpy.ops.wm.save_as_mainfile(filepath=os.path.join(blend_dir, "%s.blend" % pid),
                                         compress=True)
-            out_dir = os.path.join(E.EXPORT_ROOT, pid)
-            fbx, glb = E.export_env_piece(m, piece.mesh_objects(), out_dir)
         if not args.no_render:
             E.preview_world(palette)
             previews[palette] = E.render_preview(m, os.path.join(E.PREVIEW_ROOT, palette),

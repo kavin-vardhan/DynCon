@@ -1079,7 +1079,7 @@
   "L plan: the main bar carries the door, the screen and the fit-out; the wing is a lower side room open to it through a 3 m portal.",
   "VOLUME_Interior is the main bar \u2014 the wing is walkable but is not where dwell is measured."
  ],
- "build_seconds": 0.31,
+ "build_seconds": 0.92,
  "exports": {
   "fbx": "export/rival1_v1/rival1_v1.fbx",
   "glb": "export/rival1_v1/rival1_v1.glb"
@@ -1100,7 +1100,7 @@
   "dc_kit_sha256": "bb5a3473ce162fa2e6a00d5e1ebe7a22df324ed05eaf89d6de3aa7cd84bda4bc",
   "piece_script": "blender/pieces/rival1.py",
   "piece_sha256": "88c8118349665205920e3c8889e9d788e26c81544d200c6c59a02904b86b7732",
-  "blender": "5.2.2 LTS",
-  "built_utc": "2026-10-25T23:53:41Z"
+  "blender": "5.2.3 LTS",
+  "built_utc": "2026-11-02T08:38:48Z"
  }
 }

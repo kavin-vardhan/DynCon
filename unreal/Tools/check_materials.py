@@ -3,9 +3,14 @@
     UnrealEditor-Cmd.exe <project> -run=pythonscript -script=.../check_materials.py -unattended
 """
 
+import os
+
 import unreal
 
-OUT = r"E:\DynamicContents\unreal\_build\logs\check_materials.txt"
+# unreal/Tools/ -> the root of this copy of the tree.
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+OUT = os.path.join(REPO, "unreal", "_build", "logs", "check_materials.txt")
+os.makedirs(os.path.dirname(OUT), exist_ok=True)
 LINES = []
 
 

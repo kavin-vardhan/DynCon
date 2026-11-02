@@ -1078,7 +1078,7 @@
  "notes": [
   "The vault underside is the ceiling: there is no flat soffit, so the group-A fixtures hang on stems and VOLUME_Interior is the biggest box that fits under the arch, not the whole floor area."
  ],
- "build_seconds": 0.51,
+ "build_seconds": 0.95,
  "exports": {
   "fbx": "export/rival3_v1/rival3_v1.fbx",
   "glb": "export/rival3_v1/rival3_v1.glb"
@@ -1099,7 +1099,7 @@
   "dc_kit_sha256": "bb5a3473ce162fa2e6a00d5e1ebe7a22df324ed05eaf89d6de3aa7cd84bda4bc",
   "piece_script": "blender/pieces/rival3.py",
   "piece_sha256": "9642cc82119762f72d20bead8e462cf8e38f2162ac72bc33c3fcb92be926d589",
-  "blender": "5.2.2 LTS",
-  "built_utc": "2026-10-25T23:53:42Z"
+  "blender": "5.2.3 LTS",
+  "built_utc": "2026-11-02T08:38:50Z"
  }
 }

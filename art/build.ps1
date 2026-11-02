@@ -32,38 +32,15 @@ param(
 $ErrorActionPreference = "Stop"
 $art  = Split-Path -Parent $MyInvocation.MyCommand.Path
 $root = Split-Path -Parent $art
+. (Join-Path $root "tools\dc_paths.ps1")
 
-function Find-Blender {
-    param([string]$Explicit)
-    if ($Explicit) {
-        if (Test-Path $Explicit) { return $Explicit }
-        throw "Blender not found at $Explicit"
-    }
-    $cands = @()
-    $cmd = Get-Command blender -ErrorAction SilentlyContinue
-    if ($cmd) { $cands += $cmd.Source }
-    foreach ($drive in (Get-PSDrive -PSProvider FileSystem | Select-Object -ExpandProperty Root)) {
-        $cands += "$drive`Program Files (x86)\Steam\steamapps\common\Blender\blender.exe"
-        $cands += "$drive`SteamLibrary\steamapps\common\Blender\blender.exe"
-        $bf = "$drive`Program Files\Blender Foundation"
-        if (Test-Path $bf) {
-            $cands += (Get-ChildItem -Directory $bf | ForEach-Object { Join-Path $_.FullName "blender.exe" })
-        }
-    }
-    $found = @()
-    foreach ($c in ($cands | Select-Object -Unique)) {
-        if (-not (Test-Path $c)) { continue }
-        # old builds report no usable product version at all, so fall back to 0.0
-        $raw = (Get-Item $c).VersionInfo.ProductVersion
-        $num = if ($raw) { ($raw -replace '[^0-9\.]', '').Trim('.') } else { '' }
-        if ($num -notmatch '^\d+(\.\d+)*$') { $num = '0.0' }
-        $found += [pscustomobject]@{ Path = $c; Version = [version]$num }
-    }
-    if (-not $found) { throw "No Blender found. Install Blender or pass -Blender <path to blender.exe>." }
-    ($found | Sort-Object Version -Descending | Select-Object -First 1).Path
-}
-
+# Blender comes from -Blender, else the BLENDER_EXE environment variable, else PATH; see
+# Find-Blender in tools\dc_paths.ps1. It is not guessed at by hunting through installed
+# folders any more: a guess makes the script depend on how one machine happens to be set
+# up, and this one has to run wherever the tree is unzipped. Blender is only needed to
+# rebuild the art - the demo itself runs without it.
 $blender = Find-Blender -Explicit $Blender
+$python  = Find-DemoPython
 Write-Host "Blender : $blender  ($((Get-Item $blender).VersionInfo.ProductVersion))"
 Write-Host "Project : $root"
 
@@ -81,11 +58,11 @@ function Invoke-EnvBuild {
     $script:envCode = $LASTEXITCODE
 
     Write-Host "`n== validate environment =="
-    python (Join-Path $art "tools\validate_env.py")
+    & $python (Join-Path $art "tools\validate_env.py")
     $script:envValCode = $LASTEXITCODE
 
     Write-Host "`n== environment sheet =="
-    python (Join-Path $art "tools\env_sheet.py")
+    & $python (Join-Path $art "tools\env_sheet.py")
     if ($LASTEXITCODE -ne 0) { Write-Warning "env_sheet.py failed (exit $LASTEXITCODE)" }
 }
 
@@ -101,13 +78,13 @@ if ($EnvOnly) {
 
 if (-not $SkipEmblems) {
     Write-Host "`n== emblems and sample screen =="
-    python (Join-Path $art "tools\make_emblems.py")
+    & $python (Join-Path $art "tools\make_emblems.py")
     if ($LASTEXITCODE -ne 0) { throw "make_emblems.py failed" }
-    python (Join-Path $art "tools\make_sample_screen.py")
+    & $python (Join-Path $art "tools\make_sample_screen.py")
     if ($LASTEXITCODE -ne 0) { throw "make_sample_screen.py failed" }
     # The four images the screen inside a piece cycles through. Base-game content, like the
     # emblems: a pack never carries one (brief 016).
-    python (Join-Path $art "tools\make_screen_set.py")
+    & $python (Join-Path $art "tools\make_screen_set.py")
     if ($LASTEXITCODE -ne 0) { throw "make_screen_set.py failed" }
 }
 
@@ -129,7 +106,7 @@ if ($Only) { $rtArgs += @("--only", $Only) }
 $rtCode = $LASTEXITCODE
 
 Write-Host "`n== validate =="
-python (Join-Path $art "tools\validate_assets.py")
+& $python (Join-Path $art "tools\validate_assets.py")
 $valCode = $LASTEXITCODE
 
 if ($QaShots) {
@@ -141,7 +118,7 @@ if ($QaShots) {
 }
 
 Write-Host "`n== sheets =="
-python (Join-Path $art "tools\contact_sheet.py")
+& $python (Join-Path $art "tools\contact_sheet.py")
 if ($LASTEXITCODE -ne 0) { throw "contact_sheet.py failed" }
 
 if (-not $SkipEnv) { Invoke-EnvBuild }

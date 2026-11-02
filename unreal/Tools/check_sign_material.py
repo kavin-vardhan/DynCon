@@ -1,8 +1,13 @@
 """Report how M_DC_Sign and M_DC_Screen are actually wired, and what their instances set."""
 
+import os
+
 import unreal
 
-OUT = r"E:\DynamicContents\unreal\_build\logs\check_sign_material.txt"
+# unreal/Tools/ -> the root of this copy of the tree.
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+OUT = os.path.join(REPO, "unreal", "_build", "logs", "check_sign_material.txt")
+os.makedirs(os.path.dirname(OUT), exist_ok=True)
 LINES = []
 
 

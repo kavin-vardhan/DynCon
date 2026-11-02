@@ -21,9 +21,11 @@
     letting them near the config folder.
 #>
 param(
-    [string]$Engine  = 'E:\EpicGames\UE_5.7',
-    [string]$Project = 'E:\DynamicContents\unreal\DCDemo\DCDemo.uproject',
-    [string]$Repo    = 'E:\DynamicContents',
+    # Empty means "find it": UE_ROOT, then the registry, then the launcher's own manifest.
+    # See tools\dc_paths.ps1.
+    [string]$Engine  = '',
+    [string]$Project = (Join-Path $PSScriptRoot '..\DCDemo\DCDemo.uproject'),
+    [string]$Repo    = '',
     [int]   $Port    = 8700,
     [int]   $MapPixels = 2048,
     [int]   $ThumbWidth = 960,
@@ -38,8 +40,12 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot '..\..\tools\dc_paths.ps1')
+if (-not $Repo) { $Repo = Get-DCRepoRoot }
+$Engine = Find-UnrealEngine -Explicit $Engine
+Write-Host "engine: $Engine"
 $serverDir = Join-Path $Repo 'server'
-$python = Join-Path $serverDir '.venv\Scripts\python.exe'
+$python = Find-DemoPython
 $logDir = Join-Path $Repo 'unreal\_build\logs'
 New-Item -ItemType Directory -Force -Path $logDir | Out-Null
 $stamp = Get-Date -Format 'yyyyMMdd_HHmmss'

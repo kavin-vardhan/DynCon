@@ -1,7 +1,7 @@
 """Exit test for demo plan v6 §14 step 6: **state kept across a swap, ten times out of ten.**
 
-    server\\.venv\\Scripts\\python.exe unreal\\Tools\\state_exit_test.py
-    server\\.venv\\Scripts\\python.exe unreal\\Tools\\state_exit_test.py --rounds 3 --plan push,end,push
+    python\\python.exe unreal\\Tools\\state_exit_test.py
+    python\\python.exe unreal\\Tools\\state_exit_test.py --rounds 3 --plan push,end,push
 
 Step 9 of the demo, ten times, in one packaged Shipping build that contains none of the
 content:
@@ -38,6 +38,7 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 import time
 import traceback
 from pathlib import Path
@@ -47,8 +48,11 @@ import httpx
 
 REPO = Path(__file__).resolve().parent.parent.parent
 SERVER_DIR = REPO / "server"
-PYTHON = SERVER_DIR / ".venv" / "Scripts" / "python.exe"
-EXE = REPO / "unreal" / "_build" / "archive" / "Windows" / "DCDemo.exe"
+sys.path.insert(0, str(REPO / "tools"))
+import dc_paths                                                          # noqa: E402
+
+PYTHON = dc_paths.demo_python()
+EXE = dc_paths.game_exe()
 OUT_DIR = REPO / "unreal" / "_build" / "runtime" / "state_test"
 LOG_DIR = REPO / "unreal" / "_build" / "logs"
 

@@ -123,7 +123,7 @@
  "notes": [
   "Runs along +X. The water side is -Y; the coping overhangs it."
  ],
- "build_seconds": 1.2,
+ "build_seconds": 0.15,
  "exports": {
   "fbx": "export_env/quay_wall/quay_wall.fbx",
   "glb": "export_env/quay_wall/quay_wall.glb"
@@ -133,11 +133,11 @@
   "warm": "previews_env/warm/quay_wall.png"
  },
  "generator": {
-  "env_kit_sha256": "4f8523c94c58efb50716510b58a4b1b0e79aee14d6c5551d2d99a0e3df32ba14",
+  "env_kit_sha256": "de5af8d15e515714fbffd79eb98e535539b3dd0921ca3367a557474c10052772",
   "piece_script": "blender/env/ground.py",
-  "piece_sha256": "fb382f3b7c26d2ccde182bf79342bfb1f9865b0179b43efa7165b7b6486993aa",
+  "piece_sha256": "e5dc71e1a89387d19ccc9de643855130c9017e598105af93b3fa844629e433d1",
   "dc_kit_sha256": "bb5a3473ce162fa2e6a00d5e1ebe7a22df324ed05eaf89d6de3aa7cd84bda4bc",
   "blender": "5.2.3 LTS",
-  "built_utc": "2026-11-01T07:47:30Z"
+  "built_utc": "2026-11-02T08:39:14Z"
  }
 }

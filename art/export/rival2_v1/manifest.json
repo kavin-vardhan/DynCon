@@ -1009,7 +1009,7 @@
  "notes": [
   "Six facets: the front one is flat to -Y so the door, the sign and the brand band sit on straight wall; the back one carries the screen."
  ],
- "build_seconds": 0.42,
+ "build_seconds": 0.59,
  "exports": {
   "fbx": "export/rival2_v1/rival2_v1.fbx",
   "glb": "export/rival2_v1/rival2_v1.glb"
@@ -1030,7 +1030,7 @@
   "dc_kit_sha256": "bb5a3473ce162fa2e6a00d5e1ebe7a22df324ed05eaf89d6de3aa7cd84bda4bc",
   "piece_script": "blender/pieces/rival2.py",
   "piece_sha256": "f071978e85f1b8018f37c98b62fe9e0d05ab213774a4dca82984134a8c5ff41f",
-  "blender": "5.2.2 LTS",
-  "built_utc": "2026-10-25T23:53:42Z"
+  "blender": "5.2.3 LTS",
+  "built_utc": "2026-11-02T08:38:49Z"
  }
 }

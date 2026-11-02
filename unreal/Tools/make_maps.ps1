@@ -21,13 +21,18 @@
     /Game/Maps/GameB.
 #>
 param(
-    [string]$Engine  = 'E:\EpicGames\UE_5.7',
-    [string]$Project = 'E:\DynamicContents\unreal\DCDemo\DCDemo.uproject',
-    [string]$LogDir  = 'E:\DynamicContents\unreal\_build\logs',
+    # Empty means "find it": UE_ROOT, then the registry, then the launcher's own manifest.
+    # See tools\dc_paths.ps1.
+    [string]$Engine  = '',
+    [string]$Project = (Join-Path $PSScriptRoot '..\DCDemo\DCDemo.uproject'),
+    [string]$LogDir  = (Join-Path $PSScriptRoot '..\_build\logs'),
     [switch]$SkipMannequin
 )
 
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot '..\..\tools\dc_paths.ps1')
+$Engine = Find-UnrealEngine -Explicit $Engine
+Write-Host "engine: $Engine"
 New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
 $content = Join-Path (Split-Path $Project -Parent) 'Content'
 
@@ -67,11 +72,12 @@ $stamp = Get-Date -Format 'yyyyMMdd_HHmmss'
 $log = Join-Path $LogDir "make_maps_${stamp}.log"
 Write-Host "running make_maps.py in the headless editor (log: $log)"
 $started = Get-Date
-cmd /c "`"$Engine\Engine\Binaries\Win64\UnrealEditor-Cmd.exe`" `"$Project`" -run=pythonscript -script=`"E:\DynamicContents\unreal\Tools\make_maps.py`" -unattended -nosplash > `"$log`" 2>&1"
+$script = Join-Path $PSScriptRoot 'make_maps.py'
+cmd /c "`"$Engine\Engine\Binaries\Win64\UnrealEditor-Cmd.exe`" `"$Project`" -run=pythonscript -script=`"$script`" -unattended -nosplash > `"$log`" 2>&1"
 $exit = $LASTEXITCODE
 Write-Host ("editor exit {0} after {1:N1} min" -f $exit, ((Get-Date) - $started).TotalMinutes)
 
-$report = 'E:\DynamicContents\unreal\_build\logs\maps.json'
+$report = Join-Path $LogDir 'maps.json'
 if (Test-Path $report) {
     $j = Get-Content $report -Raw | ConvertFrom-Json
     foreach ($name in @('GameA', 'GameB')) {

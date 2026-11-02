@@ -32,7 +32,8 @@ import os
 
 import unreal
 
-REPO = r"E:\DynamicContents"
+# The root of this copy of the tree, from this file's own location: unreal/Tools/.
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 SCREEN_SOURCE = os.path.join(REPO, "art", "samples", "screens")
 
 CORE_SCREENS = "/Game/DCCore/Screens"

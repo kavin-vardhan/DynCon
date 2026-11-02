@@ -14,12 +14,17 @@
     DefaultEngine.ini / DefaultGame.ini survive a re-run.
 #>
 param(
-    [string]$Engine  = 'E:\EpicGames\UE_5.7',
-    [string]$Target  = 'E:\DynamicContents\unreal\DCDemo',
+    # Empty means "find it": UE_ROOT, then the registry, then the launcher's own manifest.
+    # See tools\dc_paths.ps1.
+    [string]$Engine  = '',
+    [string]$Target  = (Join-Path $PSScriptRoot '..\DCDemo'),
     [switch]$Force
 )
 
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot '..\..\tools\dc_paths.ps1')
+$Engine = Find-UnrealEngine -Explicit $Engine
+Write-Host "engine: $Engine"
 
 $TemplateName = 'TP_ThirdPerson'
 $ProjectName  = 'DCDemo'

@@ -14,11 +14,11 @@
         powershell -ExecutionPolicy Bypass -File unreal\Tools\stage_packs.ps1
 #>
 param(
-    [string]$Archive   = 'E:\DynamicContents\unreal\_build\archive\Windows',
-    [string]$Cooked    = 'E:\DynamicContents\unreal\DCDemo\Saved\Cooked\Windows\DCDemo',
-    [string]$Packs     = 'E:\DynamicContents\unreal\_packs',
-    [string]$ChunkIds  = 'E:\DynamicContents\unreal\Tools\chunk_ids.json',
-    [string]$ArtExport = 'E:\DynamicContents\art\export'
+    [string]$Archive   = (Join-Path $PSScriptRoot '..\_build\archive\Windows'),
+    [string]$Cooked    = (Join-Path $PSScriptRoot '..\DCDemo\Saved\Cooked\Windows\DCDemo'),
+    [string]$Packs     = (Join-Path $PSScriptRoot '..\_packs'),
+    [string]$ChunkIds  = (Join-Path $PSScriptRoot 'chunk_ids.json'),
+    [string]$ArtExport = (Join-Path $PSScriptRoot '..\..\art\export')
 )
 
 $ErrorActionPreference = 'Stop'
@@ -142,4 +142,22 @@ $total = (Get-ChildItem $Archive -Recurse -File | Measure-Object -Sum Length).Su
 Write-Host ("packaged build after removal: {0:N1} MB" -f ($total / 1MB))
 Write-Host ("packs staged: {0}, {1:N1} MB" -f $moved.Count,
     (((Get-ChildItem $Packs -Recurse -File | Measure-Object -Sum Length).Sum) / 1MB))
-Write-Host ("free on E:: {0:N1} GB" -f ((Get-PSDrive E).Free / 1GB))
+$drive = (Get-Item $Packs).PSDrive
+Write-Host ("free on {0}: {1:N1} GB" -f $drive.Root, ($drive.Free / 1GB))
+
+# These two go together, and forgetting the second costs an afternoon. A pack is cooked
+# against one exact build of the base game, and the server keeps the packs it has already
+# been given in server\data\ and only seeds new ones when it finds none. So after a
+# re-cook the server is still handing the game the OLD chunks, the exported objects in them
+# no longer line up with the new base game, and the game dies the moment it mounts one:
+#
+#   LowLevelFatalError ... ObjectSerializationError: /Game/DCContent/default_v1/
+#   BP_DC_default_v1 ... Bad export index 262143/7
+#
+# which reads like a corrupt download and is nothing of the kind.
+Write-Host ''
+Write-Host 'NEXT, and not optional:' -ForegroundColor Yellow
+Write-Host '  1. wrap these as .dcpack        <python> server\tools\make_fake_packs.py --real --force'
+Write-Host '  2. throw away the server''s copy  Start-Demo.bat -Reset   (or delete server\data)'
+Write-Host '     The server keeps every pack it has been given. Packs cooked against the old'
+Write-Host '     build, served to the new one, crash the game as it mounts them.'

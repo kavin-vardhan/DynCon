@@ -3,9 +3,9 @@ import_content.py - bring the generated content art into the UE project as conte
 
 Run headless from the repo root:
 
-    "E:\\EpicGames\\UE_5.7\\Engine\\Binaries\\Win64\\UnrealEditor-Cmd.exe" ^
-        "E:\\DynamicContents\\unreal\\DCDemo\\DCDemo.uproject" ^
-        -run=pythonscript -script="E:\\DynamicContents\\unreal\\Tools\\import_content.py" ^
+    "<engine>\\Engine\\Binaries\\Win64\\UnrealEditor-Cmd.exe" ^
+        "unreal\\DCDemo\\DCDemo.uproject" ^
+        -run=pythonscript -script="<full path to unreal\\Tools\\import_content.py>" ^
         -unattended -nosplash
 
 What it makes (unreal_spec_v1 sections 1 and 2):
@@ -49,7 +49,8 @@ import core_extras as CE      # noqa: E402
 
 # --------------------------------------------------------------------------- configuration
 
-REPO = r"E:\DynamicContents"
+# The root of this copy of the tree, from this file's own location: unreal/Tools/.
+REPO = os.path.dirname(os.path.dirname(_HERE))
 ART_EXPORT = os.path.join(REPO, "art", "export")
 ART_EMBLEMS = os.path.join(REPO, "art", "emblems")
 ART_SAMPLES = os.path.join(REPO, "art", "samples")

@@ -1,6 +1,6 @@
 """The region preview window's exit test (brief 017) — the whole beat, end to end.
 
-    server\\.venv\\Scripts\\python.exe booth\\preview_exit_test.py
+    python\\python.exe booth\\preview_exit_test.py
     ... --keep              leave everything up afterwards
     ... --headless          no visible browser (then the desktop shots show only the games)
 
@@ -57,8 +57,11 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parent.parent
 SERVER_DIR = ROOT / "server"
-VENV_PY = SERVER_DIR / ".venv" / "Scripts" / "python.exe"
-EXE = ROOT / "unreal" / "_build" / "archive" / "Windows" / "DCDemo.exe"
+sys.path.insert(0, str(ROOT / "tools"))
+import dc_paths                                                          # noqa: E402
+
+VENV_PY = dc_paths.demo_python()
+EXE = dc_paths.game_exe()
 LOG_DIR = ROOT / "unreal" / "_build" / "logs"
 
 sys.path.insert(0, str(ROOT / "booth"))

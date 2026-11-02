@@ -1,6 +1,6 @@
 """The region preview window's pass/fail test (demo plan v6 §11, §14 step 5).
 
-    server\\.venv\\Scripts\\python.exe unreal\\Tools\\preview_frametime_test.py
+    python\\python.exe unreal\\Tools\\preview_frametime_test.py
     ... --minutes 10          how long each run's scripted tour keeps going
     ... --only solo           just one of the two runs (solo | with)
     ... --keep-server-data    reuse the server folder from the last run
@@ -49,8 +49,11 @@ import httpx
 
 REPO = Path(__file__).resolve().parent.parent.parent
 SERVER_DIR = REPO / "server"
-PYTHON = SERVER_DIR / ".venv" / "Scripts" / "python.exe"
-EXE = REPO / "unreal" / "_build" / "archive" / "Windows" / "DCDemo.exe"
+sys.path.insert(0, str(REPO / "tools"))
+import dc_paths                                                          # noqa: E402
+
+PYTHON = dc_paths.demo_python()
+EXE = dc_paths.game_exe()
 OUT_ROOT = REPO / "unreal" / "_build" / "preview"
 LOG_DIR = REPO / "unreal" / "_build" / "logs"
 

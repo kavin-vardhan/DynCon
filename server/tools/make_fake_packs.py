@@ -246,6 +246,9 @@ def main(argv: list[str] | None = None) -> int:
                     default=cfg.packs["fake_filler_min_bytes"] / (1024 * 1024))
     ap.add_argument("--max-mb", type=float,
                     default=cfg.packs["fake_filler_max_bytes"] / (1024 * 1024))
+    ap.add_argument("--bad-mb", type=float,
+                    default=cfg.packs.get("bad_filler_bytes", 786432) / (1024 * 1024),
+                    help="each built-to-fail file's size (they are rejected, never mounted)")
     ap.add_argument("--no-bad", action="store_true", help="skip the two built-to-fail files")
     ap.add_argument("--only-bad", action="store_true", help="only the two built-to-fail files")
     ap.add_argument("--force", action="store_true", help="rebuild files that already exist")
@@ -281,15 +284,19 @@ def main(argv: list[str] | None = None) -> int:
                 written.append(made)
 
     if not args.no_bad and not args.real:
-        log(args.quiet, "built-to-fail files")
+        # Small, and deliberately: both of these are rejected at the first check and
+        # nothing ever mounts them, so the 15-40 MB that makes an ordinary upload feel real
+        # would be 40 MB a copy of this tree carries for nothing. See demo.json.
+        bad_bytes = int(args.bad_mb * 1024 * 1024)
+        log(args.quiet, f"built-to-fail files ({bad_bytes / 1024 / 1024:.1f} MB each)")
         for bad in BAD_PACKS:
             key = bad["base"]
             name = f"{key}_{bad['suffix']}.dcpack"
             if (out_dir / name).exists() and not args.force:
                 log(args.quiet, f"  {name} exists (--force to rebuild)")
                 continue
-            made = make_fake(key, table[key], out_dir, min_bytes=min_bytes,
-                             max_bytes=max_bytes, patch=bad["patch"], name=name,
+            made = make_fake(key, table[key], out_dir, min_bytes=bad_bytes,
+                             max_bytes=bad_bytes, patch=bad["patch"], name=name,
                              quiet=args.quiet)
             if made:
                 written.append(made)

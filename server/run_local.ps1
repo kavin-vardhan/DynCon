@@ -3,7 +3,8 @@
 #   .\server\run_local.ps1                 # install if needed, then run
 #   .\server\run_local.ps1 -Port 8701      # a second instance for a test
 #   .\server\run_local.ps1 -Packs          # build the fake packs first, then run
-#   .\server\run_local.ps1 -NoInstall      # skip the pip check (faster start)
+#   .\server\run_local.ps1 -NoInstall      # skip the pip check (implied when this
+#                                        # copy of the tree carries its own python\)
 #
 # First run generates the RS256 key pair and the URL secret into server\data\keys\ and
 # registers the rival and default packs it finds in server\demo_files\. Both data\ and
@@ -21,13 +22,19 @@ param(
 
 $ErrorActionPreference = "Stop"
 $serverDir = $PSScriptRoot
-$python = Join-Path $serverDir ".venv\Scripts\python.exe"
+. (Join-Path $serverDir "..\tools\dc_paths.ps1")
 
-if (-not (Test-Path $python)) {
-    Write-Host "creating venv (Python 3.13)..." -ForegroundColor Cyan
-    & C:\Python313\python.exe -m venv (Join-Path $serverDir ".venv")
-    $NoInstall = $false
+# The interpreter: python\python.exe carried inside this copy of the tree if there is one,
+# else a development virtual environment in server\.venv, else whatever is on PATH. A copy
+# that carries its own interpreter already has every package installed, so -NoInstall is
+# implied for it: nothing may reach the network.
+$python = Find-DemoPython
+$carried = Join-Path (Get-DCRepoRoot) "python\python.exe"
+if ((Test-Path -LiteralPath $carried) -and
+    ($python -ieq (Resolve-Path -LiteralPath $carried).Path)) {
+    $NoInstall = $true
 }
+Write-Host "python: $python" -ForegroundColor DarkGray
 
 if (-not $NoInstall) {
     Write-Host "checking dependencies..." -ForegroundColor Cyan

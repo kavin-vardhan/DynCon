@@ -1,6 +1,6 @@
 """The lighting budget's before/after pictures (brief 018 part 1).
 
-    server\\.venv\\Scripts\\python.exe unreal\\Tools\\light_shots.py
+    python\\python.exe unreal\\Tools\\light_shots.py
     ... --only after          one of the three passes
     ... --sheet-only          rebuild the sheet from shots that are already there
 
@@ -34,8 +34,11 @@ from PIL import Image, ImageDraw, ImageFont
 
 REPO = Path(__file__).resolve().parent.parent.parent
 SERVER_DIR = REPO / "server"
-PYTHON = SERVER_DIR / ".venv" / "Scripts" / "python.exe"
-EXE = REPO / "unreal" / "_build" / "archive" / "Windows" / "DCDemo.exe"
+sys.path.insert(0, str(REPO / "tools"))
+import dc_paths                                                          # noqa: E402
+
+PYTHON = dc_paths.demo_python()
+EXE = dc_paths.game_exe()
 WORK = REPO / "unreal" / "_build" / "lightshots"
 OUT = REPO / "unreal" / "spike" / "shots" / "018"
 LOG_DIR = REPO / "unreal" / "_build" / "logs"

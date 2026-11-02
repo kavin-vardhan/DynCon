@@ -17,8 +17,8 @@ What it does:
 5. times **allocation written -> visible in game** for every round;
 6. tells the game to stop, stops the server, and prints the table.
 
-    server\\.venv\\Scripts\\python.exe unreal\\Tools\\ue_exit_test.py
-    server\\.venv\\Scripts\\python.exe unreal\\Tools\\ue_exit_test.py --port 8701 --keep-server-data
+    python\\python.exe unreal\\Tools\\ue_exit_test.py
+    python\\python.exe unreal\\Tools\\ue_exit_test.py --port 8701 --keep-server-data
 """
 from __future__ import annotations
 
@@ -38,8 +38,11 @@ import httpx
 
 REPO = Path(__file__).resolve().parent.parent.parent
 SERVER_DIR = REPO / "server"
-PYTHON = SERVER_DIR / ".venv" / "Scripts" / "python.exe"
-EXE = REPO / "unreal" / "_build" / "archive" / "Windows" / "DCDemo.exe"
+sys.path.insert(0, str(REPO / "tools"))
+import dc_paths                                                          # noqa: E402
+
+PYTHON = dc_paths.demo_python()
+EXE = dc_paths.game_exe()
 OUT_DIR = REPO / "unreal" / "_build" / "runtime" / "exit_test"
 LOG_DIR = REPO / "unreal" / "_build" / "logs"
 

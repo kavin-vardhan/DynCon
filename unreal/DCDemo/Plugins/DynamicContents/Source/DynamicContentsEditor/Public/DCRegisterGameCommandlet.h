@@ -1,7 +1,7 @@
 // The headless entry to the slot-map tool: one map per run.
 //
-//   "E:\EpicGames\UE_5.7\Engine\Binaries\Win64\UnrealEditor-Cmd.exe" ^
-//     "E:\DynamicContents\unreal\DCDemo\DCDemo.uproject" ^
+//   "<engine>\Engine\Binaries\Win64\UnrealEditor-Cmd.exe" ^
+//     "unreal\DCDemo\DCDemo.uproject" ^
 //     -run=DynamicContentsEditor.DCRegisterGameCommandlet ^
 //     -map=/Game/Maps/GameA -game=A -backend=http://127.0.0.1:8700 ^
 //     -AllowCommandletRendering -unattended -nosplash

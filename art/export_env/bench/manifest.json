@@ -107,7 +107,7 @@
  ],
  "preview_palette": "warm",
  "notes": [],
- "build_seconds": 0.65,
+ "build_seconds": 0.34,
  "exports": {
   "fbx": "export_env/bench/bench.fbx",
   "glb": "export_env/bench/bench.glb"
@@ -117,11 +117,11 @@
   "warm": "previews_env/warm/bench.png"
  },
  "generator": {
-  "env_kit_sha256": "4f8523c94c58efb50716510b58a4b1b0e79aee14d6c5551d2d99a0e3df32ba14",
+  "env_kit_sha256": "de5af8d15e515714fbffd79eb98e535539b3dd0921ca3367a557474c10052772",
   "piece_script": "blender/env/props.py",
   "piece_sha256": "2ec40c9d2202b41602a9f1c40bea58c80b984f182802fa6083140f5f9d0ac585",
   "dc_kit_sha256": "bb5a3473ce162fa2e6a00d5e1ebe7a22df324ed05eaf89d6de3aa7cd84bda4bc",
   "blender": "5.2.3 LTS",
-  "built_utc": "2026-11-01T07:47:37Z"
+  "built_utc": "2026-11-02T08:39:17Z"
  }
 }

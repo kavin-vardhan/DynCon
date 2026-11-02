@@ -25,7 +25,8 @@ import os
 
 import unreal
 
-REPO = r"E:\DynamicContents"
+# The root of this copy of the tree, from this file's own location: unreal/Tools/.
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 ART = os.path.join(REPO, "art")
 ENV_EXPORT = os.path.join(ART, "export_env")
 

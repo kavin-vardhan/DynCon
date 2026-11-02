@@ -2,9 +2,9 @@
 
 Run inside the headless editor:
 
-    "E:\\EpicGames\\UE_5.7\\Engine\\Binaries\\Win64\\UnrealEditor-Cmd.exe" ^
-      "E:\\DynamicContents\\unreal\\DCDemo\\DCDemo.uproject" ^
-      -run=pythonscript -script="E:\\DynamicContents\\unreal\\Tools\\make_maps.py" ^
+    "<engine>\\Engine\\Binaries\\Win64\\UnrealEditor-Cmd.exe" ^
+      "unreal\\DCDemo\\DCDemo.uproject" ^
+      -run=pythonscript -script="<full path to unreal\\Tools\\make_maps.py>" ^
       -unattended -nosplash
 
 or through `unreal\\Tools\\make_maps.ps1`, which copies the mannequin in first.
@@ -40,7 +40,8 @@ if HERE not in sys.path:
 import core_extras as CE     # noqa: E402
 import env_import as EI      # noqa: E402
 
-REPO = r"E:\DynamicContents"
+# The root of this copy of the tree, from this file's own location: unreal/Tools/.
+REPO = os.path.dirname(os.path.dirname(HERE))
 REPORT_PATH = os.path.join(REPO, "unreal", "_build", "logs", "maps.json")
 
 MAP_A = "/Game/Maps/GameA"

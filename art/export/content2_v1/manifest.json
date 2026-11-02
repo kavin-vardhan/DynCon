@@ -963,7 +963,7 @@
  "notes": [
   "The drum is entered through a flat-fronted entrance block: a curved wall has nowhere flat for a door leaf, a sign or a 16:9 screen."
  ],
- "build_seconds": 0.25,
+ "build_seconds": 1.68,
  "exports": {
   "fbx": "export/content2_v1/content2_v1.fbx",
   "glb": "export/content2_v1/content2_v1.glb"
@@ -984,7 +984,7 @@
   "dc_kit_sha256": "bb5a3473ce162fa2e6a00d5e1ebe7a22df324ed05eaf89d6de3aa7cd84bda4bc",
   "piece_script": "blender/pieces/content2.py",
   "piece_sha256": "e5c0b8e2c6deff934b526021dd849656e0d8f303e87070003cfa44ea66261383",
-  "blender": "5.2.2 LTS",
-  "built_utc": "2026-10-25T23:53:40Z"
+  "blender": "5.2.3 LTS",
+  "built_utc": "2026-11-02T08:38:27Z"
  }
 }

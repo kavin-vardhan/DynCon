@@ -110,7 +110,7 @@
   "Climbs +Y: three risers of 0.17 m, 0.45 m going. Total rise 0.51 m.",
   "Tiles side by side on a 4 m pitch; nothing stands proud at the edges."
  ],
- "build_seconds": 8.88,
+ "build_seconds": 0.17,
  "exports": {
   "fbx": "export_env/steps/steps.fbx",
   "glb": "export_env/steps/steps.glb"
@@ -120,11 +120,11 @@
   "warm": "previews_env/warm/steps.png"
  },
  "generator": {
-  "env_kit_sha256": "4f8523c94c58efb50716510b58a4b1b0e79aee14d6c5551d2d99a0e3df32ba14",
+  "env_kit_sha256": "de5af8d15e515714fbffd79eb98e535539b3dd0921ca3367a557474c10052772",
   "piece_script": "blender/env/ground.py",
-  "piece_sha256": "57ef45d0998ebb3d3b53913137d024db8888a9464aec64392087b9b0b1ac1d6e",
+  "piece_sha256": "e5dc71e1a89387d19ccc9de643855130c9017e598105af93b3fa844629e433d1",
   "dc_kit_sha256": "bb5a3473ce162fa2e6a00d5e1ebe7a22df324ed05eaf89d6de3aa7cd84bda4bc",
   "blender": "5.2.3 LTS",
-  "built_utc": "2026-11-01T09:14:25Z"
+  "built_utc": "2026-11-02T08:39:13Z"
  }
 }
