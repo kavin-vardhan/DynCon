@@ -23,7 +23,7 @@ What it makes
     _prebuilt/python/Lib/site-packages/  the packages below
 
 `_prebuilt/` is git-ignored: this is a build output, like the packaged game. The export
-that goes to another machine carries the same folder at its root as `python\`, and both
+that goes to another machine carries the same folder at its root as `python\\`, and both
 `Find-DemoPython` (PowerShell) and `dc_paths.demo_python()` (Python) look there first, ahead
 of anything installed on the machine.
 
