@@ -629,13 +629,13 @@ class Service:
 
         Two answers in one, because the preview window asks one question: *what am I?* It is
         a player in some region (which the portal's region check flips), looking at some
-        slot (the one the visitor has just been bidding on). The `label_jp` is here because
-        the window draws a bilingual caption on the HUD canvas and cannot read the portal's
-        own string table.
+        slot (the one the visitor has just been bidding on). The `label` is here because the
+        window draws its own corner caption on the HUD canvas and cannot read the portal's
+        string table. There used to be a `label_jp` next to it for the Japanese half of that
+        caption; the demo is English only since 2026-11-02 (Kavin's ruling).
         """
         region = self.repo.meta_get("preview_region") or self.config.preview_region
         return {"region": region, "label": self.config.region_label(region),
-                "label_jp": self.config.region_label_jp(region),
                 "neutral_label": self.config.data["regions"][region].get("neutral_label"),
                 "main_region": self.config.main_region,
                 "focus": self.preview_focus()}
@@ -694,7 +694,6 @@ class Service:
             return None
         region = flip["region"]
         return {"region": region, "label": self.config.region_label(region),
-                "label_jp": self.config.region_label_jp(region),
                 "ends_at": flip["ends_at"],
                 "seconds_left": round((ends - now).total_seconds(), 1),
                 "back_to": flip.get("back_to") or self.config.main_region}
@@ -1064,8 +1063,7 @@ class Service:
         d = self.config.data
         return {
             "regions": {r: {"label": d["regions"][r]["label"],
-                            "neutral_label": d["regions"][r].get("neutral_label"),
-                            "label_jp": self.config.region_label_jp(r)}
+                            "neutral_label": d["regions"][r].get("neutral_label")}
                         for r in self.config.regions},
             "booth": d.get("booth", {}),
             "size_classes": d["size_classes"],

@@ -8,7 +8,7 @@
 // server's own sentence.
 
 import * as ui from '../ui.js';
-import { STRINGS, japaneseFor } from '../strings.js';
+import { STRINGS } from '../strings.js';
 
 // The read and the send are over a loopback socket, so both finish faster than an eye can
 // follow. The bar is therefore shown over a floor of this many milliseconds — but it never
@@ -36,16 +36,13 @@ function appState(value) {
 
 /** Which of the four checks a rejection stopped at. */
 function stoppedAt(check) {
-  const name = STRINGS[CHECK_KEYS[check]] || { jp: check, en: check };
-  return ui.biText(`${name.jp}で止まりました`,
-                   `Stopped at: ${name.en.toLowerCase()}`, 'small tail');
+  const name = STRINGS[CHECK_KEYS[check]] || check;
+  return ui.txText(`Stopped at: ${String(name).toLowerCase()}`, 'small tail');
 }
 
 function pieceWords(row) {
   const n = String(row.piece || '').replace(/^content/, '');
-  const version = row.version ? `・${row.version}` : '';
-  return ui.biText(`コンテンツ ${n}${version}`,
-                   `Content ${n}${row.version ? ` · ${row.version}` : ''}`);
+  return ui.txText(`Content ${n}${row.version ? ` · ${row.version}` : ''}`);
 }
 
 function fileRow(row, index) {
@@ -53,7 +50,7 @@ function fileRow(row, index) {
     ui.el('span', { class: 'name' }, pieceWords(row)),
     ui.el('span', { class: 'filename', 'data-datum': true }, row.name),
     row.size_class ? ui.el('span', { class: 'tag', 'data-datum': true }, row.size_class) : null,
-    row.note ? ui.el('span', { class: 'tag bad' }, ui.biServer(row.note, 'small')) : null,
+    row.note ? ui.el('span', { class: 'tag bad' }, ui.txText(row.note, 'small')) : null,
     ui.el('span', { class: 'size', 'data-datum': true }, ui.bytes(row.bytes)));
   node.dataset.file = row.name;
   node.dataset.index = index;
@@ -92,7 +89,7 @@ function verdict(node) {
 
 function idleStage() {
   clearStage().append(ui.el('div', { class: 'idle' },
-    ui.glyph('A'), ui.bi('upload_pick')));
+    ui.glyph('A'), ui.tx('upload_pick')));
   verdict(null);
   appState('idle');
 }
@@ -100,7 +97,7 @@ function idleStage() {
 function progressStage(labelKey) {
   const fill = ui.el('div', { class: 'fill' });
   const pct = ui.el('span', { class: 'pct', 'data-datum': true }, '0%');
-  const label = ui.bi(labelKey);
+  const label = ui.tx(labelKey);
   const bar = ui.el('div', { class: 'progress' },
     ui.el('div', { class: 'meta' }, label, pct),
     ui.el('div', { class: 'track' }, fill));
@@ -113,9 +110,9 @@ function checkRows(checks) {
     const mark = check.ok === true ? '✓' : check.ok === false ? '✕' : '·';
     return ui.el('div', { class: `check-row ${state}`.trim() },
       ui.el('span', { class: 'mark', 'data-datum': true }, mark),
-      ui.el('span', { class: 'what' }, ui.bi(CHECK_KEYS[check.check] || check.check)),
+      ui.el('span', { class: 'what' }, ui.tx(CHECK_KEYS[check.check] || check.check)),
       ui.el('span', { class: 'detail' },
-        check.detail ? ui.biServer(check.detail, 'small') : ui.bi('check_skipped', 'small')));
+        check.detail ? ui.txText(check.detail, 'small') : ui.tx('check_skipped', 'small')));
   });
 }
 
@@ -155,7 +152,7 @@ function drawMyContent(ctx) {
   const body = ui.clear(nodes.mine);
   const list = ctx.state.content || [];
   if (!list.length) {
-    body.append(ui.el('div', { class: 'muted' }, ui.bi('upload_empty', 'small')));
+    body.append(ui.el('div', { class: 'muted' }, ui.tx('upload_empty', 'small')));
     return;
   }
   for (const content of list) {
@@ -186,7 +183,7 @@ async function uploadFocused(ctx) {
   const blob = await runPhase(phase, MIN_READ_MS,
     (onProgress) => ctx.api.readDemoFile(row.name, onProgress));
 
-  const sending = ui.bi('upload_sending');
+  const sending = ui.tx('upload_sending');
   phase.label.replaceWith(sending);
   phase.label = sending;
   phase.fill.style.width = '0%';
@@ -216,8 +213,8 @@ async function uploadFocused(ctx) {
     // checks: it is the answer to the question the heading asked.
     verdict(ui.el('div', { class: 'verdict' },
       ui.el('span', { class: 'badge', 'data-datum': true }, '✓'),
-      ui.el('span', { class: 'what' }, ui.bi('upload_approved')),
-      ui.biText(`${answer.size_class} サイズ`, `Class ${answer.size_class}`, 'small tail')));
+      ui.el('span', { class: 'what' }, ui.tx('upload_approved')),
+      ui.txText(`Class ${answer.size_class}`, 'small tail')));
     actions = [{ key: 'upload_continue', run: () => ctx.go('games') },
                { key: 'upload_again', run: () => { idleStage(); mode = 'files'; setHints(ctx);
                                                    paintFocus(); } }];
@@ -227,7 +224,7 @@ async function uploadFocused(ctx) {
     // itself only has to say which way it went.
     verdict(ui.el('div', { class: 'verdict bad' },
       ui.el('span', { class: 'badge', 'data-datum': true }, '✕'),
-      ui.el('span', { class: 'what' }, ui.bi('upload_rejected')),
+      ui.el('span', { class: 'what' }, ui.tx('upload_rejected')),
       stoppedAt(answer.failed_check)));
     actions = [{ key: 'upload_again', run: () => { idleStage(); mode = 'files'; setHints(ctx);
                                                    paintFocus(); } }];
@@ -240,7 +237,7 @@ async function uploadFocused(ctx) {
   ui.clear(nodes.actions);
   nodes.actionNodes = actions.map((action, i) => {
     const node = ui.el('div', { class: 'button focusable' + (i === 0 ? ' primary' : '') },
-      ui.glyph('A'), ui.bi(action.key));
+      ui.glyph('A'), ui.tx(action.key));
     node.dataset.action = action.key;
     return node;
   });
@@ -276,7 +273,7 @@ export default {
     root.append(
       ui.el('div', { class: 'screen-head' },
         ui.heading('upload_title', 'h1'),
-        ui.el('span', { class: 'sub' }, ui.bi('upload_pick', 'small'))),
+        ui.el('span', { class: 'sub' }, ui.tx('upload_pick', 'small'))),
       ui.el('div', { class: 'columns' },
         // Three columns, left to right: the files the brand has, what the platform does
         // with the one it is given, and what the brand ends up owning. Each is its own
@@ -321,7 +318,7 @@ export default {
           console.error(problem);
           mode = 'files';
           setHints(ctx);
-          ui.toast('アップロードできませんでした', problem.sentence || String(problem), 'bad');
+          ui.toast(problem.sentence || String(problem), 'bad');
           idleStage();
         });
         return;

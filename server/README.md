@@ -31,7 +31,7 @@ one-line "is it alive and what does it have" check, and **`/portal/` is the bran
 process and the portal needs no CORS (`portal/README.md`).
 
 ```powershell
-.\server\.venv\Scripts\python.exe -m pytest           # from server\ — 169 tests
+.\server\.venv\Scripts\python.exe -m pytest           # from server\ — every test
 .\server\.venv\Scripts\python.exe tools\make_fake_packs.py          # the demo packs
 .\server\.venv\Scripts\python.exe tools\fake_client.py --game A --region r1 --once
 .\server\.venv\Scripts\python.exe tools\stage1_exit_test.py         # plan v6 §14 step 1
@@ -42,7 +42,7 @@ process and the portal needs no CORS (`portal/README.md`).
 
 | Path | What |
 |---|---|
-| `config/demo.json` | **Every tunable, and the source of truth for rival identity and region mapping.** |
+| `config/demo.json` | **Every tunable, and the source of truth for rival identity and region mapping.** Region labels are English only (Kavin's ruling 2026-11-02) |
 | `config/maps/` | the registered slot maps: `<game>.json` + `<game>.png` + `<game>_<slot>.png`, **in git** |
 | `dcserver/registry.py` | `POST /games/register`: what the developer's slot-map tool sends, checked and stored |
 | `dcserver/clock.py` | `Clock` (injectable; `FakeClock` in tests) and `DemoClock` (60x, time blocks) |
@@ -234,6 +234,13 @@ table still decides which slots exist, what class they are and what they cost.
 
 ## Things worth knowing
 
+- **`tests/test_no_japanese.py` is the guard on the English-only ruling** (Kavin,
+  2026-11-02): it sweeps every text file in the portal, the booth scripts, this server, the
+  plugin's `Source/`, `unreal/Tools/`, the art scripts, the specs and the READMEs, and fails
+  if a single Hiragana, Katakana, CJK ideograph or full-width form comes back. It lives here
+  because the server's suite is the one that runs on every brief and needs nothing but the
+  repository. `DemoPlan/`, `docs/handoffs/` and the older `DECISIONS.md` lines are not
+  swept: history stays as history, and plan v6 does ask for two languages.
 - `demo_files/` holds both the fake packs and the `.real.dcpack` wrappers, and
   `GET /demo-files` is a **curated** list, not the folder: version 1 of each uploadable piece
   plus the one built-to-fail file the tour rejects on purpose (engine 5.3).
@@ -296,9 +303,11 @@ table still decides which slots exist, what class they are and what they cost.
   allocation** — which is what a rehearsal driven by `/admin/allocate` has instead of a bid —
   else the **busiest slot of the game being played at the booth**, so the window has
   something to frame during the attract loop. A rival's bidding never moves it. The answer
-  also carries `label_jp`, because the window draws a bilingual caption on the game's HUD
-  canvas and cannot read the portal's string table; `tests/test_preview.py` fails if that
-  label stops agreeing with `portal/strings.js`.
+  carries `label` as well, because the window draws its own caption on the game's HUD canvas
+  and cannot read the portal's string table; `tests/test_preview.py` fails if a region named
+  in the config is one `portal/strings.js` has never heard of. There used to be a `label_jp`
+  beside it — **the demo is English only since 2026-11-02, Kavin's ruling**, so it is gone,
+  here and everywhere else (`specs/DECISIONS.md`).
 - **`POST /preview/flip {region, seconds}` is the fallback for the same step** (plan v6
   §11): no second copy of the game, the **main** one plays as that region for twenty
   seconds and the slot swaps in front of the Player. It is a timestamp like everything else

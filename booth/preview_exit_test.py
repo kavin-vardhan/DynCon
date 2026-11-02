@@ -530,7 +530,7 @@ class PreviewRun:
         pad.press("A")                            # apply it
         japan = self.api("/preview/region")
         self.note(f"the portal set the preview's region to {japan['region']} "
-                  f"({japan['label']} / {japan.get('label_jp')})")
+                  f"({japan['label']})")
         if japan["region"] != "r1":
             self.fail(f"the portal set the preview to {japan['region']}, not Japan")
 
@@ -724,7 +724,10 @@ class PreviewRun:
                                       "--force-device-scale-factor=1",
                                       # the booth's kiosk has none of these, and a
                                       # "translate this page?" bubble over the portal is
-                                      # not what the shots are of
+                                      # not what the shots are of. It stays after the
+                                      # English-only ruling: the booth PC may well be a
+                                      # Japanese Windows, and Edge would then offer to
+                                      # translate an English page instead.
                                       "--disable-features=Translate,TranslateUI",
                                       "--no-first-run", "--no-default-browser-check"]
                 browser = play.chromium.launch(**launch)
@@ -735,11 +738,11 @@ class PreviewRun:
                 # the viewport pinned, the page is laid out at 1920 x 1080 and drawn scaled
                 # into the window - so the audit sees the booth's sizes and the screen sees
                 # the booth's picture.
-                # ja-JP: the booth's kiosk is a Japanese machine, and without it Edge
-                # offers to translate the portal and parks the offer over the screen in
-                # every desktop capture.
+                # en-US: the portal is English only since 2026-11-02 (Kavin's ruling), so
+                # the page and the browser agree and nothing offers to translate anything.
+                # It used to be ja-JP, for a Japanese page on a Japanese machine.
                 context = browser.new_context(viewport=pet.VIEWPORT, device_scale_factor=1,
-                                              locale="ja-JP")
+                                              locale="en-US")
                 page = context.new_page()
                 url = f"{self.base}/portal/?pad={self.args.pad_port}&idle=900"
                 print(f"opening {url}", flush=True)

@@ -56,28 +56,27 @@ function soonest() {
 function drawRows() {
   const body = ui.clear(nodes.rows);
   body.append(ui.el('div', { class: 'bid-row head' },
-    ui.el('span', { class: 'c-region' }, ui.bi('regions_region', 'label')),
-    ui.el('span', { class: 'c-high' }, ui.bi('regions_highest', 'label')),
-    ui.el('span', { class: 'c-bid' }, ui.bi('regions_your_bid', 'label')),
-    ui.el('span', { class: 'c-status' }, ui.bi('regions_status', 'label')),
-    ui.el('span', { class: 'c-clock' }, ui.bi('auction_closes_in', 'label'))));
+    ui.el('span', { class: 'c-region' }, ui.tx('regions_region', 'label')),
+    ui.el('span', { class: 'c-high' }, ui.tx('regions_highest', 'label')),
+    ui.el('span', { class: 'c-bid' }, ui.tx('regions_your_bid', 'label')),
+    ui.el('span', { class: 'c-status' }, ui.tx('regions_status', 'label')),
+    ui.el('span', { class: 'c-clock' }, ui.tx('auction_closes_in', 'label'))));
 
   rows.forEach((row, index) => {
     const lot = row.lot || {};
     const soft = (softUntil.get(row.region) || 0) > performance.now();
     const node = ui.el('div', { class: `bid-row focusable no-scale ${statusKey(row)}` },
-      ui.el('span', { class: 'c-region' }, ui.biRegion(row.label)),
+      ui.el('span', { class: 'c-region' }, ui.txText(row.label)),
       ui.el('span', { class: 'c-high' },
         ui.el('span', { class: 'mono', 'data-datum': true }, ui.num(lot.highest)),
-        ui.bi(lot.holder === 'you' ? 'holder_you' : 'holder_rival', 'small')),
+        ui.tx(lot.holder === 'you' ? 'holder_you' : 'holder_rival', 'small')),
       ui.el('span', { class: 'c-bid' },
         ui.el('span', { class: 'mono big', 'data-datum': true }, ui.num(row.bid)),
         lot.state === 'closed' ? null
-          : ui.biText(`次は ${ui.num(lot.next_bid)} から`, `next ${ui.num(lot.next_bid)}`,
-                      'small')),
+          : ui.txText(`next ${ui.num(lot.next_bid)}`, 'small')),
       ui.el('span', { class: 'c-status' },
-        ui.bi(statusKey(row), 'small'),
-        soft ? ui.bi('auction_soft_close', 'small warn') : null),
+        ui.tx(statusKey(row), 'small'),
+        soft ? ui.tx('auction_soft_close', 'small warn') : null),
       ui.el('span', { class: 'c-clock mono', 'data-datum': true },
             lot.state === 'closed' ? '—' : ui.mmss(lot.closes_in_s)));
     node.dataset.region = row.region;
@@ -96,7 +95,7 @@ function paintFocus() {
 function drawClock() {
   const left = soonest();
   ui.clear(nodes.clock).append(
-    ui.bi('auction_closes_in', 'label'),
+    ui.tx('auction_closes_in', 'label'),
     ui.el('div', { class: 'countdown mono', 'data-datum': true },
           left === null ? '—' : ui.mmss(left)));
   nodes.clock.classList.toggle('urgent', left !== null && left <= 10);
@@ -109,8 +108,8 @@ function drawBanner() {
   const label = (rows.find((r) => r.region === bannerRegion) || {}).label || '';
   ui.clear(nodes.banner).append(
     ui.el('span', { class: 'badge-dot' }),
-    ui.biText(`${ui.regionJp(label)}で上回られました`, `Outbid in ${label}`, 'h2-like'),
-    ui.bi('auction_rival_once', 'small'));
+    ui.txText(`Outbid in ${label}`, 'h2-like'),
+    ui.tx('auction_rival_once', 'small'));
 }
 
 function drawResult(ctx) {
@@ -123,15 +122,15 @@ function drawResult(ctx) {
     body.append(ui.el('div', { class: `result-card ${won ? 'won' : 'lost'}` },
       ui.el('span', { class: 'badge', 'data-datum': true }, won ? '✓' : '✕'),
       ui.el('span', { class: 'what' },
-        ui.biRegion(row.label, 'h2-like'),
-        ui.bi(won ? 'auction_won_note' : 'auction_lost_note', 'small')),
+        ui.txText(row.label, 'h2-like'),
+        ui.tx(won ? 'auction_won_note' : 'auction_lost_note', 'small')),
       ui.el('span', { class: 'tail' },
-        ui.bi(won ? 'auction_charged' : 'auction_lost', 'label'),
+        ui.tx(won ? 'auction_charged' : 'auction_lost', 'label'),
         ui.el('span', { class: 'val mono', 'data-datum': true },
               won ? ui.num(row.lot.charged) : ui.num(row.lot.highest)))));
   }
   ui.clear(nodes.action).append(
-    ui.el('div', { class: 'button primary' }, ui.glyph('A'), ui.bi('auction_continue')));
+    ui.el('div', { class: 'button primary' }, ui.glyph('A'), ui.tx('auction_continue')));
   ctx.setHints([['A', 'hint_next'], ['START', 'hint_menu']]);
 }
 
@@ -170,22 +169,22 @@ export default {
       ui.el('div', { class: 'screen-head' },
         ui.heading('auction_title', 'h1'),
         ui.el('span', { class: 'badge quiet' },
-          ui.biText(`スロット ${slot}`, `Slot ${slot}`, 'small')),
-        ui.el('span', { class: 'sub' }, ui.bi('auction_sub', 'small'))),
+          ui.txText(`Slot ${slot}`, 'small')),
+        ui.el('span', { class: 'sub' }, ui.tx('auction_sub', 'small'))),
       nodes.banner,
       ui.el('div', { class: 'columns' },
         ui.el('div', { class: 'panel col grow' }, nodes.rows),
         ui.el('div', { class: 'panel col', style: { flex: '0 0 28rem' } },
           nodes.clock,
           ui.el('div', { class: 'divider' }),
-          ui.bi('auction_rival_once', 'small'),
+          ui.tx('auction_rival_once', 'small'),
           ui.el('div', { class: 'grow' }),
           // the hint bar is full of buttons on this screen, so the money line lives here
-          ui.el('div', { class: 'credit-note' }, ui.bi('demo_credits_note')),
+          ui.el('div', { class: 'credit-note' }, ui.tx('demo_credits_note')),
           nodes.action)));
 
     ui.clear(nodes.action).append(
-      ui.el('div', { class: 'button primary' }, ui.glyph('Y'), ui.bi('auction_raise')));
+      ui.el('div', { class: 'button primary' }, ui.glyph('Y'), ui.tx('auction_raise')));
     drawRows();
     drawClock();
   },
@@ -240,8 +239,8 @@ export default {
       row.lot = result.lot;
       previous.set(result.lot.lot_id, result.lot);
     }
-    if (!result.accepted) ui.toast(ui.japanese(result.reason), result.reason, 'bad', 5000);
-    else ui.toast(ui.japanese(result.reason), result.reason, '', 2500);
+    if (!result.accepted) ui.toast(result.reason, 'bad', 5000);
+    else ui.toast(result.reason, '', 2500);
     drawRows();
     drawClock();
   },
@@ -260,7 +259,7 @@ export default {
     if (button === 'Y') {
       this.raise(ctx).catch((problem) => {
         console.error(problem);
-        ui.toast(ui.japanese(problem.sentence || ''), problem.sentence || String(problem), 'bad');
+        ui.toast(problem.sentence || String(problem), 'bad');
       });
       return;
     }

@@ -2,8 +2,10 @@
 
 *The bits that sit between the hardware on the table and the two screens. **DONE**: the pad
 helper (brief 014), the portal's exit test — the whole tour (brief 015) — and the region
-preview window's show/hide and its exit test (brief 017). **FUTURE**: the one-button start
-script and the watchdog that restarts things (plan v6 §10).*
+preview window's show/hide and its exit test (brief 017). The portal's per-screen audit
+checks **no Japanese anywhere on screen** since brief 018E (English only, Kavin's ruling
+2026-11-02). **FUTURE**: the one-button start script and the watchdog that restarts things
+(plan v6 §10).*
 
 | File | What |
 |---|---|
@@ -158,11 +160,15 @@ slot, Japan only, and staff closing the auction before the rival ever answers.
 
 **Then the idle reset**, with `?idle=5` so it takes five seconds instead of sixty.
 
-Every screen is screenshotted at 1920×1080 into `portal/_shots/015/` and audited in the page:
+Every screen is screenshotted at 1920×1080 into `portal/_shots/018E/` and audited in the page:
 
-* every bilingual block really has both languages, and no text is drawn outside one (numbers,
-  slot ids, file names and button faces are marked `data-datum` and exempt — they are the same
-  in both languages);
+* **no Japanese character anywhere on screen** — the demo is English only (Kavin's ruling,
+  2026-11-02), and this is that rule checked on the pixels;
+  `server/tests/test_no_japanese.py` is the same check on the source, because a string can
+  also arrive from the server at runtime;
+* no text is drawn outside a `.tx` block, so every word on screen came out of
+  `portal/strings.js` or out of a sentence the server wrote (numbers, slot ids, file names
+  and button faces are marked `data-datum` and exempt — they are not words);
 * nothing is clipped, off screen, or spilling out of the box it lives in (a flex child squeezed
   smaller than its contents does not scroll — it paints over its neighbours, which is the bug
   this check exists to catch);

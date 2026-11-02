@@ -417,3 +417,26 @@ decisions. Each line: date · decision · why. Kavin can overturn any of these; 
   readings to get the average over any window it likes - "while the preview window was up" -
   and sorting ten minutes of samples four times a second would itself cost frame time in the
   one run whose purpose is to measure frame time.
+- 2026-11-02 · 018's solo average of **16.00 ms is accepted** against the 15 ms target; nothing that changes the look is
+  traded for the last millisecond. · The worst 1 % (what a visitor feels) is 2.7 ms better than 017's, the lamps were never
+  the cost (0.5 ms), and run-to-run drift on this PC is about ±1 ms. Preview window vs live flip is still the booth PC's call.
+- 2026-11-02 · **Kavin's ruling: the demo is English only.** Every Japanese string is out of the portal, the game, the
+  server's config and the booth's scripts; the bundled Noto Sans JP subset is out of `portal/`; `label_jp` is out of
+  `demo.json`, `/preview/region`, `/preview/flip` and `/config/public`. · He judged a machine-drafted Japanese line
+  that nobody had reviewed too risky to put in front of visitors in Tokyo. This **overrides plan v6 §10 item 4**, the
+  glossary and the cue cards, which ask for every string in JP and EN; `DemoPlan/` is Kavin's source plan and was not
+  edited, so this line is the record. Brief 018E.
+- 2026-11-02 · The English line takes the size the **Japanese** line had, not the size the English line had, and the boxes
+  that had been squeezed to fit two languages went back to an ordinary spacing. · A straight deletion of the top line would
+  have left every screen a fifth emptier and every string at the smaller of the two tiers - the opposite of the 014 type
+  rule. One line at the primary size is both bigger type and a shorter block, which is what paid for the spacing.
+- 2026-11-02 · `portal/strings.js` **keeps the table** (one English string per key) and `portal/ui.js` keeps being the
+  only way text reaches the screen - `tx()` / `txText()` where `bi()` / `biText()` used to be. · A professionally
+  translated language can be added in one file without touching a screen, and the portal's exit test can still walk the
+  page and say that every word on it came out of that table.
+- 2026-11-02 · Two guards, not one: `server/tests/test_no_japanese.py` sweeps the source of everything that ships or
+  displays, and `booth/portal_exit_test.py`'s per-screen audit checks the **pixels**. · A string can also arrive from the
+  server at runtime, so a source sweep alone could pass while a visitor read Japanese off the screen. `DemoPlan/`,
+  `docs/handoffs/`, the older lines of this file and the `_shots/` folders are not swept: history stays as history.
+- 2026-11-02 · **Development paused by Kavin after brief 018.** On resume: 019 booth plumbing → 020 content sandbox +
+  hitch-free swap proof → 021 hardening. Handoff: `docs/handoffs/2026-11-02_pause_handoff.md`.

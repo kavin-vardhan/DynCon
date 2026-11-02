@@ -5,8 +5,10 @@
 slot-map tool (brief 013), the interaction, the state store and the waypoint marker
 (brief 016), and the region preview window (brief 017); extended again 2026-11-02 with the
 lighting budget, the attract loop, the title menu, game switching and the X-ray view
-(brief 018). Plain-words guide for a cold reader. Status of each item is marked
-**DONE / QUEUED / FUTURE**. The spec this implements is `specs/unreal_spec_v1.md`.*
+(brief 018), and trimmed to **English only** the same day (brief 018E, Kavin's ruling: every
+line the game draws is English, and the preview window's caption is one line). Plain-words
+guide for a cold reader. Status of each item is marked **DONE / QUEUED / FUTURE**. The spec
+this implements is `specs/unreal_spec_v1.md`.*
 
 ## What this folder is
 
@@ -947,7 +949,7 @@ powershell -ExecutionPolicy Bypass -File unreal\Tools\run_preview.ps1 -Region r3
   step leaves free, topmost while it is shown, and **out of sight at boot**.
 - **the camera**: it auto-pilots to whatever slot the backend says the visitor has just been
   bidding on, frames it from the front at eye level, and drifts slowly.
-- **a tiny corner caption**, bilingual like the portal, saying which region it plays as.
+- **a tiny corner caption** saying which region it plays as, in English like everything
 
 ## Why the preview posts no telemetry
 
@@ -1021,26 +1023,29 @@ framing the slot it has, and says so in the log. Following a focus into another 
 a level load in a window that exists to be a still of somewhere else. **QUEUED** if the booth
 ever wants it.
 
-## The caption, and Japanese on a HUD canvas
+## The caption
 
-Bottom-left, two lines, Japanese over English, exactly as the portal does it:
+Bottom-left, one line:
 
 ```
-インドのプレイヤー
-a player in India
+A player in India
 ```
 
-The words come from the server (`/preview/region`'s `label_jp` and `label`), because the
+The word for the region comes from the server (`/preview/region`'s `label`), because the
 booth's region labels already live in `server/config/demo.json` and the game cannot import
-`portal/strings.js`. `server/tests/test_preview.py` fails if the two ever disagree — the same
-guard `test_rival_identity.py` puts on the art kit's identity table.
+`portal/strings.js`. `server/tests/test_preview.py` fails if the config ever names a region
+`portal/strings.js` has never heard of — the same guard `test_rival_identity.py` puts on the
+art kit's identity table. Until the first `/preview/region` answers there is only the region
+id, and the caption says that rather than guess at a name.
 
-CJK on a Canvas HUD works, and it is worth knowing why: `GEngine->GetMediumFont()` is
-`/Engine/EngineFonts/Roboto`, which is a **composite** font whose fallback typeface is
-`DroidSansFallback` — and that face is cooked into this build (3.9 MB of it, in pakchunk0).
-Nothing had to be imported and no font asset was added. If a build ever loses it, the caption
-falls back to its English line alone rather than drawing boxes, because it only draws the
-Japanese line when the server sent one.
+It used to be **two** lines, Japanese over English, and the Japanese came from a `label_jp`
+next to the label. **Kavin ruled on 2026-11-02 that the demo is English only**, so the second
+line, the field behind it and every other Japanese string in this build are gone (brief 018E,
+`specs/DECISIONS.md`). That also retires a piece of trivia worth keeping somewhere, in case a
+later brief wants CJK back: it worked on a Canvas HUD with no font asset of its own, because
+`GEngine->GetMediumFont()` is `/Engine/EngineFonts/Roboto`, a **composite** font whose
+fallback typeface is `DroidSansFallback`, and that face is cooked into this build (3.9 MB of
+it, in pakchunk0).
 
 ## `-UserDir=` is not optional, and this is the trap of the brief
 
@@ -1259,12 +1264,12 @@ left** as a property of where the state lives.
 
 | State | What is on screen |
 |---|---|
-| **Attract** | No Player at all. The camera drifts over the map and lingers on each slot in turn; the strip stays; one bilingual line says "press any button". Content keeps changing behind it as blocks roll over, and the camera is in front of whatever is standing there *now*. |
+| **Attract** | No Player at all. The camera drifts over the map and lingers on each slot in turn; the strip stays; one line says "press any button". Content keeps changing behind it as blocks roll over, and the camera is in front of whatever is standing there *now*. |
 | **Title** | Game A and Game B as two big cards, picked with the stick or d-pad and ✕. The card picture is the **plan view the slot-map tool captured and registered**, fetched back from the platform (`GET /games/<id>/map`); a game that was never registered draws a plain tinted panel instead. |
 | **Playing** | What briefs 011–016 already built. |
 | **Paused** | Resume · Switch to the other game · X-ray on/off. **The world keeps running** — see below. |
 
-Switching game is a level load, with a plain black fade and a bilingual "Loading Game B" on
+Switching game is a level load, with a plain black fade and a "Loading Game B" line on
 it, because plan v6 §3 says switching *games* may have one and switching *content* never may.
 The strip's two zeroes do not move: `restarts: 0` and `content loading screens: 0` are what
 the booth claims all day, and a game switch is neither. The count of switches is in the
@@ -1332,8 +1337,10 @@ Off by default, toggled from the pause menu and with View on the pad. It is the 
    at every mount, spawn and unload — so anybody can watch a swap happen and see that nothing
    spikes.
 
-Every heading is bilingual. The values are not: a hash, a file name, a state name out of the
-lifecycle figure and a number of milliseconds are the same in both languages. It is drawn on
+Every heading and every value is English (English only, Kavin's ruling 2026-11-02). The
+headings used to carry a Japanese word in front of them; the values never did - a hash, a file
+name, a state name out of the lifecycle figure and a number of milliseconds are what the client
+is really doing. It is drawn on
 the HUD canvas out of counters the subsystem already keeps — a graph of frame time that cost
 frame time would be a liar — and the graph reduces its ten seconds to 150 columns holding the
 **worst** frame in each slice, because a graph that is there to show "no spike" must not

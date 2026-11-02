@@ -76,20 +76,20 @@ export default {
       }));
 
     nodes.confirm = ui.el('div', { class: 'button primary focusable' },
-      ui.glyph('A'), ui.bi('brand_confirm'));
+      ui.glyph('A'), ui.tx('brand_confirm'));
 
     nodes.plate = ui.el('div', { class: 'sign-plate' });
 
     root.append(
       ui.el('div', { class: 'screen-head' },
         ui.heading('brand_title', 'h1'),
-        ui.el('span', { class: 'sub' }, ui.bi('brand_sub', 'small'))),
+        ui.el('span', { class: 'sub' }, ui.tx('brand_sub', 'small'))),
       ui.el('div', { class: 'columns' },
         ui.el('div', { class: 'panel col grow' },
-          ui.bi('brand_colours', 'label'),
+          ui.tx('brand_colours', 'label'),
           colourGrid,
           ui.el('div', { class: 'divider' }),
-          ui.bi('brand_emblems', 'label'),
+          ui.tx('brand_emblems', 'label'),
           emblemGrid,
           ui.el('div', { class: 'grow' }),
           nodes.confirm),
@@ -97,9 +97,9 @@ export default {
           ui.heading('brand_preview'),
           ui.el('div', { class: 'sign-preview' }, nodes.plate),
           ui.el('div', {},
-            ui.bi('brand_wallet', 'small'),
-            ui.el('div', { class: 'credit-note' }, ui.bi('demo_credits_note'))),
-          ui.bi('brand_no_names', 'small'))),
+            ui.tx('brand_wallet', 'small'),
+            ui.el('div', { class: 'credit-note' }, ui.tx('demo_credits_note'))),
+          ui.tx('brand_no_names', 'small'))),
     );
     paint();
   },

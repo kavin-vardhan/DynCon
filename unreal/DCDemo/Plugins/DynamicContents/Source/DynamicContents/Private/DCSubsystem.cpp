@@ -733,12 +733,11 @@ void UDCSubsystem::OnPreviewRegion(FHttpResponsePtr Response, bool bOk)
 	{
 		SetRegion(NewRegion, TEXT("the portal moved this copy's region"));
 	}
-	// The labels are of whatever region the answer is about. Only read them when this copy
-	// is actually playing as that region, so the caption can never name somebody else's.
+	// The label is of whatever region the answer is about. Only read it when this copy is
+	// actually playing as that region, so the caption can never name somebody else's.
 	if (NewRegion == Region)
 	{
 		Root->TryGetStringField(TEXT("label"), RegionLabel);
-		Root->TryGetStringField(TEXT("label_jp"), RegionLabelJp);
 	}
 
 	const TSharedPtr<FJsonObject>* Focus = nullptr;
@@ -1688,7 +1687,6 @@ void UDCSubsystem::WriteStatusFile()
 	if (bPreview)
 	{
 		W->WriteValue(TEXT("region_label"), RegionLabel);
-		W->WriteValue(TEXT("region_label_jp"), RegionLabelJp);
 		W->WriteObjectStart(TEXT("focus"));
 		W->WriteValue(TEXT("game"), FocusGame);
 		W->WriteValue(TEXT("slot"), FocusSlot);

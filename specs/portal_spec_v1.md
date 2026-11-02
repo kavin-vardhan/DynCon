@@ -3,6 +3,12 @@
 *Written 2026-10-25 by chat Claude for Claude Code. Derived from demo plan v6 §4, §10.4, §11 and `server_spec_v1.md`.
 Status: DONE (spec); build DONE (briefs 014–015).*
 
+> **Override: English only, Kavin's ruling 2026-11-02** (brief 018E). Everything below about
+> Japanese — §1's "every string in Japanese and English", the bundled Noto Sans JP, and §4's
+> "every string has JP + EN" — no longer holds. The portal draws one English line per string,
+> at the size the Japanese line used to have, and there is no bundled font. `specs/DECISIONS.md`
+> records the call; the rest of this spec stands as written.
+
 ## 1. Shape
 
 - Static web app in `portal/` (HTML + CSS + vanilla JS ES modules, **no build step, no framework, no CDN**), served by the

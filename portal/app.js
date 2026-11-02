@@ -114,25 +114,25 @@ function refreshHeader() {
   const pieces = [
     ui.el('span', { class: 'wordmark' },
       ui.el('span', { class: 'dot' }),
-      ui.bi('app_name', 'name')),
+      ui.tx('app_name', 'name')),
     ui.el('span', { class: 'header-spacer' }),
     state.brand
       ? ui.el('span', { class: 'brand-chip' },
           ui.el('span', { class: 'swatch', style: { background: state.brand.colour },
                           html: ui.emblemSvg(state.brand.emblem, 'rgba(255,255,255,0.95)') }),
-          ui.bi('your_brand', 'small'))
+          ui.tx('your_brand', 'small'))
       : null,
     ui.el('span', { class: 'wallet' },
       ui.el('span', { class: 'cell' },
-        ui.bi('wallet_available', 'label'),
+        ui.tx('wallet_available', 'label'),
         ui.el('span', { class: 'value mono', 'data-datum': true },
               ui.num(state.wallet.available))),
       ui.el('span', { class: 'cell held' },
-        ui.bi('wallet_held', 'label'),
+        ui.tx('wallet_held', 'label'),
         ui.el('span', { class: 'value mono', 'data-datum': true },
               ui.num(state.wallet.held)))),
     ui.el('span', { class: 'clock' },
-      ui.bi('clock_label', 'label'),
+      ui.tx('clock_label', 'label'),
       ui.el('span', { class: 'value mono', id: 'demo-clock', 'data-datum': true },
             demoClockText())),
     ui.el('span', { class: 'pad-light', title: state.padOnline ? 'pad' : 'no pad' }),
@@ -155,7 +155,7 @@ function setHints(hints, note = null) {
   // the credits are, which is where the spec wants it anyway.
   if (note || hints.length <= 4) {
     hintNode.append(ui.el('span', { class: 'note' },
-      note ? ui.bi(note) : ui.bi('demo_credits_note')));
+      note ? ui.tx(note) : ui.tx('demo_credits_note')));
   }
 }
 
@@ -324,5 +324,5 @@ async function boot() {
 boot().catch((problem) => {
   console.error(problem);
   mainNode.append(ui.el('div', { class: 'panel' },
-    ui.biText(STRINGS.error_server.jp, `${STRINGS.error_server.en}: ${problem.message}`)));
+    ui.txText(`${STRINGS.error_server}: ${problem.message}`)));
 });

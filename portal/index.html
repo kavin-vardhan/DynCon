@@ -1,17 +1,17 @@
 <!doctype html>
-<html lang="ja">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Dynamic Contents — brand portal</title>
 <!--
   The brand portal: the right-hand monitor of the booth, driven by controller 2.
-  Static files only — no build step, no framework, no CDN. The demo server serves this
-  folder at /portal/, which is also where the API lives, so everything here is a relative
-  path. Open it with ?pad=8702 to listen to a pad helper on another port.
+  Static files only — no build step, no framework, no CDN, and since the English-only
+  ruling (2026-11-02) no bundled font either: the whole app is HTML, CSS and JS. The demo
+  server serves this folder at /portal/, which is also where the API lives, so everything
+  here is a relative path. Open it with ?pad=8702 to listen to a pad helper on another port.
 -->
 <link rel="stylesheet" href="style.css">
-<link rel="preload" href="fonts/NotoSansJP-subset.woff2" as="font" type="font/woff2" crossorigin>
 </head>
 <body>
   <div id="app" data-screen="boot" data-pad="offline">

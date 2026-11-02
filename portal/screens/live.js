@@ -37,8 +37,8 @@ function drawSteps() {
     body.append(ui.el('div', { class: `step ${done ? 'done' : busy ? 'busy' : ''}`.trim() },
       ui.el('span', { class: 'mark', 'data-datum': true },
             done ? '✓' : busy ? '…' : String(index + 1)),
-      ui.el('span', { class: 'what' }, ui.bi(key)),
-      ui.bi(subKey, 'small tail')));
+      ui.el('span', { class: 'what' }, ui.tx(key)),
+      ui.tx(subKey, 'small tail')));
   });
   document.getElementById('app').dataset.state = mounted ? 'mounted'
     : resolved ? 'resolved' : 'waiting';
@@ -54,12 +54,12 @@ function drawSide(ctx, live, report) {
   body.append(
     ui.el('div', { class: 'row' },
       ui.brandMark(brand, 'big'),
-      ui.biText(`スロット ${slot}`, `Slot ${slot}`, 'h2-like'),
+      ui.txText(`Slot ${slot}`, 'h2-like'),
       ui.el('span', { class: 'grow' }),
       ui.el('span', { class: 'badge quiet' },
-        ui.biRegion((ctx.state.config.regions[region] || {}).label || region, 'small'))),
+        ui.txText((ctx.state.config.regions[region] || {}).label || region, 'small'))),
     ui.el('div', { class: 'card-row' },
-      ui.bi('live_ends_in', 'small'),
+      ui.tx('live_ends_in', 'small'),
       ui.el('span', { class: 'val mono', 'data-datum': true },
             ui.mmss(regionRow.time_left_s))),
     ui.el('div', { class: 'divider' }),
@@ -69,13 +69,13 @@ function drawSide(ctx, live, report) {
         const kind = row ? row.kind : 'none';
         return ui.el('div', { class: `r ${kind === 'visitor' ? 'yours' : ''}`.trim() },
           ui.brandMark(row && row.brand),
-          ui.el('span', { class: 'name' }, ui.biRegion(meta.label, 'small')),
-          ui.bi(kind === 'visitor' ? 'showing_you'
+          ui.el('span', { class: 'name' }, ui.txText(meta.label, 'small')),
+          ui.tx(kind === 'visitor' ? 'showing_you'
                 : kind === 'rival' ? 'showing_rival'
                 : kind === 'default' ? 'showing_default' : 'showing_none', 'small'));
       })),
     ui.el('div', { class: 'grow' }),
-    ui.el('div', { class: 'button primary' }, ui.glyph('A'), ui.bi('live_to_report')));
+    ui.el('div', { class: 'button primary' }, ui.glyph('A'), ui.tx('live_to_report')));
 }
 
 export default {
@@ -97,12 +97,12 @@ export default {
     root.append(
       ui.el('div', { class: 'screen-head' },
         ui.heading('live_title', 'h1'),
-        ui.el('span', { class: 'sub' }, ui.bi('live_sub', 'small'))),
+        ui.el('span', { class: 'sub' }, ui.tx('live_sub', 'small'))),
       ui.el('div', { class: 'columns' },
         ui.el('div', { class: 'panel col grow' },
           nodes.steps,
           ui.el('div', { class: 'grow' }),
-          ui.el('div', { class: 'marker-note' }, ui.bi('live_marker'))),
+          ui.el('div', { class: 'marker-note' }, ui.tx('live_marker'))),
         ui.el('div', { class: 'panel col', style: { flex: '0 0 30rem' } }, nodes.side)));
 
     drawSteps();

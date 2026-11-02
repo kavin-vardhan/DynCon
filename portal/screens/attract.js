@@ -37,7 +37,7 @@ function regionChip(row) {
   const brand = row && row.brand;
   return ui.el('span', { class: 'region-chip' },
     ui.brandMark(brand),
-    ui.el('span', { class: 'who' }, ui.bi(whoKey(row && row.kind))));
+    ui.el('span', { class: 'who' }, ui.tx(whoKey(row && row.kind))));
 }
 
 function drawShowing(ctx, rows) {
@@ -48,7 +48,7 @@ function drawShowing(ctx, rows) {
   const body = ui.clear(showingPanel.querySelector('.body'));
   body.append(ui.el('div', { class: 'region-head' },
     Object.values(regions).map((region) =>
-      ui.el('span', { class: 'cell' }, ui.biRegion(region.label)))));
+      ui.el('span', { class: 'cell' }, ui.txText(region.label)))));
   for (const [gameId, game] of Object.entries(ctx.state.config.games)) {
     for (const slot of game.slots) {
       body.append(ui.el('div', { class: 'ticker-row' },
@@ -67,15 +67,15 @@ function drawAuctions(lots) {
     .sort((a, b) => b.highest - a.highest)
     .slice(0, MAX_AUCTION_ROWS);
   if (!rows.length) {
-    body.append(ui.el('div', { class: 'muted' }, ui.bi('upload_empty', 'small')));
+    body.append(ui.el('div', { class: 'muted' }, ui.tx('upload_empty', 'small')));
     return;
   }
   for (const lot of rows) {
     body.append(ui.el('div', { class: 'ticker-row' },
       ui.el('span', { class: 'slot-id', 'data-datum': true }, lot.slot),
-      ui.el('span', { class: 'where' }, ui.biRegion(lot.region_label, 'small')),
+      ui.el('span', { class: 'where' }, ui.txText(lot.region_label, 'small')),
       ui.el('span', { class: 'spacer' }),
-      ui.bi(lot.holder === 'you' ? 'holder_you' : 'holder_rival', 'small'),
+      ui.tx(lot.holder === 'you' ? 'holder_you' : 'holder_rival', 'small'),
       ui.el('span', { class: 'value mono', 'data-datum': true,
                       style: { minWidth: '7rem', textAlign: 'right' } },
         ui.num(lot.highest))));
@@ -92,8 +92,8 @@ export default {
   async enter(ctx, root) {
     root.append(
       ui.el('div', { class: 'hero' },
-        ui.bi('app_name', 'mark'),
-        ui.el('div', { class: 'tagline' }, ui.bi('attract_tagline'))),
+        ui.tx('app_name', 'mark'),
+        ui.el('div', { class: 'tagline' }, ui.tx('attract_tagline'))),
       ui.el('div', { class: 'columns' },
         showingPanel = ui.el('div', { class: 'panel col grow' },
           ui.heading('attract_now_showing'),
@@ -102,7 +102,7 @@ export default {
           ui.heading('attract_auctions'),
           ui.el('div', { class: 'body' }))),
       ui.el('div', { class: 'start-cue' },
-        ui.el('span', { class: 'ring' }, ui.glyph('A'), ui.bi('attract_start'))),
+        ui.el('span', { class: 'ring' }, ui.glyph('A'), ui.tx('attract_start'))),
     );
 
     await openEveryLot(ctx);

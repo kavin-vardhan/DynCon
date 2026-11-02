@@ -127,20 +127,19 @@ void UDCShell::Start()
 		MapB = Value.TrimQuotes();
 	}
 
-	// No titles anywhere: a card says "Game A" and "ゲーム A" and nothing else (CLAUDE.md
-	// rule 3). The picture on it is the developer's own plan view of the map, which the
-	// slot-map tool captured and registered with the platform.
+	// No titles anywhere: a card says "Game A" and nothing else (CLAUDE.md rule 3), in
+	// English and nothing else (Kavin's ruling, 2026-11-02). The picture on it is the
+	// developer's own plan view of the map, which the slot-map tool captured and registered
+	// with the platform.
 	Cards.Reset();
 	FDCGameCard A;
 	A.Id = TEXT("A");
-	A.LabelEn = TEXT("Game A");
-	A.LabelJp = TEXT("ゲーム A");
+	A.Label = TEXT("Game A");
 	A.MapPackage = MapA;
 	Cards.Add(A);
 	FDCGameCard B;
 	B.Id = TEXT("B");
-	B.LabelEn = TEXT("Game B");
-	B.LabelJp = TEXT("ゲーム B");
+	B.Label = TEXT("Game B");
 	B.MapPackage = MapB;
 	Cards.Add(B);
 
@@ -358,19 +357,16 @@ FString UDCShell::GetOtherGame() const
 	return CurrentGame;
 }
 
-void UDCShell::GetGameLabels(const FString& GameId, FString& OutJp, FString& OutEn) const
+FString UDCShell::GameLabel(const FString& GameId) const
 {
 	for (const FDCGameCard& Card : Cards)
 	{
 		if (Card.Id == GameId)
 		{
-			OutJp = Card.LabelJp;
-			OutEn = Card.LabelEn;
-			return;
+			return Card.Label;
 		}
 	}
-	OutJp = FString::Printf(TEXT("ゲーム %s"), *GameId);
-	OutEn = FString::Printf(TEXT("Game %s"), *GameId);
+	return FString::Printf(TEXT("Game %s"), *GameId);
 }
 
 // ===================================================================== starting a game
@@ -407,8 +403,7 @@ void UDCShell::BeginSwitch(const FString& GameId, const FString& Why)
 	PendingMap = Card->MapPackage;
 	bSwitching = true;
 	FadeDirection = 1;
-	FadeJp = FString::Printf(TEXT("%s を読み込み中"), *Card->LabelJp);
-	FadeEn = FString::Printf(TEXT("Loading %s"), *Card->LabelEn);
+	FadeText = FString::Printf(TEXT("Loading %s"), *Card->Label);
 
 	DC_LOG(Log, TEXT("SWITCH game %s -> %s (%s): fading to black, then a level load. This is "
 		"a **game** switch - plan v6 Â§3 allows it a loading screen; a **content** change "

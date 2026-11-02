@@ -14,11 +14,10 @@
 //
 // In the region preview window (`-DCPreview`) none of those three is drawn - it is not
 // somebody's game, it is a picture of somewhere else - and the HUD draws one thing instead:
-// a **tiny corner caption**, bilingual like the portal, saying which region this copy plays
-// as. Japanese on top, English under it, in the words the server's own config gives
-// (`/preview/region`'s `label_jp` and `label`). CJK on the HUD canvas works because the
-// engine's Roboto is a composite font whose fallback typeface is DroidSansFallback, and that
-// face is cooked into the build.
+// a **tiny corner caption** saying which region this copy plays as, "A player in India", in
+// the word the server's own config gives (`/preview/region`'s `label`). It used to be two
+// lines, Japanese over that one; the demo is **English only** since 2026-11-02 (Kavin's
+// ruling), here as everywhere else.
 //
 // Nothing here ever says anything about advertising, brands or money: the Player's screen is
 // a game's screen (plan v6 §3). The only words are the strip's own instrumentation, four
@@ -71,9 +70,9 @@ private:
 
 	// ---------------------------------------------------------------- brief 018
 	//
-	// The shell's three screens, and the black that covers a game switch. All bilingual:
-	// every line a visitor reads is Japanese over English, like the portal and like the
-	// preview window's caption.
+	// The shell's three screens, and the black that covers a game switch. Every line a
+	// visitor reads is English, like the portal and like the preview window's caption
+	// (English only, Kavin's ruling 2026-11-02).
 
 	/** "Press any button to start", and nothing else: the attract loop is the map. */
 	void DrawAttract();
@@ -87,8 +86,8 @@ private:
 	/** The fade and the "Loading Game B" line over it. Drawn last, over everything. */
 	void DrawFade();
 
-	/** One bilingual line, Japanese over English, centred on X. Returns its height. */
-	float DrawBilingual(float CentreX, float Y, const FString& Jp, const FString& En,
+	/** One line of text, centred on X. Returns its height. */
+	float DrawLine(float CentreX, float Y, const FString& Text,
 		const FLinearColor& Colour, float Scale);
 
 	/** A filled box with a border, the one shape all three of these are built out of. */

@@ -14,7 +14,6 @@
 //                  swap happened on its own.
 
 import * as ui from '../ui.js';
-import { japaneseFor } from '../strings.js';
 
 const MIN_READ_MS = 700;
 const MIN_SEND_MS = 1200;
@@ -38,8 +37,7 @@ function appState(value) {
 
 function pieceWords(piece, version) {
   const n = String(piece || '').replace(/^content/, '');
-  return ui.biText(`コンテンツ ${n}${version ? `・${version}` : ''}`,
-                   `Content ${n}${version ? ` · ${version}` : ''}`);
+  return ui.txText(`Content ${n}${version ? ` · ${version}` : ''}`);
 }
 
 function drawFiles() {
@@ -71,15 +69,15 @@ function drawStage(ctx, checks) {
     ui.el('div', { class: 'steps' },
       ui.el('div', { class: `step ${approved ? 'done' : ''}`.trim() },
         ui.el('span', { class: 'mark', 'data-datum': true }, approved ? '✓' : '1'),
-        ui.el('span', { class: 'what' }, ui.bi('update_step_ok'))),
+        ui.el('span', { class: 'what' }, ui.tx('update_step_ok'))),
       ui.el('div', { class: `step ${serving ? 'done' : approved ? 'busy' : ''}`.trim() },
         ui.el('span', { class: 'mark', 'data-datum': true }, serving ? '✓' : '2'),
-        ui.el('span', { class: 'what' }, ui.bi('update_step_serving'))),
+        ui.el('span', { class: 'what' }, ui.tx('update_step_serving'))),
       ui.el('div', { class: `step ${swapped ? 'done' : serving ? 'busy' : ''}`.trim() },
         ui.el('span', { class: 'mark', 'data-datum': true }, swapped ? '✓' : '3'),
-        ui.el('span', { class: 'what' }, ui.bi('update_step_swapped')))),
+        ui.el('span', { class: 'what' }, ui.tx('update_step_swapped')))),
     ui.el('div', { class: swapped ? 'fits-note' : 'panel-inset' },
-      ui.bi(swapped ? 'update_swapped' : 'update_inside', 'small')));
+      ui.tx(swapped ? 'update_swapped' : 'update_inside', 'small')));
   if (checks) {
     // The same four checks as the first upload, as four ticks: the sentences behind them
     // were read on the upload screen, and this screen's story is the swap.
@@ -87,7 +85,7 @@ function drawStage(ctx, checks) {
       'div', { class: `pill ${check.ok === true ? 'ok' : check.ok === false ? 'bad' : ''}`.trim() },
       ui.el('span', { class: 'mark', 'data-datum': true },
             check.ok === true ? '✓' : check.ok === false ? '✕' : '·'),
-      ui.bi(CHECK_KEYS[check.check] || check.check, 'small')))));
+      ui.tx(CHECK_KEYS[check.check] || check.check, 'small')))));
   }
 }
 
@@ -120,7 +118,7 @@ async function upload(ctx) {
 
   const fill = ui.el('div', { class: 'fill' });
   const pct = ui.el('span', { class: 'pct mono', 'data-datum': true }, '0%');
-  const label = ui.bi('upload_reading');
+  const label = ui.tx('upload_reading');
   const bar = ui.el('div', { class: 'progress' },
     ui.el('div', { class: 'meta' }, label, pct),
     ui.el('div', { class: 'track' }, fill));
@@ -129,7 +127,7 @@ async function upload(ctx) {
 
   const blob = await runPhase(phase, MIN_READ_MS,
     (onProgress) => ctx.api.readDemoFile(row.name, onProgress));
-  const sending = ui.bi('upload_sending');
+  const sending = ui.tx('upload_sending');
   phase.label.replaceWith(sending);
   phase.label = sending;
   fill.style.width = '0%';
@@ -139,7 +137,7 @@ async function upload(ctx) {
 
   if (answer.status !== 'approved') {
     appState('rejected');
-    ui.toast(japaneseFor(answer.reason), answer.reason, 'bad', 6000);
+    ui.toast(answer.reason, 'bad', 6000);
     mode = 'files';
     drawFiles();
     drawStage(ctx, answer.checks);
@@ -186,7 +184,7 @@ export default {
     root.append(
       ui.el('div', { class: 'screen-head' },
         ui.heading('update_title', 'h1'),
-        ui.el('span', { class: 'sub' }, ui.bi('update_sub', 'small'))),
+        ui.el('span', { class: 'sub' }, ui.tx('update_sub', 'small'))),
       ui.el('div', { class: 'columns' },
         ui.el('div', { class: 'panel col', style: { flex: '0 0 34rem' } },
           ui.heading('upload_your_computer'),
@@ -226,7 +224,7 @@ export default {
       upload(ctx).catch((problem) => {
         console.error(problem);
         mode = 'files';
-        ui.toast('アップロードできませんでした', problem.sentence || String(problem), 'bad');
+        ui.toast(problem.sentence || String(problem), 'bad');
       });
       return;
     }

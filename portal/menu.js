@@ -32,8 +32,7 @@ export function isOpen() {
 }
 
 function sentenceFor(label) {
-  return ui.biText(`これは同じゲームを「${ui.regionJp(label)}」のプレイヤーが見たときの画面です`,
-                   `This is the same game, for a player in ${label}`, 'small');
+  return ui.txText(`This is the same game, for a player in ${label}`, 'small');
 }
 
 /** The empty rectangle the preview window covers, with a line saying so underneath it. */
@@ -42,8 +41,8 @@ function reserve(ctx) {
   return ui.el('div', { class: 'preview-reserve', 'data-state': window.found === false
     ? 'missing' : (window.shown ? 'shown' : 'waiting') },
     ui.el('div', { class: 'label' },
-      window.found === false ? ui.bi('preview_window_missing', 'small')
-        : ui.bi('preview_window_here', 'small')));
+      window.found === false ? ui.tx('preview_window_missing', 'small')
+        : ui.tx('preview_window_here', 'small')));
 }
 
 function draw(ctx) {
@@ -64,11 +63,11 @@ function draw(ctx) {
   body.append(ui.el('div', { class: 'menu panel' },
     ui.heading('menu_title'),
     ui.el('div', { class: `menu-item focusable ${focus === 0 ? 'focused' : ''}`.trim() },
-      ui.bi('menu_preview', 'label'),
+      ui.tx('menu_preview', 'label'),
       ui.el('div', { class: 'region-pick' },
         regionIds.map((id, i) => ui.el('span', {
           class: `pill ${i === regionIndex ? 'on' : ''} ${id === (preview || {}).region ? 'live' : ''}`.trim(),
-        }, ui.biRegion((regions[id] || {}).label || id, 'small')))),
+        }, ui.txText((regions[id] || {}).label || id, 'small')))),
       sentenceFor(chosenLabel)),
     slot ? ui.el('div', { class: 'region-table' },
       regionIds.map((id) => {
@@ -77,8 +76,8 @@ function draw(ctx) {
         return ui.el('div', { class: `r ${kind === 'visitor' ? 'yours' : ''}`.trim() },
           ui.brandMark(row && row.brand),
           ui.el('span', { class: 'name' },
-                ui.biRegion((regions[id] || {}).label || id, 'small')),
-          ui.bi(kind === 'visitor' ? 'showing_you'
+                ui.txText((regions[id] || {}).label || id, 'small')),
+          ui.tx(kind === 'visitor' ? 'showing_you'
                 : kind === 'rival' ? 'showing_rival'
                 : kind === 'default' ? 'showing_default' : 'showing_none', 'small'));
       })) : null,
@@ -88,7 +87,7 @@ function draw(ctx) {
     ...items.slice(1).map((item, index) => ui.el('div', {
       class: `button focusable ${focus === index + 1 ? 'focused' : ''}`.trim(),
       'data-item': item.key,
-    }, ui.glyph('A'), ui.bi(item.key))),
+    }, ui.glyph('A'), ui.tx(item.key))),
   ));
   body.append(reserve(ctx));
   document.getElementById('app').dataset.menu = 'open';
@@ -151,8 +150,7 @@ export async function pad(button, ctx) {
   if (focus === 0) {
     preview = await ctx.api.setPreviewRegion(regionIds[regionIndex]);
     const label = (ctx.state.config.regions[preview.region] || {}).label || preview.region;
-    ui.toast(`プレビュー画面を「${ui.regionJp(label)}」にしました`,
-             `The preview window is now a player in ${label}`, '', 4000);
+    ui.toast(`The preview window is now a player in ${label}`, '', 4000);
     draw(ctx);
   } else if (focus === 1) {
     // The fallback of plan v6 §11: no second window, the main game itself plays as the
@@ -160,8 +158,7 @@ export async function pad(button, ctx) {
     const id = regionIds[regionIndex];
     const label = (ctx.state.config.regions[id] || {}).label || id;
     await ctx.api.liveFlip(id, flipSeconds);
-    ui.toast(`メインのゲームが ${flipSeconds} 秒だけ「${ui.regionJp(label)}」になります`,
-             `The main game is a player in ${label} for ${flipSeconds} seconds`, '',
+    ui.toast(`The main game is a player in ${label} for ${flipSeconds} seconds`, '',
              flipSeconds * 1000);
     draw(ctx);
   } else if (focus === 2) {

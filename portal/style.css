@@ -6,17 +6,15 @@
  *
  * Sizes are in rem and 1rem is 16px at 1080p, so the whole layout scales with the window:
  * every number below can be read as "px at 1080p" by multiplying by 16.
+ *
+ * **English only since 2026-11-02** (Kavin's ruling). Every block of text used to be two
+ * lines, Japanese over English, with the English at 0.8em under it; there is now one line,
+ * and it takes the size the Japanese line had, because English is the primary text. That
+ * freed about 20px of height per block, so the boxes that had been squeezed to fit two
+ * lines — the attract ticker, the Start menu, the check rows, the tables — are back at a
+ * comfortable spacing. No bundled font either: the JP subset is gone and the stack is the
+ * platform's own UI face.
  */
-
-@font-face {
-  font-family: 'Noto Sans JP';
-  /* One variable subset covering 100-900, cut to the glyphs strings.js can draw.
-     portal/fonts/make_subset.py rebuilds it; OFL.txt next to it is its licence. */
-  src: url('fonts/NotoSansJP-subset.woff2') format('woff2');
-  font-weight: 100 900;
-  font-style: normal;
-  font-display: swap;
-}
 
 :root {
   --ground:     #070c14;
@@ -49,7 +47,7 @@ html {
 body {
   background: var(--ground);
   color: var(--ink);
-  font-family: 'Noto Sans JP', 'Yu Gothic UI', 'Meiryo', system-ui, sans-serif;
+  font-family: system-ui, 'Segoe UI Variable Text', 'Segoe UI', Roboto, Arial, sans-serif;
   font-size: 1.875rem;            /* 30px — the body size for a two-metre read */
   line-height: 1.3;
   height: 100vh;
@@ -72,23 +70,18 @@ body::before {
 
 #app { position: relative; display: flex; flex-direction: column; height: 100vh; }
 
-/* ------------------------------------------------------------------ bilingual text */
-/* Every string is Japanese on top, English under it. .bi is the only way text gets on
-   screen in this app, which is what keeps the rule honest. */
-.bi { display: block; }
-.bi > .jp { display: block; font-weight: 500; letter-spacing: 0.01em; }
-.bi > .en { display: block; color: var(--ink-dim); font-weight: 400; font-size: 0.8em;
-            margin-top: 0.1em; letter-spacing: 0.005em; }
-.bi.inline { display: inline-block; vertical-align: top; }
+/* ------------------------------------------------------------------ text */
+/* `.tx` is the only way text gets on screen in this app (portal/ui.js), which is what
+   lets the exit test walk the page and say that every word came from the string table.
+   Anything that is not a word — a number, a slot id, a file name, the face of a button —
+   is marked `data-datum` instead. */
+.tx { display: block; font-weight: 500; letter-spacing: 0.01em; }
+.tx.inline { display: inline-block; vertical-align: top; }
 
-h1.bi > .jp { font-size: 2.75rem; font-weight: 700; }
-h1.bi > .en { font-size: 2rem; }
-h2.bi > .jp { font-size: 2.125rem; font-weight: 700; }
-h2.bi > .en { font-size: 1.625rem; }
-.label.bi > .jp { font-size: 1.625rem; color: var(--ink-dim); font-weight: 500; }
-.label.bi > .en { font-size: 1.375rem; color: var(--ink-faint); }
-.small.bi > .jp { font-size: 1.625rem; }
-.small.bi > .en { font-size: 1.375rem; }
+h1.tx { font-size: 2.75rem; font-weight: 700; }
+h2.tx { font-size: 2.125rem; font-weight: 700; }
+.label.tx { font-size: 1.625rem; color: var(--ink-dim); font-weight: 500; }
+.small.tx { font-size: 1.625rem; }
 
 .value { font-size: 2.75rem; font-weight: 700; line-height: 1.1; }
 .value.big { font-size: 3.5rem; }
@@ -111,12 +104,9 @@ header.hidden { display: none; }
 .wordmark { display: flex; align-items: center; gap: 0.875rem; }
 .wordmark .dot { width: 1rem; height: 1rem; border-radius: 50%; background: var(--accent);
                  box-shadow: 0 0 1rem var(--accent); flex: 0 0 auto; }
-/* The product's own wordmark: the JP reading on top (the rule is the rule), the Latin
-   wordmark under it at the size it is meant to be read at. */
-.wordmark .name > .jp { font-size: 1.25rem; color: var(--ink-dim); font-weight: 500;
-                        letter-spacing: 0.04em; }
-.wordmark .name > .en { font-size: 1.75rem; font-weight: 700; letter-spacing: 0.08em;
-                        text-transform: uppercase; color: var(--ink); margin-top: 0; }
+/* The product's own wordmark, at the size it is meant to be read at. */
+.wordmark .name { font-size: 1.75rem; font-weight: 700; letter-spacing: 0.08em;
+                  text-transform: uppercase; color: var(--ink); }
 
 .header-spacer { flex: 1; }
 
@@ -206,7 +196,7 @@ main {
 .button.primary { border-color: rgba(111, 227, 255, 0.5);
                   background: linear-gradient(180deg, rgba(111, 227, 255, 0.16), rgba(111, 227, 255, 0.05)); }
 .button.focused { background: var(--accent); }
-.button.focused .jp, .button.focused .en { color: var(--accent-ink); }
+.button.focused .tx { color: var(--accent-ink); }
 .button .glyph { flex: 0 0 auto; }
 
 .glyph {
@@ -233,38 +223,33 @@ main {
   position: relative; z-index: 2;
 }
 .hintbar .hint { display: flex; align-items: center; gap: 0.875rem; }
-.hintbar .hint .bi > .jp { font-size: 1.5rem; }
-.hintbar .hint .bi > .en { font-size: 1.25rem; }
+.hintbar .hint .tx { font-size: 1.625rem; }
 .hintbar .note { margin-left: auto; text-align: right; }
-.hintbar .note .bi > .jp { font-size: 1.5rem; color: var(--ink-faint); }
-.hintbar .note .bi > .en { font-size: 1.25rem; color: var(--ink-faint); }
+.hintbar .note .tx { font-size: 1.5rem; color: var(--ink-faint); }
 
 /* ------------------------------------------------------------------ attract */
-.attract { align-items: stretch; justify-content: flex-start; gap: 1.25rem; }
+.attract { align-items: stretch; justify-content: flex-start; gap: 1.5rem; }
 /* The hero is one line across the top: the wordmark, then what the thing does. Height is
    the scarce resource on this screen — the two live panels under it are the point. */
 .attract .hero { flex: 0 0 auto; display: flex; align-items: center;
                  justify-content: center; gap: 2.5rem; padding-bottom: 0.25rem; }
-.attract .hero .mark > .jp { font-size: 1.625rem; letter-spacing: 0.05em;
-                             color: var(--accent); font-weight: 500; }
-.attract .hero .mark > .en { font-size: 2.875rem; font-weight: 700; letter-spacing: 0.09em;
-                             text-transform: uppercase; color: var(--ink); margin-top: 0;
-                             line-height: 1.1; }
+.attract .hero .mark { font-size: 2.875rem; font-weight: 700; letter-spacing: 0.09em;
+                       text-transform: uppercase; color: var(--ink); line-height: 1.1; }
 .attract .hero .tagline { max-width: 62rem; }
-.attract .hero .tagline .jp { font-size: 1.625rem; }
-.attract .hero .tagline .en { font-size: 1.375rem; }
+.attract .hero .tagline .tx { font-size: 1.75rem; }
 .attract .columns { flex: 1 1 auto; min-height: 0; }
-.attract .panel { overflow: hidden; gap: 0.625rem; padding: 1rem 1.25rem; }
-.attract .panel > .body { gap: 0.3125rem; }
-.region-chip .who > .bi > .en { margin-top: 0; }
-.attract .panel > h2.bi > .jp { font-size: 1.75rem; }
-.attract .panel > h2.bi > .en { font-size: 1.375rem; }
-.region-head .cell .bi > .jp { font-size: 1.5rem; }
-.region-head .cell .bi > .en { font-size: 1.25rem; }
+.attract .panel { overflow: hidden; gap: 1.25rem; padding: 1.5rem 1.75rem; }
+.attract .panel > .body { gap: 1rem; }
+.attract .panel > h2.tx { font-size: 1.875rem; }
 
+/* `min-height` rather than more padding, and the same number on both panels: the left one
+   is five rows of region chips and the right one five rows of a big number, and with one
+   line of text in a chip instead of two they would otherwise end at different heights and
+   leave the bottom third of the booth's idle screen empty. This is the screen a passer-by
+   looks at longest, so it is the one that has to fill. */
 .ticker-row {
-  display: flex; align-items: center; gap: 1rem;
-  padding: 0.1875rem 0.875rem; border-radius: 0.625rem; background: var(--ground-2);
+  display: flex; align-items: center; gap: 1rem; min-height: 6rem;
+  padding: 0.75rem 0.875rem; border-radius: 0.625rem; background: var(--ground-2);
   border: 2px solid var(--line-soft);
 }
 .ticker-row .slot-id { font-size: 2rem; font-weight: 700; min-width: 4.5rem; }
@@ -273,30 +258,27 @@ main {
 .region-chips { display: flex; gap: 0.75rem; flex: 1; }
 .region-chip {
   flex: 1; display: flex; align-items: center; gap: 0.75rem;
-  padding: 0.25rem 0.5rem; border-radius: 0.5rem; background: var(--panel);
+  padding: 0.375rem 0.625rem; border-radius: 0.5rem; background: var(--panel);
   border: 2px solid var(--line-soft);
 }
 .region-chip .mark { width: 2rem; height: 2rem; border-radius: 50%;
                      display: flex; align-items: center; justify-content: center; }
 .region-chip .mark svg { width: 1.375rem; height: 1.375rem; }
-.region-chip .who > .bi > .jp { font-size: 1.5rem; }
-.region-chip .who > .bi > .en { font-size: 1.25rem; }
+.region-chip .who > .tx { font-size: 1.625rem; }
 /* The region each column stands for is said once, in the header row above the chips,
-   rather than on all fifteen of them — it buys the chips two sizes of type. */
+   rather than on all fifteen of them — it buys the chips a size of type. */
 .region-head { display: flex; gap: 0.75rem; padding: 0 1rem 0 6.75rem; }
 .region-head .cell { flex: 1; padding-left: 0.875rem; }
-.region-head .cell .bi > .jp { font-size: 1.625rem; color: var(--ink-dim); }
-.region-head .cell .bi > .en { font-size: 1.375rem; }
+.region-head .cell .tx { font-size: 1.75rem; color: var(--ink-dim); }
 
 .start-cue { text-align: center; flex: 0 0 auto; }
 .start-cue .ring {
   display: inline-flex; align-items: center; gap: 1.25rem;
-  padding: 0.625rem 2.25rem; border-radius: 4rem;
+  padding: 0.75rem 2.25rem; border-radius: 4rem;
   border: 0.25rem solid var(--accent);
   animation: pulse 2.2s ease-in-out infinite;
 }
-.start-cue .ring .jp { font-size: 1.875rem; font-weight: 700; }
-.start-cue .ring .en { font-size: 1.5rem; }
+.start-cue .ring .tx { font-size: 2rem; font-weight: 700; }
 @keyframes pulse {
   0%, 100% { box-shadow: 0 0 0 0 rgba(111, 227, 255, 0.45); }
   50%      { box-shadow: 0 0 3rem 0.5rem rgba(111, 227, 255, 0.2); }
@@ -339,24 +321,22 @@ main {
 /* ------------------------------------------------------------------ upload */
 .file-row {
   display: flex; align-items: center; gap: 0.875rem;
-  padding: 0.5rem 0.875rem; border-radius: 0.75rem;
+  padding: 0.625rem 1rem; border-radius: 0.75rem;
   border: 2px solid var(--line-soft); background: var(--ground-2);
 }
 .file-row .name { flex: 0 0 auto; }
-.file-row .name .bi > .jp { font-size: 1.625rem; }
-.file-row .name .bi > .en { font-size: 1.25rem; }
+.file-row .name .tx { font-size: 1.625rem; }
 .file-row .tag {
   flex: 0 0 auto; padding: 0.25rem 0.875rem; border-radius: 0.5rem;
-  border: 2px solid var(--line); font-size: 1.25rem; color: var(--ink-dim);
+  border: 2px solid var(--line); font-size: 1.375rem; color: var(--ink-dim);
 }
 .file-row .tag.bad { border-color: rgba(255, 107, 107, 0.6); color: var(--bad); }
 .file-row .size { flex: 0 0 auto; font-size: 1.625rem; color: var(--ink-dim);
                   font-variant-numeric: tabular-nums; }
 
-#app[data-screen="upload"] .panel { gap: 0.5rem; padding: 1.125rem 1.5rem; }
-#app[data-screen="upload"] .panel > h2.bi > .jp { font-size: 1.875rem; }
-#app[data-screen="upload"] .panel > h2.bi > .en { font-size: 1.5rem; }
-.stage { flex: 1 1 auto; display: flex; flex-direction: column; gap: 0.5rem;
+#app[data-screen="upload"] .panel { gap: 0.875rem; padding: 1.25rem 1.5rem; }
+#app[data-screen="upload"] .panel > h2.tx { font-size: 1.875rem; }
+.stage { flex: 1 1 auto; display: flex; flex-direction: column; gap: 0.75rem;
          min-height: 0; }
 .stage .idle { flex: 1; display: flex; flex-direction: column; align-items: center;
                justify-content: center; gap: 1rem; text-align: center; color: var(--ink-dim); }
@@ -371,10 +351,10 @@ main {
 .progress .meta .pct { font-size: 1.875rem; font-weight: 700;
                        font-variant-numeric: tabular-nums; }
 
-.checks { display: flex; flex-direction: column; gap: 0.375rem; }
+.checks { display: flex; flex-direction: column; gap: 0.625rem; }
 .check-row {
   display: flex; align-items: center; gap: 1rem;
-  padding: 0.125rem 1rem; border-radius: 0.625rem;
+  padding: 0.5rem 1rem; border-radius: 0.625rem;
   border: 2px solid var(--line-soft); background: var(--ground-2);
   opacity: 0.45; transition: opacity 160ms ease-out;
 }
@@ -387,15 +367,14 @@ main {
 .check-row.ok .mark { border-color: var(--ok); color: var(--ok); }
 .check-row.failed .mark { border-color: var(--bad); color: var(--bad); }
 .check-row.failed { border-color: rgba(255, 107, 107, 0.45); }
-.check-row .what { flex: 0 0 12rem; }
-.check-row .what .bi > .jp, .check-row .what .bi > .en { white-space: nowrap; }
+.check-row .what { flex: 0 0 10rem; }
+.check-row .what .tx { white-space: nowrap; }
 .check-row .detail { flex: 1; min-width: 0; }
-.check-row .detail .bi > .jp { font-size: 1.375rem; }
-.check-row .detail .bi > .en { font-size: 1.25rem; }
+.check-row .detail .tx { font-size: 1.5rem; }
 
 .verdict {
   display: flex; align-items: center; gap: 1.25rem; flex: 0 0 auto;
-  padding: 0.5rem 1.125rem; border-radius: 0.875rem;
+  padding: 0.625rem 1.125rem; border-radius: 0.875rem;
   border: 0.25rem solid var(--ok); background: rgba(61, 220, 132, 0.08);
 }
 .verdict.bad { border-color: var(--bad); background: rgba(255, 107, 107, 0.08); }
@@ -408,22 +387,18 @@ main {
 .verdict.bad .badge { background: var(--bad); color: #3a0b0b; }
 .verdict-slot { flex: 0 0 auto; }
 .verdict .what { flex: 0 0 auto; }
-.verdict .what > .bi > .jp { font-size: 1.75rem; font-weight: 700; }
-.verdict .what > .bi > .en { font-size: 1.5rem; }
-.verdict > .bi.tail { margin-left: auto; text-align: right; }
-.verdict > .bi.tail > .jp { font-size: 1.375rem; }
-.verdict > .bi.tail > .en { font-size: 1.25rem; }
+.verdict .what > .tx { font-size: 1.875rem; font-weight: 700; }
+.verdict > .tx.tail { margin-left: auto; text-align: right; font-size: 1.5rem; }
 
 /* "My content" is the third column of the upload screen: what the brand ends up owning,
    each piece with the slots it fits. */
 .mine-cards { display: flex; flex-direction: column; gap: 0.75rem; }
 .content-card {
   display: flex; flex-direction: column; align-items: flex-start; gap: 0.375rem;
-  padding: 0.5rem 0.875rem; border-radius: 0.75rem;
+  padding: 0.625rem 0.875rem; border-radius: 0.75rem;
   border: 2px solid var(--line-soft); background: var(--ground-2);
 }
-.content-card .piece .bi > .jp { font-size: 1.625rem; }
-.content-card .piece .bi > .en { font-size: 1.25rem; }
+.content-card .piece .tx { font-size: 1.625rem; }
 .content-card .fits { display: flex; gap: 0.375rem; flex-wrap: wrap; }
 .fit-pill {
   padding: 0.25rem 0.75rem; border-radius: 0.5rem; font-size: 1.375rem;
@@ -455,10 +430,9 @@ main {
   padding: 0.5rem 1.125rem; border-radius: 2rem;
   background: rgba(111, 227, 255, 0.14); border: 2px solid rgba(111, 227, 255, 0.55);
 }
-.badge .jp { font-size: 1.5rem; color: var(--accent); }
-.badge .en { font-size: 1.25rem; color: var(--accent); opacity: 0.8; }
+.badge .tx { font-size: 1.5rem; color: var(--accent); }
 .badge.quiet { background: transparent; border-color: var(--line); }
-.badge.quiet .jp, .badge.quiet .en { color: var(--ink-dim); }
+.badge.quiet .tx { color: var(--ink-dim); }
 
 /* ------------------------------------------------------------------ slot map */
 .map-wrap {
@@ -500,38 +474,34 @@ main {
 .legend { display: flex; gap: 1.5rem; align-items: center; }
 .legend .item { display: flex; align-items: center; gap: 0.625rem; }
 .legend .item .dot { width: 1.25rem; height: 1.25rem; border-radius: 50%; }
-.legend .item .bi > .jp { font-size: 1.5rem; }
-.legend .item .bi > .en { font-size: 1.25rem; }
+.legend .item .tx { font-size: 1.5rem; }
 
 /* The slot contract, in one card. Two columns inside it: the photograph and the verdict
-   on the left, the numbers on the right — one column of ten bilingual rows is taller than
-   a 1080p screen has room for. */
-.slot-card { flex: 0 0 52rem; gap: 0.5rem; padding: 0.875rem 1.25rem; }
+   on the left, the numbers on the right — one column of ten rows is taller than a 1080p
+   screen has room for. */
+.slot-card { flex: 0 0 52rem; gap: 0.75rem; padding: 1.125rem 1.25rem; }
 .slot-card .card-split { display: flex; gap: 1rem; align-items: flex-start; }
 /* Nothing in the card may be squeezed smaller than its contents: a squeezed flex child
    does not scroll, it paints over whatever is under it. If it no longer fits, the panel
    overflows instead — which the exit test's audit catches. */
 .slot-card > .body > * { flex: 0 0 auto; }
-.slot-card > .body > * { flex: 0 0 auto; }
 .slot-card .card-left { flex: 0 0 19rem; display: flex; flex-direction: column;
-                        gap: 0.5rem; }
+                        gap: 0.625rem; }
 .slot-card .card-right { flex: 1 1 auto; display: flex; flex-direction: column;
-                         gap: 0.5rem; min-width: 0; }
+                         gap: 0.625rem; min-width: 0; }
 .slot-card .thumb {
   width: 100%; aspect-ratio: 16 / 9; border-radius: 0.75rem; border: 2px solid var(--line);
   object-fit: cover; background: var(--ground-2); flex: 0 0 auto;
 }
 .stack { display: flex; flex-direction: column; gap: 0.1875rem; }
-.slot-card .rule .bi > .jp { font-size: 1.5rem; }
-.slot-card .rule .bi > .en { font-size: 1.25rem; }
+.slot-card .rule .tx { font-size: 1.5rem; }
 
 .footfall-strip { display: flex; gap: 0.5rem; }
 .footfall-strip .cell {
-  flex: 1; min-width: 0; padding: 0.3125rem 0.625rem; border-radius: 0.5rem;
+  flex: 1; min-width: 0; padding: 0.375rem 0.625rem; border-radius: 0.5rem;
   background: var(--ground-2); border: 2px solid var(--line-soft);
 }
-.footfall-strip .cell .bi > .jp { font-size: 1.5rem; white-space: nowrap; }
-.footfall-strip .cell .bi > .en { font-size: 1.25rem; white-space: nowrap; }
+.footfall-strip .cell .tx { font-size: 1.5rem; white-space: nowrap; }
 .footfall-strip .cell .n { display: block; font-size: 1.75rem; font-weight: 700;
                            font-variant-numeric: tabular-nums; }
 .footfall-strip .cell .n small { font-size: 1.25rem; color: var(--ink-dim);
@@ -540,7 +510,7 @@ main {
 /* The three numbers that matter for a bid, side by side under the picture. */
 .stat-strip { display: flex; gap: 0.75rem; flex: 0 0 auto; }
 .stat-strip .cell {
-  flex: 1; min-width: 0; padding: 0.3125rem 0.875rem; border-radius: 0.625rem;
+  flex: 1; min-width: 0; padding: 0.375rem 0.875rem; border-radius: 0.625rem;
   background: var(--ground-2); border: 2px solid var(--line-soft);
   display: flex; flex-direction: column; gap: 0.125rem;
 }
@@ -559,17 +529,16 @@ main {
   border: 2px solid var(--line-soft);
 }
 .region-table .r .name { flex: 1; }
-.region-table .r .name .jp { font-size: 1.5rem; }
-.region-table .r .name .en { font-size: 1.25rem; }
+.region-table .r .name .tx { font-size: 1.5rem; }
 .region-table .r .n { font-size: 1.75rem; font-weight: 700;
                       font-variant-numeric: tabular-nums; }
 .region-table .r .n small { font-size: 1.25rem; color: var(--ink-dim); font-weight: 400; }
 
 .refusal, .fits-note {
-  flex: 0 0 auto; padding: 0.375rem 1rem; border-radius: 0.75rem;
+  flex: 0 0 auto; padding: 0.5rem 1rem; border-radius: 0.75rem;
   display: flex; align-items: center; gap: 1.25rem;
 }
-.refusal > .bi:last-child, .fits-note > .bi:last-child { margin-left: auto;
+.refusal > .tx:last-child, .fits-note > .tx:last-child { margin-left: auto;
                                                          text-align: right; }
 .refusal { border: 2px solid rgba(255, 107, 107, 0.5); background: rgba(255, 107, 107, 0.08); }
 .fits-note { border: 2px solid rgba(61, 220, 132, 0.45); background: rgba(61, 220, 132, 0.08); }
@@ -583,19 +552,17 @@ main {
   box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.6);
   animation: rise 220ms ease-out;
 }
-.toast .jp { font-size: 1.75rem; }
-.toast .en { font-size: 1.375rem; }
+.toast .tx { font-size: 1.875rem; }
 .toast.staff { border-color: var(--warn); }
 .toast.bad { border-color: var(--bad); }
 @keyframes rise { from { transform: translateY(1rem); opacity: 0; } }
 
-/* A heading-sized bilingual pair used inside cards and tiles. */
-.bi.h2-like > .jp { font-size: 2.125rem; font-weight: 700; }
-.bi.h2-like > .en { font-size: 1.625rem; }
+/* A heading-sized block used inside cards and tiles. */
+.tx.h2-like { font-size: 2.125rem; font-weight: 700; }
 
 .file-row .filename {
   flex: 1 1 auto; min-width: 0; text-align: right;
-  font-size: 1.25rem; color: var(--ink-faint); letter-spacing: 0.02em;
+  font-size: 1.375rem; color: var(--ink-faint); letter-spacing: 0.02em;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
@@ -604,18 +571,15 @@ main {
 .muted { color: var(--ink-dim); }
 .hidden { display: none !important; }
 .credit-note { color: var(--ink-faint); }
-.credit-note .bi > .jp { font-size: 1.5rem; }
-.credit-note .bi > .en { font-size: 1.25rem; }
+.credit-note .tx { font-size: 1.5rem; }
 .row { display: flex; align-items: center; gap: 1rem; }
 .row.wrap { flex-wrap: wrap; }
 .grow { flex: 1 1 auto; }
 
 /* the stat strip's own type tiers, one notch under .label and .small, so that a cell a
    third of the card wide still says "another brand leads" on one line */
-.stat-strip .cell > .bi.label > .jp { font-size: 1.5rem; }
-.stat-strip .cell > .bi.label > .en { font-size: 1.25rem; }
-.stat-strip .cell > .bi.small > .jp { font-size: 1.375rem; white-space: nowrap; }
-.stat-strip .cell > .bi.small > .en { font-size: 1.25rem; white-space: nowrap; }
+.stat-strip .cell > .tx.label { font-size: 1.5rem; }
+.stat-strip .cell > .tx.small { font-size: 1.375rem; white-space: nowrap; }
 
 /* =====================================================================================
    Part 2: the auction, the report and what comes after (screens 5-11).
@@ -624,10 +588,10 @@ main {
    ===================================================================================== */
 
 /* ------------------------------------------------------------------ bid tables */
-.bid-rows { display: flex; flex-direction: column; gap: 0.625rem; }
+.bid-rows { display: flex; flex-direction: column; gap: 0.75rem; }
 .bid-row {
   display: flex; align-items: center; gap: 1rem;
-  padding: 0.5rem 1rem; border-radius: 0.75rem;
+  padding: 0.75rem 1rem; border-radius: 0.75rem;
   border: 2px solid var(--line-soft); background: var(--ground-2);
 }
 .bid-row.head { background: transparent; border-color: transparent; padding-bottom: 0; }
@@ -638,13 +602,14 @@ main {
 }
 .bid-row .tickbox.on { background: var(--accent); border-color: var(--accent); }
 /* Every cell lays its two bits out side by side, never stacked: a stacked cell is two
-   bilingual blocks deep, which is four lines, which is a row 180px tall. */
-.bid-row .c-region { flex: 0 0 10rem; }
+   blocks deep, which is a row half again as tall for no extra fact. */
+/* Wider than it was: the region cell now holds the English name at the body size, where it
+   used to hold a two-character Japanese one with the English under it at 0.8em. */
+.bid-row .c-region { flex: 0 0 12rem; }
 .bid-row .c-foot { flex: 0 0 6rem; font-size: 1.875rem; font-weight: 700; }
 .bid-row .c-high { flex: 0 0 18rem; display: flex; align-items: baseline; gap: 0.625rem; }
 .bid-row .c-high .mono { font-size: 1.875rem; font-weight: 700; }
-.bid-row .c-high .bi.small > .jp, .bid-row .c-bid .bi.small > .jp { font-size: 1.5rem; }
-.bid-row .c-high .bi.small > .en, .bid-row .c-bid .bi.small > .en { font-size: 1.25rem; }
+.bid-row .c-high .tx.small, .bid-row .c-bid .tx.small { font-size: 1.5rem; }
 .bid-row .c-bid { flex: 1 1 auto; display: flex; align-items: baseline; gap: 0.75rem; }
 .bid-row .c-bid.off { opacity: 0.45; }
 .bid-row .c-status { flex: 0 0 15rem; display: flex; align-items: baseline; gap: 0.625rem; }
@@ -654,10 +619,10 @@ main {
 .bid-row.status_leading { border-color: rgba(61, 220, 132, 0.45); }
 .bid-row.status_won { border-color: rgba(61, 220, 132, 0.7); }
 .mono.big { font-size: 2.5rem; font-weight: 700; line-height: 1.1; }
-.bi.warn > .jp, .bi.warn > .en { color: var(--warn); }
+.tx.warn { color: var(--warn); }
 
 .panel-inset {
-  padding: 0.75rem 1rem; border-radius: 0.75rem;
+  padding: 0.875rem 1rem; border-radius: 0.75rem;
   border: 2px solid var(--line-soft); background: var(--ground-2);
   display: flex; flex-direction: column; gap: 0.25rem;
 }
@@ -679,11 +644,11 @@ main {
 }
 .banner .badge-dot { width: 1.25rem; height: 1.25rem; border-radius: 50%;
                      background: var(--bad); box-shadow: 0 0 1rem var(--bad); }
-.banner .bi.small { margin-left: auto; }
+.banner .tx.small { margin-left: auto; }
 
 .result-card {
   display: flex; align-items: center; gap: 1.25rem;
-  padding: 0.625rem 1.125rem; border-radius: 0.875rem;
+  padding: 0.875rem 1.125rem; border-radius: 0.875rem;
   border: 0.25rem solid var(--ok); background: rgba(61, 220, 132, 0.08);
 }
 .result-card.lost { border-color: var(--line); background: var(--ground-2); }
@@ -698,10 +663,10 @@ main {
 .result-card .tail .val { font-size: 2.25rem; font-weight: 700; }
 
 /* ------------------------------------------------------------------ the live strip */
-.steps { display: flex; flex-direction: column; gap: 0.625rem; }
+.steps { display: flex; flex-direction: column; gap: 0.75rem; }
 .step {
   display: flex; align-items: center; gap: 1.25rem;
-  padding: 0.5rem 1rem; border-radius: 0.75rem;
+  padding: 0.625rem 1rem; border-radius: 0.75rem;
   border: 2px solid var(--line-soft); background: var(--ground-2);
   opacity: 0.5; transition: opacity 180ms ease-out;
 }
@@ -714,9 +679,11 @@ main {
 }
 .step.done .mark { border-color: var(--ok); color: var(--ok); }
 .step.busy .mark { border-color: var(--accent); color: var(--accent); }
-.step .what { flex: 1 1 auto; }
+.step .what { flex: 0 0 auto; }
+.step > .tx.tail { margin-left: auto; text-align: right; font-size: 1.5rem;
+                   color: var(--ink-dim); }
 .marker-note {
-  flex: 0 0 auto; padding: 0.625rem 1rem; border-radius: 0.75rem;
+  flex: 0 0 auto; padding: 0.75rem 1rem; border-radius: 0.75rem;
   border: 2px solid rgba(111, 227, 255, 0.35); background: rgba(111, 227, 255, 0.08);
 }
 .mark.big, .brand-chip .swatch.big { width: 4rem; height: 4rem; }
@@ -727,21 +694,24 @@ main {
                          border-radius: 50%; display: flex; align-items: center;
                          justify-content: center; }
 .region-table .r .mark svg { width: 1.375rem; height: 1.375rem; }
+.region-table .r .tx.small { font-size: 1.5rem; }
 
 /* ------------------------------------------------------------------ the report */
-.rep-rows { display: flex; flex-direction: column; gap: 0.5rem; }
+.rep-rows { display: flex; flex-direction: column; gap: 0.625rem; }
 .rep-row {
-  display: flex; align-items: center; gap: 0.75rem;
-  padding: 0.4375rem 1rem; border-radius: 0.75rem;
+  display: flex; align-items: center; gap: 1rem;
+  padding: 0.625rem 1rem; border-radius: 0.75rem;
   border: 2px solid var(--line-soft); background: var(--ground-2);
 }
 .rep-row.head { background: transparent; border-color: transparent; padding-bottom: 0; }
 .rep-row.quiet { opacity: 0.5; }
 .rep-row.total { border-color: var(--line); background: var(--panel-2); }
 .rep-row .c-region { flex: 0 0 10rem; }
-.rep-row .c { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; }
+.rep-row .c { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column;
+              align-items: flex-start; }
 .rep-row .c .mono { font-size: 1.875rem; font-weight: 700; }
 .rep-row .c.accent .mono { color: var(--accent); }
+.rep-row.head .tx.small { font-size: 1.5rem; color: var(--ink-dim); }
 
 /* ------------------------------------------------------------------ the menu */
 /* The menu lives in the LEFT half of the screen, because the right half is where the
@@ -754,12 +724,13 @@ main {
   padding-left: 1.5rem;
 }
 .menu-layer.hidden { display: none; }
-/* The gap and the buttons below are a notch tighter than elsewhere because this panel now
-   carries five rows (the live flip joined them in brief 017) on top of the region picker
-   and the per-region table: at the old spacing it was 1,012px of content in a 994px box,
-   and the bottom row painted over the edge. The exit test's layout audit is what said so. */
+/* This panel carries five rows (the live flip joined them in brief 017) on top of the
+   region picker and the per-region table. With two languages that was 1,012px of content
+   in a 994px box and the bottom row painted over the edge, so the spacing was cut below
+   everything else here; with one line per row there is room again, and these are back at
+   the portal's ordinary numbers. The exit test's layout audit is what watches it. */
 .menu {
-  width: 55rem; max-height: 92vh; gap: 0.5rem; padding: 1rem 1.25rem;
+  width: 55rem; max-height: 92vh; gap: 0.875rem; padding: 1.25rem 1.5rem;
   box-shadow: 0 2rem 5rem rgba(0, 0, 0, 0.6);
   border-color: var(--line);
 }
@@ -782,35 +753,28 @@ main {
 }
 .preview-reserve[data-state="missing"] { border-color: var(--warn); }
 .preview-reserve[data-state="shown"] { border-color: transparent; }
-.menu .button { padding: 0.375rem 1.25rem; }
-.menu .region-table .r { padding: 0.3125rem 0.625rem; }
+.menu .button { padding: 0.625rem 1.25rem; }
+.menu .region-table .r { padding: 0.4375rem 0.75rem; }
 .menu-item {
-  padding: 0.75rem 1rem; border-radius: 0.75rem;
+  padding: 0.875rem 1rem; border-radius: 0.75rem;
   border: 2px solid var(--line-soft); background: var(--ground-2);
-  display: flex; flex-direction: column; gap: 0.375rem;
+  display: flex; flex-direction: column; gap: 0.5rem;
 }
 .region-pick { display: flex; gap: 0.75rem; }
 .region-pick .pill {
-  flex: 1; padding: 0.375rem 0.75rem; border-radius: 0.5rem;
+  flex: 1; padding: 0.4375rem 0.75rem; border-radius: 0.5rem;
   border: 2px solid var(--line); background: var(--panel);
   text-align: center;
 }
 .region-pick .pill.on { border-color: var(--accent); background: rgba(111, 227, 255, 0.14); }
 .region-pick .pill.live { box-shadow: inset 0 0 0 2px rgba(61, 220, 132, 0.6); }
 
-/* part 2, second pass: the tiers that keep these tables one line per fact */
-.step .what > .bi.small > .jp { font-size: 1.5rem; }
-.step .what > .bi.small > .en { font-size: 1.25rem; }
-.step { padding: 0.375rem 1rem; }
-.rep-row .c { flex: 1 1 0; align-items: flex-start; }
-.rep-row .c .mono { font-size: 1.75rem; }
-.rep-row .c-region { flex: 0 0 9rem; }
-.rep-row.head .bi.small > .jp { font-size: 1.5rem; color: var(--ink-dim); }
-.rep-row.head .bi.small > .en { font-size: 1.25rem; color: var(--ink-faint); }
+/* the tiers that keep these tables one line per fact */
+.step .what > .tx.small { font-size: 1.5rem; }
 .check-pills { display: flex; gap: 0.625rem; }
 .check-pills .pill {
   flex: 1; display: flex; align-items: center; gap: 0.625rem;
-  padding: 0.375rem 0.75rem; border-radius: 0.625rem;
+  padding: 0.5rem 0.75rem; border-radius: 0.625rem;
   border: 2px solid var(--line-soft); background: var(--ground-2);
 }
 .check-pills .pill.ok { border-color: rgba(61, 220, 132, 0.5); }
@@ -818,26 +782,13 @@ main {
 .check-pills .pill .mark { font-size: 1.5rem; font-weight: 700; color: var(--ok); }
 .check-pills .pill.bad .mark { color: var(--bad); }
 .panel-inset .row { align-items: baseline; gap: 0.75rem; }
-
-/* part 2, third pass */
-.step .what { flex: 0 0 auto; }
-.step > .bi.tail { margin-left: auto; text-align: right; }
-.step > .bi.tail > .jp { font-size: 1.5rem; color: var(--ink-dim); }
-.step > .bi.tail > .en { font-size: 1.25rem; }
 .footfall-strip .cell .n.held { color: var(--warn); }
-.panel-inset { gap: 0.1875rem; }
-.region-table .r .bi.small > .jp { font-size: 1.5rem; }
-.region-table .r .bi.small > .en { font-size: 1.25rem; }
 
-/* part 2, fourth pass: the two panels that were still a hair too tall */
-#app[data-screen="live"] .region-table .r { padding: 0.25rem 0.625rem; }
-#app[data-screen="live"] .panel .button { padding: 0.625rem 1.5rem; }
+/* the two panels that were still a hair too tall with two languages; with one line per
+   row they are not, so only the live screen's own region table stays trimmed */
+#app[data-screen="live"] .region-table .r { padding: 0.4375rem 0.75rem; }
 #app[data-screen="live"] .body > .row { align-items: center; }
-
-#app[data-screen="report"] .panel .button { padding: 0.5rem 1rem; }
-#app[data-screen="report"] .button .bi > .jp { white-space: nowrap; }
 .progress .meta { gap: 1rem; }
 
-/* a button never breaks its Japanese line in half */
-.button .bi > .jp { white-space: nowrap; }
-.rep-row { gap: 1rem; }
+/* a button never breaks its line in half */
+.button .tx { white-space: nowrap; }

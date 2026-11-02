@@ -4,17 +4,17 @@
 	"tour": false,
 	"rounds": 1,
 	"shots": 2,
-	"seconds": 29.947833299636841,
+	"seconds": 29.958827797323465,
 	"region": "r1",
 	"frame_ms":
 	{
-		"frames": 1704,
-		"average": 14.6531,
-		"median": 14.423,
-		"worst_1_percent": 20.2113,
-		"worst": 21.6602,
-		"average_fps": 68.2449,
-		"over_16ms": 426,
+		"frames": 1891,
+		"average": 13.2057,
+		"median": 13.3599,
+		"worst_1_percent": 16.4281,
+		"worst": 18.9739,
+		"average_fps": 75.7248,
+		"over_16ms": 43,
 		"over_25ms": 0,
 		"over_33ms": 0
 	},
@@ -23,9 +23,9 @@
 			"slot": "A1",
 			"leg": "A1:inside",
 			"arrived": true,
-			"seconds": 6.14729,
-			"metres": 30.0994,
-			"final_gap_cm": 105.063,
+			"seconds": 6.15351,
+			"metres": 30.1335,
+			"final_gap_cm": 101.653,
 			"note": ""
 		}
 	],

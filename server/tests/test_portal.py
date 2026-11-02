@@ -131,7 +131,7 @@ def test_the_demo_file_bytes_are_downloadable(env) -> None:
 
 
 def test_the_preview_window_region(env) -> None:
-    """The region half of the preview answer. Its focus half, the Japanese labels and the
+    """The region half of the preview answer. Its focus half, the region labels and the
     behaviour the window itself depends on are `tests/test_preview.py`."""
     answer = env.ok(env.client.get("/preview/region"))
     assert {k: answer[k] for k in ("region", "label", "neutral_label", "main_region")} == {

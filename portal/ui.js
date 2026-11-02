@@ -1,11 +1,14 @@
-// Small DOM helpers. Everything the portal draws goes through here, which is how the
-// "every string is Japanese and English, JP on top" rule stays true by construction:
-// there is no way to put text on screen except bi() / biText().
+// Small DOM helpers. Everything the portal draws goes through here.
+//
+// The portal is **English only** (Kavin's ruling, 2026-11-02). It used to draw every line
+// twice, Japanese over English, through a `bi()` that always made both lines; the string
+// table is now one language and `tx()` / `txText()` are what put a line on screen. The
+// structure stayed: there is still no way to draw text except through one of them, and
+// anything that is not a word — a number, a slot id, a file name, the face of a button —
+// is marked `data-datum` instead. That is what lets the exit test walk the page and say
+// "every piece of text on this screen came from the string table".
 
-import { STRINGS, REGION_JP, japaneseFor } from './strings.js';
-
-/** The Japanese line for a sentence the server wrote. */
-export const japanese = japaneseFor;
+import { STRINGS } from './strings.js';
 
 // The bid keys, in one place because two screens use them (spec §2): the shoulders step
 // by the auction's own minimum raise, the triggers by four of them.
@@ -31,39 +34,28 @@ export function el(tag, attrs = {}, ...children) {
   return node;
 }
 
-/** A bilingual block from the string table. */
-export function bi(key, cls = '') {
-  const entry = STRINGS[key] || { jp: key, en: key };
-  return biText(entry.jp, entry.en, cls);
+/** A block of text from the string table. */
+export function tx(key, cls = '') {
+  const entry = STRINGS[key];
+  return txText(entry === undefined ? key : entry, cls);
 }
 
-/** A bilingual block from two sentences the caller already has. */
-export function biText(jp, en, cls = '') {
-  return el('span', { class: `bi ${cls}`.trim() },
-    el('span', { class: 'jp' }, jp === null || jp === undefined ? '' : jp),
-    el('span', { class: 'en' }, en === null || en === undefined ? '' : en));
-}
-
-/** A sentence the server wrote, with a Japanese line put above it. */
-export function biServer(sentence, cls = '') {
-  return biText(japaneseFor(sentence), sentence, cls);
-}
-
-/** A region, named as the server names it, with Japanese when this build knows it. */
-export function biRegion(label, cls = '') {
-  return biText(REGION_JP[label] || label, label, cls);
-}
-
-/** The Japanese name of a region, for building a sentence around it. */
-export function regionJp(label) {
-  return REGION_JP[label] || label;
+/**
+ * A block of text the caller already has.
+ *
+ * Used for the three kinds of words that are not in the table: a sentence the **server**
+ * wrote (the four checks, a rejection, a fit refusal — its wording is the authority, and
+ * the game client and the tests see the same words), a **region** label out of the
+ * server's config, and a line built round a datum ("Slot A1", "Content 1 · v2").
+ */
+export function txText(text, cls = '') {
+  return el('span', { class: `tx ${cls}`.trim() },
+            text === null || text === undefined ? '' : text);
 }
 
 export function heading(key, level = 'h2') {
-  const entry = STRINGS[key] || { jp: key, en: key };
-  return el(level, { class: 'bi' },
-    el('span', { class: 'jp' }, entry.jp),
-    el('span', { class: 'en' }, entry.en));
+  const entry = STRINGS[key];
+  return el(level, { class: 'tx' }, entry === undefined ? key : entry);
 }
 
 // ------------------------------------------------------------------ emblems
@@ -107,8 +99,8 @@ const GLYPH_CLASS = { A: 'a', B: 'b', X: 'x', Y: 'y' };
 export function glyph(name) {
   const wide = name.length > 1;
   const face = name === 'DPAD' ? '✛' : name;
-  // data-datum: the face of a button is the same letter in both languages — it is the
-  // thing printed on the pad in the visitor's hands, not a word to translate.
+  // data-datum: the face of a button is not a word to translate or to read — it is the
+  // thing printed on the pad in the visitor's hands.
   return el('span', {
     'data-datum': true,
     class: `glyph ${GLYPH_CLASS[name] || (name === 'DPAD' ? 'dpad' : '')} ${wide ? 'wide' : ''}`.trim(),
@@ -116,7 +108,7 @@ export function glyph(name) {
 }
 
 export function hint(button, key) {
-  return el('span', { class: 'hint' }, glyph(button), bi(key));
+  return el('span', { class: 'hint' }, glyph(button), tx(key));
 }
 
 // ------------------------------------------------------------------ formatting
@@ -150,20 +142,20 @@ export function bytes(n) {
 // ------------------------------------------------------------------ toast
 let toastLayer = null;
 
-export function toast(jp, en, kind = '', ms = 3200) {
+export function toast(text, kind = '', ms = 3200) {
   if (!toastLayer) {
     toastLayer = el('div', { class: 'toast-layer' });
     document.body.append(toastLayer);
   }
-  const node = el('div', { class: `toast ${kind}`.trim() }, biText(jp, en));
+  const node = el('div', { class: `toast ${kind}`.trim() }, txText(text));
   toastLayer.append(node);
   setTimeout(() => node.remove(), ms);
   return node;
 }
 
 export function toastKey(key, kind = '', ms = 3200) {
-  const entry = STRINGS[key] || { jp: key, en: key };
-  return toast(entry.jp, entry.en, kind, ms);
+  const entry = STRINGS[key];
+  return toast(entry === undefined ? key : entry, kind, ms);
 }
 
 export function clear(node) {

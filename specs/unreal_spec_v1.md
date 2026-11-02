@@ -3,6 +3,12 @@
 *Written 2026-10-26 by chat Claude for Claude Code. Derived from demo plan v6 §3, §6, §10–§11, the six figures (runtime sequence,
 slot lifecycle) and `server_spec_v1.md` / `content_assets_spec_v1.md`. Status: DONE (spec); §2–§5 all built, briefs 004–016.*
 
+> **English only, Kavin's ruling 2026-11-02** (brief 018E): every line the game draws — the status strip, the attract prompt,
+> the title and pause menus, the loading line, the X-ray headings, the interaction prompts and the preview window's caption —
+> is English, and `/preview/region`'s `label_jp` is gone. Plan v6 §10 item 4's "every string in JP and EN" is overridden;
+> `specs/DECISIONS.md` records the call. Nothing else in this spec changes, and no pack was re-cooked: there is no text in any
+> content asset (`content_assets_spec_v1.md` §1).
+
 ## 1. Shape
 
 - **Engine:** UE 5.7.4 launcher install at `E:\EpicGames\UE_5.7`. Never touch the engine folder or any other project.

@@ -3,6 +3,10 @@
 *Written 2026-10-25 by chat Claude for Claude Code. Source of truth for every piece of walk-in content in the demo.
 Derived from `DemoPlan/DynamicContents_Tokyo_demo_plan_v6.md` §3, §9, §12. Status: DONE (spec). All 13 builds DONE as of brief 005 (2026-10-26); UE packs DONE (brief 006: 13 packs, true cm, chunks 100–112).*
 
+> **English only, Kavin's ruling 2026-11-02** (brief 018E) changes nothing in here, and no pack was re-cooked: §1 already says
+> there is no text anywhere in geometry, textures or file names, and a sign is a brand colour plus an emblem. The ruling bites
+> on the portal, the game's HUD and the server's config — see `specs/portal_spec_v1.md` and `specs/unreal_spec_v1.md`.
+
 ## 1. What we are making and why
 
 The demo swaps **content** into fixed **slots** at runtime. Each piece of content is a small walk-in structure that the Player

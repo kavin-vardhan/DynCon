@@ -60,15 +60,14 @@ enum class EDCShellMode : uint8
 
 DYNAMICCONTENTS_API const TCHAR* DCShellModeName(EDCShellMode Mode);
 
-/** One card on the title menu. No titles, by CLAUDE.md rule 3: "Game A" and "ゲーム A". */
+/** One card on the title menu. No titles, by CLAUDE.md rule 3: it says "Game A". */
 USTRUCT()
 struct FDCGameCard
 {
 	GENERATED_BODY()
 
 	UPROPERTY() FString Id;
-	UPROPERTY() FString LabelEn;
-	UPROPERTY() FString LabelJp;
+	UPROPERTY() FString Label;
 	UPROPERTY() FString MapPackage;
 
 	/** The plan view the developer's own slot-map tool captured and registered, fetched back
@@ -150,8 +149,9 @@ public:
 
 	/** 0 = clear, 1 = black. Covers the level load at both ends. */
 	float GetFadeAlpha() const { return FadeAlpha; }
-	const FString& GetFadeJp() const { return FadeJp; }
-	const FString& GetFadeEn() const { return FadeEn; }
+
+	/** The "Loading Game B" line drawn over the black, or empty for a silent fade. */
+	const FString& GetFadeText() const { return FadeText; }
 
 	/** Seconds of untouched pad before the attract loop takes over, and how many are left. */
 	float GetIdleTimeout() const { return IdleTimeoutSeconds; }
@@ -163,8 +163,8 @@ public:
 	/** The other game, for "Switch game" - two games, so there is exactly one. */
 	FString GetOtherGame() const;
 
-	/** The label pair for a game id, for anything that has to name one. */
-	void GetGameLabels(const FString& GameId, FString& OutJp, FString& OutEn) const;
+	/** The label for a game id, for anything that has to name one. */
+	FString GameLabel(const FString& GameId) const;
 
 	// ---------------------------------------------------------------- the attract camera
 
@@ -220,8 +220,7 @@ private:
 	float FadeAlpha = 0.0f;
 	int32 FadeDirection = 0;             // -1 fading in (to clear), +1 fading out (to black)
 	float FadeHeldSeconds = 0.0f;
-	FString FadeJp;
-	FString FadeEn;
+	FString FadeText;
 	FString PendingGame;
 	FString PendingMap;
 	bool bSwitching = false;

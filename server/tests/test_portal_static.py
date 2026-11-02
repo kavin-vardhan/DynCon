@@ -7,6 +7,7 @@ still starts.
 """
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -33,26 +34,33 @@ def test_the_portal_files_are_all_there(env) -> None:
                  "screens/attract.js", "screens/brand.js", "screens/upload.js",
                  "screens/games.js", "screens/slotmap.js", "screens/regions.js",
                  "screens/auction.js", "screens/live.js", "screens/report.js",
-                 "screens/update.js", "screens/summary.js",
-                 "fonts/NotoSansJP-subset.woff2", "fonts/OFL.txt"):
+                 "screens/update.js", "screens/summary.js"):
         answer = env.client.get(f"/portal/{path}")
         assert answer.status_code == 200, path
         assert answer.content, path
 
 
-def test_every_japanese_string_has_an_english_one(env) -> None:
-    """The one rule the portal cannot be allowed to break quietly (CLAUDE.md rule 3)."""
+def test_the_japanese_font_is_not_served_any_more(env) -> None:
+    """English only, Kavin's ruling 2026-11-02: the Noto Sans JP subset and its licence
+    were the last thing in `portal/fonts/`, and the folder went with them."""
+    assert not (PORTAL_DIR / "fonts").exists()
+    assert env.client.get("/portal/fonts/NotoSansJP-subset.woff2").status_code == 404
+    assert "NotoSansJP" not in env.client.get("/portal/style.css").text
+    assert 'lang="en"' in env.client.get("/portal/").text
+
+
+def test_the_string_table_is_one_language_and_still_covers_the_tour(env) -> None:
+    """`strings.js` is the whole of what the portal can say, so it is worth a look from
+    here: one entry per key, no `jp:` / `en:` pairs left, and not suspiciously small."""
     text = env.client.get("/portal/strings.js").text
-    assert "needs native review" in text          # the header the spec asks for
-    # An entry may be written on one line or two, so the check is positional: between one
-    # `jp:` and the next there has to be an `en:`.
-    marks = [i for i in range(len(text)) if text.startswith("jp:", i)]
-    assert len(marks) > 40, "the string table looks far too small"
-    for index, start in enumerate(marks):
-        end = marks[index + 1] if index + 1 < len(marks) else len(text)
-        assert "en:" in text[start:end], \
-            f"a string with no English: {text[start:start + 70]!r}"
-    assert text.count("jp:") == text.count("en:")
+    assert "jp:" not in text and "REGION_JP" not in text
+    body = text.split("export const STRINGS = {", 1)[1].split("\n};", 1)[0]
+    keys = re.findall(r"^\s{2}(\w+):\s*'", body, re.M)
+    assert len(keys) > 100, f"the string table looks far too small: {len(keys)} entries"
+    for key in ("attract_start", "upload_approved", "regions_place", "auction_closes_in",
+                "live_step_mount", "report_totals", "update_swapped", "summary_now",
+                "preview_window_here", "demo_credits_note"):
+        assert key in keys, f"{key} is not in the string table any more"
 
 
 def test_the_mount_does_not_shadow_the_api(env) -> None:

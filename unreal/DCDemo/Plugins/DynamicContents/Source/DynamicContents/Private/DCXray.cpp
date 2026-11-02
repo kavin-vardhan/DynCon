@@ -92,8 +92,7 @@ namespace
 		float RightEdge = -1.0f;
 
 		TArray<TPair<FString, FLinearColor>> Rows;
-		FString HeadingJp;
-		FString HeadingEn;
+		FString Heading;
 
 		void Row(const FString& Text, const FLinearColor& Colour = DCInk)
 		{
@@ -114,7 +113,6 @@ namespace
 			const float Line = LineHeight();
 			float HeadW = 0.0f;
 			float HeadH = 0.0f;
-			const FString Heading = HeadingJp + TEXT("  ·  ") + HeadingEn;
 			Canvas->TextSize(Head, Heading, HeadW, HeadH, Scale, Scale);
 
 			float Widest = HeadW;
@@ -244,7 +242,7 @@ namespace
 
 		const FDCFrameStats Stats = const_cast<UDCSubsystem*>(Subsystem)->GetFrameStats();
 		const FString Heading = FString::Printf(
-			TEXT("フレーム時間  ·  frame time  ·  %.0f s  ·  avg %.1f ms  ·  worst 1%% %.1f ms"),
+			TEXT("Frame time  ·  %.0f s  ·  avg %.1f ms  ·  worst 1%% %.1f ms"),
 			UDCSubsystem::GetFrameGraphSeconds(), Stats.AverageMs, Stats.Worst1PercentMs);
 		float HW = 0.0f;
 		float HH = 0.0f;
@@ -402,8 +400,7 @@ void FDCXray::Draw(UCanvas* Canvas, const UDCSubsystem* Subsystem, float UiScale
 	Panel.RightEdge = W - DCMargin;
 	Panel.Y = TopY + DCMargin;
 
-	Panel.HeadingJp = TEXT("マニフェスト");
-	Panel.HeadingEn = TEXT("manifest");
+	Panel.Heading = TEXT("Manifest");
 	if (Nearest == nullptr)
 	{
 		Panel.Row(TEXT("no slots in this map"), DCDim);
@@ -467,8 +464,7 @@ void FDCXray::Draw(UCanvas* Canvas, const UDCSubsystem* Subsystem, float UiScale
 
 	// ---- the cache ----------------------------------------------------------------------
 	Panel.Y = NextY;
-	Panel.HeadingJp = TEXT("キャッシュ");
-	Panel.HeadingEn = TEXT("pack cache, most recently used first");
+	Panel.Heading = TEXT("Pack cache, most recently used first");
 	{
 		// Pack id -> what was in it, out of the activation history: a pack on disk is a hex
 		// id and nothing else, and "rival2 v1" is what somebody reading this wants.
@@ -508,8 +504,7 @@ void FDCXray::Draw(UCanvas* Canvas, const UDCSubsystem* Subsystem, float UiScale
 	Log.Width = W * 0.33f;
 	Log.X = DCMargin;
 	Log.Y = TopY + DCMargin;
-	Log.HeadingJp = TEXT("ライフサイクル");
-	Log.HeadingEn = TEXT("lifecycle, newest last");
+	Log.Heading = TEXT("Lifecycle, newest last");
 	{
 		const TArray<FDCLifecycleNote>& Notes = Subsystem->GetLifecycle();
 		if (Notes.Num() == 0)
@@ -531,8 +526,7 @@ void FDCXray::Draw(UCanvas* Canvas, const UDCSubsystem* Subsystem, float UiScale
 
 	// ---- the session, including the one counter the strip must not carry ----------------
 	Log.Y = NextY;
-	Log.HeadingJp = TEXT("この回");
-	Log.HeadingEn = TEXT("this session");
+	Log.Heading = TEXT("This session");
 	{
 		const FDCFrameStats Stats = const_cast<UDCSubsystem*>(Subsystem)->GetFrameStats();
 		Log.Row(FString::Printf(TEXT("game %s   region %s   polls %d   changes %d"),

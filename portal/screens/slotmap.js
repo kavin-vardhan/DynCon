@@ -9,7 +9,6 @@
 // Slots the visitor's content cannot go in are greyed out, with the server's own reason.
 
 import * as ui from '../ui.js';
-import { japaneseFor } from '../strings.js';
 
 const BAND_COLOURS = ['#2ea44f', '#f2c230', '#e23d3d'];      // low, middling, busiest
 const BAND_KEYS = ['map_footfall_low', 'map_footfall_mid', 'map_footfall_high'];
@@ -87,7 +86,7 @@ function hop(direction) {
 /** One cell of the strip of numbers under the picture: a label, then the figure. */
 function statCell(labelKey, value, under = null, accent = false) {
   const pieces = [
-    ui.bi(labelKey, 'label'),
+    ui.tx(labelKey, 'label'),
     ui.el('span', { class: `val mono ${accent ? 'accent' : ''}`.trim(),
                     'data-datum': true }, value),
     under,
@@ -109,42 +108,42 @@ function drawCard(ctx) {
   const verdictBox = fit
     ? (fit.ok
         ? ui.el('div', { class: 'fits-note' },
-            ui.bi('map_fits', 'small'),
-            ui.biText(japaneseFor(fit.reason), fit.reason, 'small'))
+            ui.tx('map_fits', 'small'),
+            ui.txText(fit.reason, 'small'))
         : ui.el('div', { class: 'refusal' },
-            ui.bi('map_no_fit', 'small'),
-            ui.biText(japaneseFor(fit.reason), fit.reason, 'small')))
-    : ui.el('div', { class: 'muted' }, ui.bi('map_no_content', 'small'));
+            ui.tx('map_no_fit', 'small'),
+            ui.txText(fit.reason, 'small')))
+    : ui.el('div', { class: 'muted' }, ui.tx('map_no_content', 'small'));
 
   // append() renders a null as the text "null", so the pieces are filtered first.
   const pieces = [
     ui.el('div', { class: 'row' },
-      ui.biText(`スロット ${slot.id}`, `Slot ${slot.id}`, 'h2-like'),
+      ui.txText(`Slot ${slot.id}`, 'h2-like'),
       ui.el('span', { class: 'grow' }),
       ui.el('span', { class: 'badge quiet' },
-        ui.biText(`${slot.size_class} サイズ`, `Class ${slot.size_class}`, 'small'))),
+        ui.txText(`Class ${slot.size_class}`, 'small'))),
     ui.el('div', { class: 'card-split' },
       ui.el('div', { class: 'card-left' },
         ui.el('img', { class: 'thumb', src: slot.thumb_url, alt: '' }),
-        ui.bi('map_eye_level', 'label')),
+        ui.tx('map_eye_level', 'label')),
       ui.el('div', { class: 'card-right' },
         // No "what fits here" label: the sentence is the label.
-        ui.el('span', { class: 'rule' }, ui.biServer(slot.limits_words, 'small')),
+        ui.el('span', { class: 'rule' }, ui.txText(slot.limits_words, 'small')),
         ui.el('div', { class: 'divider' }),
-        ui.bi('map_footfall', 'small'),
+        ui.tx('map_footfall', 'small'),
         // Three regions across, not down: the same table in a third of the height.
         ui.el('div', { class: 'footfall-strip' },
           Object.entries(regions).map(([id, label]) => {
             const cell = (slot.footfall || {})[id] || {};
             return ui.el('div', { class: 'cell' },
-              ui.biRegion(label, 'small'),
+              ui.txText(label, 'small'),
               ui.el('span', { class: 'n', 'data-datum': true }, ui.num(cell.per_demo_hour),
                 ui.el('small', { 'data-datum': true }, ` +${ui.num(cell.live || 0)}`)));
           }))),
     ),
     ui.el('div', { class: 'stat-strip' },
       statCell('map_highest', lot ? ui.num(lot.highest) : '—',
-               ui.bi(lot && lot.holder === 'you' ? 'holder_you' : 'holder_rival', 'small'),
+               ui.tx(lot && lot.holder === 'you' ? 'holder_you' : 'holder_rival', 'small'),
                true),
       statCell('map_per_1000',
                lot && lot.credits_per_1000_views !== null
@@ -152,7 +151,7 @@ function drawCard(ctx) {
       statCell('map_closes', hasClock ? ui.mmss(lot.closes_in_s) : '—')),
     // Why there is no countdown yet, said once and across the whole card rather than
     // squeezed into a third of it.
-    hasClock ? null : ui.bi('map_clock_waiting', 'small'),
+    hasClock ? null : ui.tx('map_clock_waiting', 'small'),
     verdictBox,
   ];
   body.append(...pieces.filter(Boolean));
@@ -204,12 +203,12 @@ export default {
         ui.el('div', { class: 'col grow' },
           ui.el('div', { class: 'screen-head' },
             ui.heading('map_title', 'h1'),
-            ui.el('span', { class: 'sub' }, ui.bi('map_sub', 'small'))),
+            ui.el('span', { class: 'sub' }, ui.tx('map_sub', 'small'))),
           nodes.wrap,
           ui.el('div', { class: 'legend' },
             BAND_COLOURS.map((colour, i) => ui.el('span', { class: 'item' },
               ui.el('span', { class: 'dot', style: { background: colour } }),
-              ui.bi(BAND_KEYS[i]))))),
+              ui.tx(BAND_KEYS[i]))))),
         ui.el('div', { class: 'panel col slot-card' }, nodes.card)));
 
     nodes.map.addEventListener('load', placePins);
@@ -249,7 +248,7 @@ export default {
       const fit = slot ? fitFor(ctx, slot) : null;
       if (!ctx.state.contentId) { ctx.toastKey('map_no_content', 'bad'); return; }
       if (fit && fit.ok === false) {
-        ui.toast(japaneseFor(fit.reason), fit.reason, 'bad', 5000);
+        ui.toast(fit.reason, 'bad', 5000);
         return;
       }
       ctx.state.slot = focusId;

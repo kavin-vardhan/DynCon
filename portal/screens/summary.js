@@ -16,16 +16,16 @@ let nodes = {};
 function drawTable() {
   const body = ui.clear(nodes.table);
   body.append(ui.el('div', { class: 'rep-row head' },
-    ui.el('span', { class: 'c-region' }, ui.bi('regions_region', 'small')),
-    ui.el('span', { class: 'c' }, ui.bi('summary_spent', 'small')),
-    ui.el('span', { class: 'c' }, ui.bi('report_views', 'small')),
-    ui.el('span', { class: 'c' }, ui.bi('report_visits', 'small')),
-    ui.el('span', { class: 'c' }, ui.bi('report_dwell', 'small')),
-    ui.el('span', { class: 'c' }, ui.bi('summary_cost_view', 'small'))));
+    ui.el('span', { class: 'c-region' }, ui.tx('regions_region', 'small')),
+    ui.el('span', { class: 'c' }, ui.tx('summary_spent', 'small')),
+    ui.el('span', { class: 'c' }, ui.tx('report_views', 'small')),
+    ui.el('span', { class: 'c' }, ui.tx('report_visits', 'small')),
+    ui.el('span', { class: 'c' }, ui.tx('report_dwell', 'small')),
+    ui.el('span', { class: 'c' }, ui.tx('summary_cost_view', 'small'))));
 
   for (const row of data.regions) {
     body.append(ui.el('div', { class: `rep-row ${row.blocks ? '' : 'quiet'}`.trim() },
-      ui.el('span', { class: 'c-region' }, ui.biRegion(row.label)),
+      ui.el('span', { class: 'c-region' }, ui.txText(row.label)),
       ui.el('span', { class: 'c mono accent', 'data-datum': true }, ui.num(row.charged)),
       ui.el('span', { class: 'c mono', 'data-datum': true }, ui.num(row.views)),
       ui.el('span', { class: 'c mono', 'data-datum': true }, ui.num(row.visits)),
@@ -39,22 +39,22 @@ function drawSide() {
   const totals = data.totals;
   ui.clear(nodes.side).append(
     ui.el('div', { class: 'card-row' },
-      ui.bi('summary_spent', 'label'),
+      ui.tx('summary_spent', 'label'),
       ui.el('span', { class: 'val mono accent', 'data-datum': true },
             ui.num(totals.charged))),
     ui.el('div', { class: 'card-row' },
-      ui.bi('report_views', 'label'),
+      ui.tx('report_views', 'label'),
       ui.el('span', { class: 'val mono', 'data-datum': true }, ui.num(totals.views))),
     ui.el('div', { class: 'card-row' },
-      ui.bi('summary_cost_view', 'label'),
+      ui.tx('summary_cost_view', 'label'),
       ui.el('span', { class: 'val mono', 'data-datum': true },
             totals.cost_per_view === null ? '—' : totals.cost_per_view.toFixed(3))),
     ui.el('div', { class: 'grow' }),
     ui.el('div', { class: 'card-row' },
-      ui.bi('summary_reset_in', 'label'),
+      ui.tx('summary_reset_in', 'label'),
       ui.el('span', { class: 'val mono', id: 'reset-left', 'data-datum': true },
             String(left))),
-    ui.el('div', { class: 'button primary' }, ui.glyph('A'), ui.bi('summary_now')));
+    ui.el('div', { class: 'button primary' }, ui.glyph('A'), ui.tx('summary_now')));
 }
 
 async function startOver(ctx) {
@@ -79,7 +79,7 @@ export default {
     root.append(
       ui.el('div', { class: 'screen-head' },
         ui.heading('summary_title', 'h1'),
-        ui.el('span', { class: 'sub' }, ui.bi('summary_sub', 'small'))),
+        ui.el('span', { class: 'sub' }, ui.tx('summary_sub', 'small'))),
       ui.el('div', { class: 'columns' },
         ui.el('div', { class: 'panel col grow' }, nodes.table),
         ui.el('div', { class: 'panel col', style: { flex: '0 0 28rem' } }, nodes.side)));

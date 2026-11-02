@@ -202,52 +202,36 @@ void ADCStatusHud::DrawPreviewCaption()
 		return;
 	}
 
-	// The server's own words for the region, Japanese over English, exactly as the portal
-	// does it. Until the first GET /preview/region answers there is only the region id,
-	// which is the honest thing to show rather than a guess at a name.
+	// The server's own word for the region. Until the first GET /preview/region answers
+	// there is only the region id, which is the honest thing to show rather than a guess at
+	// a name.
 	const FString Label = Subsystem->GetRegionLabel().IsEmpty()
 		? Subsystem->GetRegion() : Subsystem->GetRegionLabel();
-	const FString Jp = Subsystem->GetRegionLabelJp();
 
-	// "a player in India" - which region this copy plays as, and nothing else. No ad and no
+	// "A player in India" - which region this copy plays as, and nothing else. No ad and no
 	// money language ever reaches a game screen (plan v6 §3), and this is a game screen.
-	const FString Line1 = Jp.IsEmpty() ? FString() : FString::Printf(TEXT("%sのプレイヤー"), *Jp);
-	const FString Line2 = FString::Printf(TEXT("a player in %s"), *Label);
+	// It used to be two lines, Japanese over English; the demo is English only since
+	// 2026-11-02 (Kavin's ruling), so it is the one line at the size the Japanese had.
+	const FString Line = FString::Printf(TEXT("A player in %s"), *Label);
 
 	const float Scale = UiScale * 0.85f;
-	float W1 = 0.0f;
-	float H1 = 0.0f;
-	float W2 = 0.0f;
-	float H2 = 0.0f;
-	if (!Line1.IsEmpty())
-	{
-		Canvas->TextSize(Font, Line1, W1, H1, Scale, Scale);
-	}
-	Canvas->TextSize(Font, Line2, W2, H2, Scale * 0.8f, Scale * 0.8f);
+	float TW = 0.0f;
+	float TH = 0.0f;
+	Canvas->TextSize(Font, Line, TW, TH, Scale, Scale);
 
 	const float Pad = 9.0f * UiScale;
-	const float BoxW = FMath::Max(W1, W2) + Pad * 2.0f;
-	const float BoxH = H1 + H2 + Pad * 2.0f;
+	const float BoxW = TW + Pad * 2.0f;
+	const float BoxH = TH + Pad * 2.0f;
 	const float X = DCMargin;
 	const float Y = static_cast<float>(Canvas->SizeY) - BoxH - DCMargin;
 
 	DrawPanel(X, Y, BoxW, BoxH, PanelColour);
 
-	float TextY = Y + Pad;
-	if (!Line1.IsEmpty())
-	{
-		FCanvasTextItem Top(FVector2D(X + Pad, TextY), FText::FromString(Line1), Font,
-			FLinearColor::White);
-		Top.Scale = FVector2D(Scale, Scale);
-		Top.EnableShadow(FLinearColor(0.0f, 0.0f, 0.0f, 0.85f));
-		Canvas->DrawItem(Top);
-		TextY += H1;
-	}
-	FCanvasTextItem Bottom(FVector2D(X + Pad, TextY), FText::FromString(Line2), Font,
-		MarkerColour);
-	Bottom.Scale = FVector2D(Scale * 0.8f, Scale * 0.8f);
-	Bottom.EnableShadow(FLinearColor(0.0f, 0.0f, 0.0f, 0.85f));
-	Canvas->DrawItem(Bottom);
+	FCanvasTextItem Caption(FVector2D(X + Pad, Y + Pad), FText::FromString(Line), Font,
+		FLinearColor::White);
+	Caption.Scale = FVector2D(Scale, Scale);
+	Caption.EnableShadow(FLinearColor(0.0f, 0.0f, 0.0f, 0.85f));
+	Canvas->DrawItem(Caption);
 }
 
 // --------------------------------------------------------------------------- the strip
@@ -391,43 +375,29 @@ void ADCStatusHud::DrawMarkers()
 
 // ================================================================= the shell's screens
 //
-// Plan v6 §3 and §4 step 0. Every line here is Japanese over English, because every line a
-// visitor reads is; the only things that are not are the slot ids and the button faces,
-// which are the same in both languages.
+// Plan v6 §3 and §4 step 0. Every line here was Japanese over English until 2026-11-02;
+// the demo is **English only** since (Kavin's ruling), so each is one line, drawn at the
+// size the Japanese line used to have — English is the primary text now. Slot ids and
+// button faces were never words to begin with.
 
-float ADCStatusHud::DrawBilingual(float CentreX, float Y, const FString& Jp, const FString& En,
+float ADCStatusHud::DrawLine(float CentreX, float Y, const FString& Text,
 	const FLinearColor& Colour, float Scale)
 {
 	UFont* Font = GEngine->GetMediumFont();
-	if (Font == nullptr || Canvas == nullptr)
+	if (Font == nullptr || Canvas == nullptr || Text.IsEmpty())
 	{
 		return 0.0f;
 	}
-	float W1 = 0.0f;
-	float H1 = 0.0f;
-	float W2 = 0.0f;
-	float H2 = 0.0f;
-	const float Small = Scale * 0.74f;
-	Canvas->TextSize(Font, Jp, W1, H1, Scale, Scale);
-	Canvas->TextSize(Font, En, W2, H2, Small, Small);
+	float W = 0.0f;
+	float H = 0.0f;
+	Canvas->TextSize(Font, Text, W, H, Scale, Scale);
 
-	if (!Jp.IsEmpty())
-	{
-		FCanvasTextItem Top(FVector2D(CentreX - W1 * 0.5f, Y), FText::FromString(Jp), Font,
-			Colour);
-		Top.Scale = FVector2D(Scale, Scale);
-		Top.EnableShadow(FLinearColor(0.0f, 0.0f, 0.0f, 0.9f));
-		Canvas->DrawItem(Top);
-	}
-	if (!En.IsEmpty())
-	{
-		FCanvasTextItem Bottom(FVector2D(CentreX - W2 * 0.5f, Y + H1),
-			FText::FromString(En), Font, Colour);
-		Bottom.Scale = FVector2D(Small, Small);
-		Bottom.EnableShadow(FLinearColor(0.0f, 0.0f, 0.0f, 0.9f));
-		Canvas->DrawItem(Bottom);
-	}
-	return H1 + H2;
+	FCanvasTextItem Item(FVector2D(CentreX - W * 0.5f, Y), FText::FromString(Text), Font,
+		Colour);
+	Item.Scale = FVector2D(Scale, Scale);
+	Item.EnableShadow(FLinearColor(0.0f, 0.0f, 0.0f, 0.9f));
+	Canvas->DrawItem(Item);
+	return H;
 }
 
 void ADCStatusHud::DrawAttract()
@@ -441,11 +411,11 @@ void ADCStatusHud::DrawAttract()
 	UFont* Font = GEngine->GetMediumFont();
 	float TW = 0.0f;
 	float TH = 0.0f;
-	const FString Jp = TEXT("どれかのボタンでスタート");
-	Canvas->TextSize(Font, Jp, TW, TH, Scale, Scale);
+	const FString Line = TEXT("Press any button to start");
+	Canvas->TextSize(Font, Line, TW, TH, Scale, Scale);
 
 	const float BoxW = FMath::Max(TW + 70.0f * UiScale, 340.0f * UiScale);
-	const float BoxH = TH * 1.95f + 24.0f * UiScale;
+	const float BoxH = TH + 30.0f * UiScale;
 	const float X = (W - BoxW) * 0.5f;
 
 	// Above the X-ray's frame-time graph when that is up, and at the bottom of the screen
@@ -455,8 +425,7 @@ void ADCStatusHud::DrawAttract()
 	const float Lift = (Shell != nullptr && Shell->IsXray()) ? H * 0.23f : 0.0f;
 	const float Y = H - BoxH - 56.0f * UiScale - Lift;
 	DrawPanel(X, Y, BoxW, BoxH, FLinearColor(0.02f, 0.03f, 0.05f, 0.62f));
-	DrawBilingual(W * 0.5f, Y + 12.0f * UiScale, Jp, TEXT("Press any button to start"),
-		FLinearColor::White, Scale);
+	DrawLine(W * 0.5f, Y + 15.0f * UiScale, Line, FLinearColor::White, Scale);
 }
 
 void ADCStatusHud::DrawTitle()
@@ -478,8 +447,7 @@ void ADCStatusHud::DrawTitle()
 	// The map keeps playing behind it, dimmed: a visitor walking up sees a game, not a form.
 	DrawPanel(0.0f, 0.0f, W, H, FLinearColor(0.01f, 0.02f, 0.04f, 0.72f));
 
-	DrawBilingual(W * 0.5f, H * 0.11f, TEXT("ゲームを選ぶ"), TEXT("Choose a game"),
-		FLinearColor::White, UiScale * 1.5f);
+	DrawLine(W * 0.5f, H * 0.11f, TEXT("Choose a game"), FLinearColor::White, UiScale * 1.5f);
 
 	// Two 16:9 cards side by side, as big as they fit.
 	const float Gap = 40.0f * UiScale;
@@ -522,15 +490,15 @@ void ADCStatusHud::DrawTitle()
 				: FLinearColor(0.09f, 0.14f, 0.20f, 1.0f));
 		}
 
-		DrawBilingual(CX + CW * 0.5f, CY + CH + 16.0f * UiScale, Card.LabelJp, Card.LabelEn,
+		DrawLine(CX + CW * 0.5f, CY + CH + 16.0f * UiScale, Card.Label,
 			bPicked ? FLinearColor::White : FLinearColor(0.70f, 0.76f, 0.84f, 1.0f),
 			UiScale * 1.25f);
 
 		X += CardW + Gap;
 	}
 
-	DrawBilingual(W * 0.5f, H * 0.88f, TEXT("←→ で選び、✕ で決定"),
-		TEXT("Left / right to choose, X to start"), MarkerColour, UiScale);
+	DrawLine(W * 0.5f, H * 0.88f, TEXT("Left / right to choose, X to start"), MarkerColour,
+		UiScale * 1.1f);
 }
 
 void ADCStatusHud::DrawPause()
@@ -548,41 +516,38 @@ void ADCStatusHud::DrawPause()
 	// swap. Nothing here stops the game.
 	DrawPanel(0.0f, 0.0f, W, H, FLinearColor(0.01f, 0.02f, 0.04f, 0.52f));
 
-	FString OtherJp;
-	FString OtherEn;
-	Shell->GetGameLabels(Shell->GetOtherGame(), OtherJp, OtherEn);
+	const FString Other = Shell->GameLabel(Shell->GetOtherGame());
 
-	const FString ItemsJp[3] = {
-		TEXT("再開"),
-		FString::Printf(TEXT("%s に切り替え"), *OtherJp),
-		FString::Printf(TEXT("X 線ビュー：%s"), Shell->IsXray() ? TEXT("オン") : TEXT("オフ")) };
-	const FString ItemsEn[3] = {
+	const FString Items[3] = {
 		TEXT("Resume"),
-		FString::Printf(TEXT("Switch to %s"), *OtherEn),
+		FString::Printf(TEXT("Switch to %s"), *Other),
 		FString::Printf(TEXT("X-ray view: %s"), Shell->IsXray() ? TEXT("on") : TEXT("off")) };
 
+	// One line per row rather than two, so the rows and the panel are shorter than they
+	// were — but not by the whole saving: the rows keep room round them, because this is a
+	// menu somebody is pointing a controller at from a metre away.
 	const float BoxW = FMath::Min(W * 0.46f, 760.0f * UiScale);
-	const float RowH = 78.0f * UiScale;
-	const float BoxH = RowH * 3.0f + 96.0f * UiScale;
+	const float RowH = 62.0f * UiScale;
+	const float BoxH = RowH * 3.0f + 86.0f * UiScale;
 	const float X = (W - BoxW) * 0.5f;
 	const float Y = (H - BoxH) * 0.5f;
 	DrawPanel(X, Y, BoxW, BoxH, FLinearColor(0.02f, 0.03f, 0.05f, 0.88f));
 
-	DrawBilingual(W * 0.5f, Y + 18.0f * UiScale, TEXT("ポーズ"), TEXT("Paused"),
-		FLinearColor::White, UiScale * 1.2f);
+	DrawLine(W * 0.5f, Y + 18.0f * UiScale, TEXT("Paused"), FLinearColor::White,
+		UiScale * 1.3f);
 
 	for (int32 i = 0; i < 3; ++i)
 	{
 		const bool bPicked = i == Shell->GetPauseIndex();
-		const float RowY = Y + 86.0f * UiScale + RowH * i;
+		const float RowY = Y + 78.0f * UiScale + RowH * i;
 		if (bPicked)
 		{
-			DrawPanel(X + 16.0f * UiScale, RowY - 6.0f * UiScale, BoxW - 32.0f * UiScale,
+			DrawPanel(X + 16.0f * UiScale, RowY - 8.0f * UiScale, BoxW - 32.0f * UiScale,
 				RowH - 8.0f * UiScale, FLinearColor(0.16f, 0.30f, 0.42f, 0.92f));
 		}
-		DrawBilingual(W * 0.5f, RowY, ItemsJp[i], ItemsEn[i],
+		DrawLine(W * 0.5f, RowY, Items[i],
 			bPicked ? FLinearColor::White : FLinearColor(0.70f, 0.76f, 0.84f, 1.0f),
-			UiScale * 1.05f);
+			UiScale * 1.15f);
 	}
 }
 
@@ -605,11 +570,11 @@ void ADCStatusHud::DrawFade()
 	// **content** never does, and the strip's two zeroes say so all day (plan v6 §3).
 	DrawPanel(0.0f, 0.0f, W, H, FLinearColor(0.0f, 0.0f, 0.0f, Alpha));
 
-	if (Alpha > 0.55f && !Shell->GetFadeEn().IsEmpty())
+	if (Alpha > 0.55f && !Shell->GetFadeText().IsEmpty())
 	{
 		const float Fade = FMath::Clamp((Alpha - 0.55f) / 0.35f, 0.0f, 1.0f);
-		DrawBilingual(W * 0.5f, H * 0.5f - 30.0f * UiScale, Shell->GetFadeJp(),
-			Shell->GetFadeEn(), FLinearColor(1.0f, 1.0f, 1.0f, Fade), UiScale * 1.3f);
+		DrawLine(W * 0.5f, H * 0.5f - 22.0f * UiScale, Shell->GetFadeText(),
+			FLinearColor(1.0f, 1.0f, 1.0f, Fade), UiScale * 1.4f);
 	}
 }
 

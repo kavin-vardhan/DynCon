@@ -22,18 +22,18 @@ function tile(game) {
     ui.el('div', { class: 'shot', style: { backgroundImage: `url('${game.map_image_url}')` } }),
     ui.el('div', { class: 'badge-row' },
       game.live_at_booth
-        ? ui.el('span', { class: 'badge' }, ui.bi('games_badge_booth'))
-        : ui.el('span', { class: 'badge quiet' }, ui.bi('games_registered'))),
+        ? ui.el('span', { class: 'badge' }, ui.tx('games_badge_booth'))
+        : ui.el('span', { class: 'badge quiet' }, ui.tx('games_registered'))),
     ui.el('div', { class: 'foot' },
       ui.el('span', { class: 'grow' },
-        ui.biText(`ゲーム ${game.id}`, game.label, 'h2-like')),
+        ui.txText(game.label, 'h2-like')),
       ui.el('span', { class: 'stat' },
         ui.el('span', { class: 'value mono', 'data-datum': true }, String(game.slot_count)),
-        ui.bi('games_slots', 'label')),
+        ui.tx('games_slots', 'label')),
       ui.el('span', { class: 'stat' },
         ui.el('span', { class: 'value mono', 'data-datum': true },
               ui.num(game.players_online)),
-        ui.bi('games_players', 'label'))));
+        ui.tx('games_players', 'label'))));
   node.dataset.gameTile = game.id;
   return node;
 }
@@ -53,7 +53,7 @@ export default {
     root.append(
       ui.el('div', { class: 'screen-head' },
         ui.heading('games_title', 'h1'),
-        ui.el('span', { class: 'sub' }, ui.bi('games_sub', 'small'))),
+        ui.el('span', { class: 'sub' }, ui.tx('games_sub', 'small'))),
       ui.el('div', { class: 'game-tiles' }, tiles));
     paint();
   },
@@ -75,8 +75,8 @@ export default {
         const row = tiles[index].querySelector('.badge-row');
         if (row) {
           row.replaceChildren(game.live_at_booth
-            ? ui.el('span', { class: 'badge' }, ui.bi('games_badge_booth'))
-            : ui.el('span', { class: 'badge quiet' }, ui.bi('games_registered')));
+            ? ui.el('span', { class: 'badge' }, ui.tx('games_badge_booth'))
+            : ui.el('span', { class: 'badge quiet' }, ui.tx('games_registered')));
         }
       }
     }

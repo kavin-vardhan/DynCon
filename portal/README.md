@@ -1,9 +1,11 @@
 # The brand portal — what is here and how to run it
 
-*The right-hand monitor of the booth, driven by controller 2. Built to `specs/portal_spec_v1.md`.
+*The right-hand monitor of the booth, driven by controller 2. Built to `specs/portal_spec_v1.md`
+— with one override: **English only, Kavin's ruling 2026-11-02** (brief 018E).
 **DONE**: the whole tour — the app shell and steps 0–4 (brief 014), steps 5–11 plus the Start
-menu and the idle reset (brief 015), and the region preview window's show/hide and the
-rectangle it lands on (brief 017). Nothing here is QUEUED.*
+menu and the idle reset (brief 015), the region preview window's show/hide and the
+rectangle it lands on (brief 017), and the English-only pass over every screen (brief 018E).
+Nothing here is QUEUED.*
 
 ## Run it
 
@@ -16,7 +18,8 @@ py -3 booth\pad_helper.py              # controller 2 -> the portal (booth\READM
 There is nothing to build and nothing to install: the portal is static files (HTML + CSS +
 vanilla JS ES modules) that the demo server mounts at `/portal/`, which is the same origin as
 the API — so no CORS, no base URL to configure, and one process at the booth instead of two.
-Noto Sans JP is bundled in `fonts/`; nothing is fetched from the internet at runtime.
+Nothing is fetched from the internet at runtime, and since the English-only ruling there is
+no bundled font either - the stack is the platform's own UI face.
 
 Open it with `?pad=8702` to listen to a pad helper on another port (that is what the exit test
 does, so it can run while the booth's own helper is up), and with `?idle=5` to shorten the idle
@@ -29,32 +32,34 @@ reset from sixty seconds to five while rehearsing. The booth URL has no query at
 | `index.html` | the shell: a header, a main area and the button-hint bar |
 | `app.js` | state, routing, the header, the hint bar, the demo clock, the 60-second idle reset |
 | `menu.js` | the Start menu: the region preview control (tour step 8), pause, summary |
-| `strings.js` | **every word the portal can draw**, Japanese and English. One file so a native speaker can review the JP in one sitting |
-| `ui.js` | the only way text gets on screen (`bi()`), plus emblems, button glyphs, toasts |
+| `strings.js` | **every word the portal can draw**, English only (Kavin's ruling 2026-11-02). One table, so a professionally translated language can be added later without touching a screen |
+| `ui.js` | the only way text gets on screen (`tx()` / `txText()`), plus emblems, button glyphs, toasts |
 | `api.js` | every call to the server, including the real upload with progress |
 | `input.js` | the pad WebSocket client and the keyboard fallback |
 | `screens/` | one module per screen: `attract` `brand` `upload` `games` `slotmap` `regions` `auction` `live` `report` `update` `summary` |
 | `style.css` | the whole look. 1rem = 16px at 1080p, so every size reads as "px at 1080p" |
-| `fonts/` | the bundled Noto Sans JP subset + `OFL.txt` + `make_subset.py` that cuts it |
-| `_shots/014/`, `_shots/015/` | the exit tests' contact sheets (the per-screen PNGs are git-ignored and rebuilt by the test) |
+| `_shots/014/`, `_shots/015/`, `_shots/018E/` | the exit tests' contact sheets (the per-screen PNGs are git-ignored and rebuilt by the test) |
 
 The region preview window's own exit test lives in `booth/preview_exit_test.py` and writes
 to `booth/_shots/017/`, because it is two copies of the game as well as the portal.
 
 ## The rules this app keeps
 
-1. **Every string is Japanese and English at the same time**, JP on top. There is no language
-   toggle and no way to draw text except `bi()` / `biText()`, which always makes both lines. The
-   JP is machine-drafted and `strings.js` says so at the top — **it needs a native review**.
-   Sentences the *server* writes (the four checks, a rejection, a fit refusal) stay the server's
-   words in English and get a Japanese line above them from the pattern table at the bottom of
-   `strings.js`.
+1. **English only — Kavin's ruling, 2026-11-02.** The portal used to draw every line twice,
+   Japanese over English; a machine-drafted Japanese line that nobody had reviewed was judged
+   too risky to show at the booth, so it is gone, and the bundled JP font with it. Plan v6 §10
+   item 4 still says "every string in JP and EN"; this is the override, and `specs/DECISIONS.md`
+   records it. What has not changed: there is no way to draw text except `tx()` / `txText()`,
+   every word comes from `strings.js`, and sentences the *server* writes (the four checks, a
+   rejection, a fit refusal) are the server's own words, drawn as they arrive.
 2. **No names.** Game A / Game B, slots A1–B2, "Content 1", "another brand" for the rivals.
    Credits are always labelled *demo credits — not real money* (the hint bar says it on every
    screen). "Dynamic Contents" is the platform's own wordmark, which is the one proper noun here.
 3. **Ten feet, not ten inches.** Body text is 30px at 1080p, the smallest caption is 20px, there
    is exactly one focus ring on screen, and the button-hint bar is always visible. The exit test
-   fails the build if any of that stops being true.
+   fails the build if any of that stops being true. English now takes the size the Japanese line
+   used to have, so with one line per block every tier went *up* a notch rather than down, and
+   the boxes that had been squeezed to fit two languages are back at an ordinary spacing.
 4. **The pad never needs focus.** Presses arrive over a WebSocket from `booth/pad_helper.py`, so
    the browser window can be behind anything. The keyboard is the emergency fallback. The same
    socket carries one message the other way — show or hide the region preview window — because
@@ -146,7 +151,7 @@ server\.venv\Scripts\python.exe booth\portal_exit_test.py
 
 It starts its own server, its own pad helper **and a real game client**, walks the whole tour
 **through the pad helper's `--simulate`** (not by clicking) plus the 90-second express version
-and the idle reset, screenshots every screen at 1920×1080 into `_shots/015/`, builds a contact
-sheet per tour, and audits each screen: every bilingual block really has both languages, nothing
-is clipped or off screen or spilling out of its box, and nothing is smaller than 20px. See
-`booth/README.md`.
+and the idle reset, screenshots every screen at 1920×1080 into `_shots/018E/`, builds a contact
+sheet per tour, and audits each screen: **no Japanese character anywhere on it**, every word on
+screen came from the string table, nothing is clipped or off screen or spilling out of its box,
+and nothing is smaller than 20px. See `booth/README.md`.

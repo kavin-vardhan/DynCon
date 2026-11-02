@@ -191,11 +191,12 @@ public:
 	 */
 	bool IsPreview() const { return bPreview; }
 
-	/** How the region is named, for the preview window's bilingual caption. Both come from
+	/** How the region is named, for the preview window's corner caption. It comes from
 	 *  GET /preview/region, so the booth's labels live in the server's config and not in two
-	 *  string tables (`server/config/demo.json`, and `portal/strings.js` for the portal). */
+	 *  string tables (`server/config/demo.json`, and `portal/strings.js` for the portal).
+	 *  There used to be a `GetRegionLabelJp()` beside it for the caption's Japanese line;
+	 *  the demo is English only since 2026-11-02 (Kavin's ruling). */
 	const FString& GetRegionLabel() const { return RegionLabel; }
-	const FString& GetRegionLabelJp() const { return RegionLabelJp; }
 
 	/** The slot the preview window should be looking at, and why the server picked it. */
 	const FString& GetFocusGame() const { return FocusGame; }
@@ -414,7 +415,6 @@ private:
 	TSet<FString> MountedPackIds;
 
 	FString RegionLabel;
-	FString RegionLabelJp;
 	FString FocusGame;
 	FString FocusSlot;
 	FString FocusReason;

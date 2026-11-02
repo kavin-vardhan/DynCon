@@ -19,10 +19,11 @@
 //   5. a **frame-time graph** over the last ten seconds with a tick at every mount, spawn
 //      and unload - so anybody can watch a swap happen and see that nothing spikes.
 //
-// Every heading is bilingual, like everything else a visitor reads. The values are not:
-// a hash, a file name, a state name out of the lifecycle figure and a number of
-// milliseconds are the same in both languages, and translating them would be a lie about
-// what the client is doing.
+// Every heading and every value is English (English only, Kavin's ruling 2026-11-02). The
+// headings used to carry a Japanese word in front of them; the values never did, and never
+// would have — a hash, a file name, a state name out of the lifecycle figure and a number
+// of milliseconds are what the client is really doing, and translating them would be a lie
+// about it.
 //
 // It is drawn on the HUD canvas for the reasons in DCStatusHud.h - no .uasset, no UMG, it
 // survives a Shipping build and it lands in a screenshot - and it is built out of the

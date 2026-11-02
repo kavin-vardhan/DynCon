@@ -25,18 +25,18 @@ function cell(main, cls = '') {
 function drawTable() {
   const body = ui.clear(nodes.table);
   body.append(ui.el('div', { class: 'rep-row head' },
-    ui.el('span', { class: 'c-region' }, ui.bi('regions_region', 'label')),
-    ui.el('span', { class: 'c' }, ui.bi('report_simulated', 'small')),
-    ui.el('span', { class: 'c' }, ui.bi('report_live_counted', 'small')),
-    ui.el('span', { class: 'c' }, ui.bi('report_visits', 'small')),
-    ui.el('span', { class: 'c' }, ui.bi('report_dwell', 'small')),
-    ui.el('span', { class: 'c' }, ui.bi('report_interactions', 'small')),
-    ui.el('span', { class: 'c' }, ui.bi('report_charged', 'small')),
-    ui.el('span', { class: 'c' }, ui.bi('report_per_1000', 'small'))));
+    ui.el('span', { class: 'c-region' }, ui.tx('regions_region', 'label')),
+    ui.el('span', { class: 'c' }, ui.tx('report_simulated', 'small')),
+    ui.el('span', { class: 'c' }, ui.tx('report_live_counted', 'small')),
+    ui.el('span', { class: 'c' }, ui.tx('report_visits', 'small')),
+    ui.el('span', { class: 'c' }, ui.tx('report_dwell', 'small')),
+    ui.el('span', { class: 'c' }, ui.tx('report_interactions', 'small')),
+    ui.el('span', { class: 'c' }, ui.tx('report_charged', 'small')),
+    ui.el('span', { class: 'c' }, ui.tx('report_per_1000', 'small'))));
 
   for (const row of data.regions) {
     body.append(ui.el('div', { class: `rep-row ${row.blocks ? '' : 'quiet'}`.trim() },
-      ui.el('span', { class: 'c-region' }, ui.biRegion(row.label)),
+      ui.el('span', { class: 'c-region' }, ui.txText(row.label)),
       cell(ui.num(row.views_simulated)),
       cell(ui.num(row.views_live)),
       cell(ui.num(row.visits)),
@@ -48,7 +48,7 @@ function drawTable() {
 
   const totals = data.totals;
   body.append(ui.el('div', { class: 'rep-row total' },
-    ui.el('span', { class: 'c-region' }, ui.bi('report_totals', 'label')),
+    ui.el('span', { class: 'c-region' }, ui.tx('report_totals', 'label')),
     cell(ui.num(totals.views_simulated)),
     cell(ui.num(totals.views_live)),
     cell(ui.num(totals.visits)),
@@ -75,23 +75,23 @@ function drawSide(ctx, screen) {
   ];
 
   const pieces = [
-    ui.bi('report_time_left', 'label'),
+    ui.tx('report_time_left', 'label'),
     ui.el('div', { class: 'progress' },
       ui.el('div', { class: 'track' },
         ui.el('div', { class: 'fill', style: {
           width: `${Math.max(0, Math.min(100, (left / blockSeconds) * 100)).toFixed(1)}%` } })),
       ui.el('div', { class: 'meta' },
         ui.el('span', { class: 'pct mono', 'data-datum': true }, ui.mmss(left)))),
-    data.paused ? ui.el('div', { class: 'refusal' }, ui.bi('report_paused', 'small')) : null,
+    data.paused ? ui.el('div', { class: 'refusal' }, ui.tx('report_paused', 'small')) : null,
     ui.el('div', { class: 'divider' }),
     ...buttons.map((button, i) => {
       const node = ui.el('div', { class: `button focusable ${i === 0 ? 'primary' : ''}`.trim() },
-        ui.glyph(button.glyph || 'A'), ui.bi(button.key));
+        ui.glyph(button.glyph || 'A'), ui.tx(button.key));
       node.dataset.action = button.key;
       return node;
     }),
     ui.el('div', { class: 'grow' }),
-    ui.el('div', { class: 'credit-note' }, ui.bi('demo_credits_note')),
+    ui.el('div', { class: 'credit-note' }, ui.tx('demo_credits_note')),
   ];
   body.append(...pieces.filter(Boolean));      // append() draws a null as the text "null"
   paintFocus();
@@ -119,7 +119,7 @@ export default {
     root.append(
       ui.el('div', { class: 'screen-head' },
         ui.heading('report_title', 'h1'),
-        ui.el('span', { class: 'sub' }, ui.bi('report_sub', 'small'))),
+        ui.el('span', { class: 'sub' }, ui.tx('report_sub', 'small'))),
       ui.el('div', { class: 'columns' },
         ui.el('div', { class: 'panel col grow' }, nodes.table),
         ui.el('div', { class: 'panel col', style: { flex: '0 0 31rem' } }, nodes.side)));

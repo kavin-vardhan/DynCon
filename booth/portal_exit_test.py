@@ -113,9 +113,15 @@ class Pad:
 
 # --------------------------------------------------------------------------- the checks
 
-# Run in the page after every screenshot. Four questions: is every string bilingual, is
-# anything clipped, does anything spill out of the box it lives in, and is anything too
-# small to read from two metres.
+# Run in the page after every screenshot. Four questions: is there a Japanese character
+# anywhere on it, is anything clipped, does anything spill out of the box it lives in, and
+# is anything too small to read from two metres.
+#
+# Check 1 used to be the other way round — "does every bilingual block really have both
+# languages". **Kavin ruled on 2026-11-02 that the demo is English only**, so what the
+# audit now looks for is any Japanese at all. `server/tests/test_no_japanese.py` is the
+# same check on the source; this one is on the pixels, because a string can also arrive
+# from the server at runtime.
 PAGE_AUDIT = r"""
 () => {
   const problems = [];
@@ -127,18 +133,38 @@ PAGE_AUDIT = r"""
     return box.width > 0 && box.height > 0;
   };
 
-  // 1. every bilingual block really has both languages
-  for (const node of document.querySelectorAll('.bi')) {
+  // 1. no Japanese anywhere on screen: CJK punctuation (and the ideographic space),
+  //    Hiragana, Katakana, CJK ideographs and extension A, full-width and half-width
+  //    forms. The ranges are code points rather than a character class with the endpoints
+  //    written out, so that this file - which is itself swept by
+  //    server/tests/test_no_japanese.py - contains no Japanese either.
+  const RANGES = [[0x3000, 0x303f], [0x3040, 0x309f], [0x30a0, 0x30ff],
+                  [0x3400, 0x4dbf], [0x4e00, 0x9fff], [0xff00, 0xffef]];
+  const japaneseIn = (text) => {
+    for (const ch of text) {
+      const code = ch.codePointAt(0);
+      for (const [low, high] of RANGES) if (code >= low && code <= high) return ch;
+    }
+    return null;
+  };
+  for (const node of document.querySelectorAll('body *')) {
     if (!seen(node)) continue;
-    const jp = node.querySelector(':scope > .jp');
-    const en = node.querySelector(':scope > .en');
-    if (!jp || !en || !jp.textContent.trim() || !en.textContent.trim()) {
-      problems.push('one-language block: ' + node.outerHTML.slice(0, 140));
+    let text = '';
+    for (const child of node.childNodes) {
+      if (child.nodeType === 3) text += child.textContent;
+    }
+    const hit = japaneseIn(text);
+    if (hit) {
+      problems.push('Japanese on screen (U+'
+                    + hit.codePointAt(0).toString(16).toUpperCase() + '): '
+                    + JSON.stringify(text.trim().slice(0, 60))
+                    + '  in ' + node.tagName + '.' + (node.getAttribute('class') || ''));
     }
   }
 
-  // 2. no text on screen outside a bilingual block, unless it is marked as data
-  //    (a number, a slot id, a file name - the same in both languages)
+  // 2. no text on screen outside a `.tx` block, unless it is marked as data (a number, a
+  //    slot id, a file name, the face of a button). That is what keeps every word the
+  //    portal says in one table: portal/ui.js has no other way to draw one.
   for (const node of document.querySelectorAll('body *')) {
     if (!seen(node)) continue;
     let text = '';
@@ -146,8 +172,9 @@ PAGE_AUDIT = r"""
       if (child.nodeType === 3) text += child.textContent;
     }
     if (!text.trim()) continue;
-    if (node.closest('.bi') || node.closest('[data-datum]')) continue;
-    problems.push('text with no Japanese: ' + JSON.stringify(text.trim().slice(0, 60))
+    if (node.closest('.tx') || node.closest('[data-datum]')) continue;
+    problems.push('text outside the string table: '
+                  + JSON.stringify(text.trim().slice(0, 60))
                   + '  in ' + node.tagName + '.' + (node.getAttribute('class') || ''));
   }
 
@@ -158,6 +185,27 @@ PAGE_AUDIT = r"""
       problems.push('overflows its box by ' + (node.scrollHeight - node.clientHeight)
                     + 'px: ' + (node.className || node.tagName) + ' '
                     + node.textContent.trim().slice(0, 40));
+    }
+  }
+
+  // 4b. the same thing sideways, and only for text: a single long word in a narrow flex
+  //     cell cannot wrap, so it runs over its neighbour and nothing about the page's
+  //     height says so. This is the one that English makes worth checking - "Interactions"
+  //     in a column that used to hold two Japanese characters - so it is scoped to the
+  //     blocks that carry words.
+  for (const node of document.querySelectorAll('main .tx, .menu .tx, .hintbar .tx')) {
+    if (!seen(node)) continue;
+    const parent = node.parentElement;
+    if (!parent) continue;
+    const pstyle = getComputedStyle(parent);
+    if (pstyle.overflow !== 'visible' || pstyle.display === 'inline') continue;
+    const box = node.getBoundingClientRect();
+    const around = parent.getBoundingClientRect();
+    if (box.right > around.right + 4 || box.left < around.left - 4) {
+      problems.push('text runs out of its cell sideways by '
+                    + Math.round(Math.max(box.right - around.right, around.left - box.left))
+                    + 'px: ' + JSON.stringify(node.textContent.trim().slice(0, 40))
+                    + ' in ' + (parent.className || parent.tagName));
     }
   }
 
@@ -543,7 +591,10 @@ def run_all(args: argparse.Namespace) -> int:
 
         with sync_playwright() as play:
             browser = play.chromium.launch(channel="msedge", headless=not args.headed)
-            page = browser.new_context(viewport=VIEWPORT, device_scale_factor=1).new_page()
+            # locale: the portal is English only since 2026-11-02, and so is the browser
+            # the audit measures it in.
+            page = browser.new_context(viewport=VIEWPORT, device_scale_factor=1,
+                                       locale="en-US").new_page()
             page.on("console", lambda message: console.append(
                 f"{message.type}: {message.text}") if message.type in ("error", "warning")
                 else None)
@@ -626,7 +677,8 @@ def run_all(args: argparse.Namespace) -> int:
         for line in failures[:40]:
             print("  " + line)
         return 1
-    print("\nPASSED: the whole tour, every screen bilingual, nothing clipped or off screen.")
+    print("\nPASSED: the whole tour, every screen English only, nothing clipped or "
+          "off screen.")
     return 0
 
 
@@ -657,7 +709,7 @@ def main() -> int:
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--port", type=int, default=8796)
     parser.add_argument("--pad-port", type=int, default=8702)
-    parser.add_argument("--out", default=str(PORTAL_DIR / "_shots" / "015"))
+    parser.add_argument("--out", default=str(PORTAL_DIR / "_shots" / "018E"))
     parser.add_argument("--only", default="all", choices=["all", "full", "express", "idle"])
     parser.add_argument("--game-seconds", type=float, default=600.0,
                         help="how long the game client keeps polling")

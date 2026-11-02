@@ -41,11 +41,11 @@ function statusKey(row) {
 function headerRow() {
   return ui.el('div', { class: 'bid-row head' },
     ui.el('span', { class: 'tickbox' }),
-    ui.el('span', { class: 'c-region' }, ui.bi('regions_region', 'label')),
-    ui.el('span', { class: 'c-foot' }, ui.bi('regions_footfall', 'label')),
-    ui.el('span', { class: 'c-high' }, ui.bi('regions_highest', 'label')),
-    ui.el('span', { class: 'c-bid' }, ui.bi('regions_your_bid', 'label')),
-    ui.el('span', { class: 'c-status' }, ui.bi('regions_status', 'label')));
+    ui.el('span', { class: 'c-region' }, ui.tx('regions_region', 'label')),
+    ui.el('span', { class: 'c-foot' }, ui.tx('regions_footfall', 'label')),
+    ui.el('span', { class: 'c-high' }, ui.tx('regions_highest', 'label')),
+    ui.el('span', { class: 'c-bid' }, ui.tx('regions_your_bid', 'label')),
+    ui.el('span', { class: 'c-status' }, ui.tx('regions_status', 'label')));
 }
 
 function drawRows() {
@@ -57,19 +57,19 @@ function drawRows() {
     const node = ui.el('div', { class: 'bid-row focusable no-scale' },
       ui.el('span', { class: `tickbox ${row.ticked ? 'on' : ''}`.trim(),
                       'data-datum': true }, row.ticked ? '✓' : ''),
-      ui.el('span', { class: 'c-region' }, ui.biRegion(row.label)),
+      ui.el('span', { class: 'c-region' }, ui.txText(row.label)),
       ui.el('span', { class: 'c-foot mono', 'data-datum': true },
             ui.num(lot.footfall_per_demo_hour)),
       ui.el('span', { class: 'c-high' },
         ui.el('span', { class: 'mono', 'data-datum': true }, ui.num(lot.highest)),
-        ui.bi(lot.holder === 'you' ? 'holder_you' : 'holder_rival', 'small')),
+        ui.tx(lot.holder === 'you' ? 'holder_you' : 'holder_rival', 'small')),
       ui.el('span', { class: `c-bid ${row.ticked ? '' : 'off'}`.trim() },
         ui.el('span', { class: 'mono big', 'data-datum': true },
               row.ticked ? ui.num(row.amount) : '—'),
         row.ticked && !enough
-          ? ui.biText(`最低 ${ui.num(lot.next_bid)}`, `min ${ui.num(lot.next_bid)}`, 'small warn')
+          ? ui.txText(`min ${ui.num(lot.next_bid)}`, 'small warn')
           : null),
-      ui.el('span', { class: 'c-status' }, ui.bi(statusKey(row), 'small')));
+      ui.el('span', { class: 'c-status' }, ui.tx(statusKey(row), 'small')));
     node.dataset.region = row.region;
     node.dataset.ticked = row.ticked ? '1' : '0';
     body.append(node);
@@ -93,10 +93,10 @@ function drawTotal() {
   ui.clear(nodes.wallet).append(
     ui.el('div', { class: 'footfall-strip' },
       ui.el('div', { class: 'cell' },
-        ui.bi('wallet_available', 'small'),
+        ui.tx('wallet_available', 'small'),
         ui.el('span', { class: 'n', 'data-datum': true }, ui.num(purse.available))),
       ui.el('div', { class: 'cell' },
-        ui.bi('wallet_held', 'small'),
+        ui.tx('wallet_held', 'small'),
         ui.el('span', { class: 'n held', 'data-datum': true }, ui.num(purse.held)))));
 }
 
@@ -141,7 +141,7 @@ async function placeBid(ctx) {
   for (const result of answer.results) {
     const row = rows.find((r) => r.region === result.region);
     if (row && result.lot) row.lot = result.lot;
-    if (!result.accepted) ui.toast(ui.japanese(result.reason), result.reason, 'bad', 5000);
+    if (!result.accepted) ui.toast(result.reason, 'bad', 5000);
   }
   drawRows();
   if (answer.results.some((r) => r.accepted)) {
@@ -179,26 +179,26 @@ export default {
     nodes.rows = ui.el('div', { class: 'bid-rows' });
     nodes.totalValue = ui.el('div', { class: 'row' });
     nodes.totalBox = ui.el('div', { class: 'panel-inset focusable no-scale' },
-      ui.bi('regions_total', 'label'),
+      ui.tx('regions_total', 'label'),
       nodes.totalValue,
-      ui.bi('regions_total_help', 'small'));
+      ui.tx('regions_total_help', 'small'));
     nodes.wallet = ui.el('div', { class: 'rows' });
 
     root.append(
       ui.el('div', { class: 'screen-head' },
         ui.heading('regions_title', 'h1'),
         ui.el('span', { class: 'badge quiet' },
-          ui.biText(`スロット ${slot}`, `Slot ${slot}`, 'small')),
-        ui.el('span', { class: 'sub' }, ui.bi('regions_sub', 'small'))),
+          ui.txText(`Slot ${slot}`, 'small')),
+        ui.el('span', { class: 'sub' }, ui.tx('regions_sub', 'small'))),
       ui.el('div', { class: 'columns' },
         ui.el('div', { class: 'panel col grow' }, nodes.rows),
         ui.el('div', { class: 'panel col', style: { flex: '0 0 32rem' } },
           nodes.totalBox,
           ui.el('div', { class: 'divider' }),
           nodes.wallet,
-          ui.el('div', { class: 'credit-note' }, ui.bi('demo_credits_note')),
+          ui.el('div', { class: 'credit-note' }, ui.tx('demo_credits_note')),
           ui.el('div', { class: 'grow' }),
-          ui.el('div', { class: 'button primary' }, ui.glyph('Y'), ui.bi('regions_place')))));
+          ui.el('div', { class: 'button primary' }, ui.glyph('Y'), ui.tx('regions_place')))));
 
     drawRows();
     drawTotal();
@@ -237,7 +237,7 @@ export default {
     if (button === 'Y') {
       placeBid(ctx).catch((problem) => {
         console.error(problem);
-        ui.toast(ui.japanese(problem.sentence || ''), problem.sentence || String(problem), 'bad');
+        ui.toast(problem.sentence || String(problem), 'bad');
       });
       return;
     }
