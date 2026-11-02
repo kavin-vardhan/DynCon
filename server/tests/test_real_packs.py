@@ -57,6 +57,8 @@ def test_a_real_pack_is_served_byte_for_byte(real_env, real_demo_files) -> None:
 
 def test_the_wrapper_keeps_the_spikes_pack_json_facts(real_demo_files) -> None:
     """dcpack.json is a superset of the spike's pack.json, chunk id included."""
+    if real_demo_files is None:
+        pytest.skip("unreal/_packs is not on this machine (it is a build output)")
     table = {f"{row['id']}_{row['version']}": row
              for row in json.loads(CHUNK_TABLE.read_text(encoding="utf-8-sig"))["packs"]}
     for key, row in table.items():
