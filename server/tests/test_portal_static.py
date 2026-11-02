@@ -41,7 +41,7 @@ def test_the_portal_files_are_all_there(env) -> None:
 
 
 def test_the_japanese_font_is_not_served_any_more(env) -> None:
-    """English only, Kavin's ruling 2026-11-02: the Noto Sans JP subset and its licence
+    """English only, decided 2026-11-02: the Noto Sans JP subset and its licence
     were the last thing in `portal/fonts/`, and the folder went with them."""
     assert not (PORTAL_DIR / "fonts").exists()
     assert env.client.get("/portal/fonts/NotoSansJP-subset.woff2").status_code == 404

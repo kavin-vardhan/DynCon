@@ -1,6 +1,6 @@
 // Small DOM helpers. Everything the portal draws goes through here.
 //
-// The portal is **English only** (Kavin's ruling, 2026-11-02). It used to draw every line
+// The portal is **English only** (decided 2026-11-02). It used to draw every line
 // twice, Japanese over English, through a `bi()` that always made both lines; the string
 // table is now one language and `tx()` / `txText()` are what put a line on screen. The
 // structure stayed: there is still no way to draw text except through one of them, and

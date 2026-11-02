@@ -44,7 +44,7 @@ LONG_MINUTES = 40.0
 BRAND = {"colour": "#E23D3D", "emblem": "star"}
 
 # Which piece goes in which slot. content3 only fits the tall slot and content4 is the only
-# visitor piece that fits a small one (specs/content_assets_spec_v1.md §2).
+# visitor piece that fits a small one, by the size classes in the server's config.
 PLAN = {
     "A": {"map": "/Game/Maps/GameA",
           "slots": [("A1", "content1_v1.real.dcpack"),

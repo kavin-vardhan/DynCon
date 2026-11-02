@@ -70,7 +70,7 @@ export default {
 
       // The badge moves while this screen is open: the Player can switch game from their
       // own pause menu at any moment, and the platform learns it from the poll the game
-      // already makes (server/README.md). Redrawn rather than left as it was found.
+      // already makes. Redrawn rather than left as it was found.
       if (was.live_at_booth !== game.live_at_booth) {
         const row = tiles[index].querySelector('.badge-row');
         if (row) {

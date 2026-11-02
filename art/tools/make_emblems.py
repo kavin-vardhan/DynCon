@@ -1,7 +1,7 @@
 """Generate the eight brand emblems: 1024 px square, white shape on transparent.
 
-A brand in this demo is a colour plus a simple emblem (CLAUDE.md rule 3), so the emblems are
-deliberately abstract geometry — no text, no logos, nothing recognisable.
+A brand in this demo is a colour plus a simple emblem (the demo's no-names rule), so the
+emblems are deliberately abstract geometry — no text, no logos, nothing recognisable.
 
     python art/tools/make_emblems.py            # writes art/emblems/*.png
 

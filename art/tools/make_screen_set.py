@@ -12,7 +12,8 @@ through with one button. Each one is a different dominant colour **and** a diffe
 "the screen is on image 3" is readable in a 1600 x 900 screenshot from across a room - which
 is the whole reason the exit test can check it.
 
-Abstract on purpose: no text, no names, no marks that could read as a logo (CLAUDE.md rule 3).
+Abstract on purpose, by the demo's no-names rule: no text, no names, no marks that could
+read as a logo.
 
     python art/tools/make_screen_set.py          # writes art/samples/screens/screen_1..4.png
 """

@@ -1,6 +1,6 @@
 // The two checks the game does before it mounts anything, both with the engine's own crypto.
 //
-// Which API, exactly (this is the question specs\unreal_spec_v1.md §3 left open):
+// Which API, exactly (the choice this project had to make for itself):
 //
 //   * `IPlatformCrypto::Get().CreateContext()` -> `FEncryptionContext`, which on Win64 is
 //     `FEncryptionContextOpenSSL` (Engine\Plugins\Experimental\PlatformCrypto, OpenSSL

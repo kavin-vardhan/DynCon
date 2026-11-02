@@ -7,13 +7,13 @@
  * Sizes are in rem and 1rem is 16px at 1080p, so the whole layout scales with the window:
  * every number below can be read as "px at 1080p" by multiplying by 16.
  *
- * **English only since 2026-11-02** (Kavin's ruling). Every block of text used to be two
- * lines, Japanese over English, with the English at 0.8em under it; there is now one line,
- * and it takes the size the Japanese line had, because English is the primary text. That
- * freed about 20px of height per block, so the boxes that had been squeezed to fit two
- * lines — the attract ticker, the Start menu, the check rows, the tables — are back at a
- * comfortable spacing. No bundled font either: the JP subset is gone and the stack is the
- * platform's own UI face.
+ * **English only since 2026-11-02.** Every block of text used to be two lines, Japanese
+ * over English, with the English at 0.8em under it; there is now one line, and it takes
+ * the size the Japanese line had, because English is the primary text. That freed about
+ * 20px of height per block, so the boxes that had been squeezed to fit two lines — the
+ * attract ticker, the Start menu, the check rows, the tables — are back at a comfortable
+ * spacing. No bundled font either: the JP subset is gone and the stack is the platform's
+ * own UI face.
  */
 
 :root {

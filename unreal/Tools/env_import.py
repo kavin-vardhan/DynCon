@@ -16,8 +16,8 @@ Three jobs:
 3. **the Player** - the engine's own UE4 mannequin (a shared template content pack, free to
    use) plus `BP_DCPlayer` and `BP_DCPlayerController`, so the demo has a visible third
    person character. The mannequin's chest-logo material slot is replaced with a plain
-   neutral one: CLAUDE.md rule 3 says no logos anywhere, and the engine's logo is still a
-   logo.
+   neutral one: the demo's no-names rule says no logos anywhere, and the engine's logo is
+   still a logo.
 """
 
 import json
@@ -174,8 +174,8 @@ def import_env_fbx(fbx_path, destination):
     # FALSE, and this is the whole unit contract in one flag.
     #
     # The FBX already carries centimetres baked into its vertex data (dc_kit bakes the x100
-    # in, because the importer throws a node-level scale away - see unreal\README.md). Its
-    # header still says "one unit is one metre", though, because Blender's scene is in metres.
+    # in, because the importer throws a node-level scale away). Its header still says "one
+    # unit is one metre", though, because Blender's scene is in metres.
     # With transform_vertex_to_absolute ON the importer applies that header scale as well and
     # every piece arrives a hundred times too big: an 8 m paving slab imports as 800 m. OFF
     # keeps each object in its own local space - which is also what import_content.py does -
@@ -358,9 +358,10 @@ def make_character_materials():
 def dress_mannequin(char_materials):
     """One plain neutral material on every slot of the mannequin.
 
-    The engine's mannequin wears the engine's logo on its chest. CLAUDE.md rule 3 is no logos
-    anywhere in this project, so both of its material slots - body and chest logo - get the
-    same plain material instance: no logo, and no two-tone patch where the logo used to be.
+    The engine's mannequin wears the engine's logo on its chest. The demo's no-names rule
+    is no logos anywhere in this project, so both of its material slots - body and chest
+    logo - get the same plain material instance: no logo, and no two-tone patch where the
+    logo used to be.
     It also drops ~23 MB of 4K textures out of the repo.
     """
     mesh = load_asset("%s/Character/Mesh/SK_Mannequin" % MANNEQUIN_ROOT)

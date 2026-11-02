@@ -72,7 +72,7 @@ def number(n,x,y,active=False):
 
 def footer(page):
     line(48,1032,1392,1032)
-    text('Source: DynamicContents_Tokyo_demo_plan_v3.md | 21 September 2026',48,1044,13,MUTED)
+    text('Source: DynamicContents Tokyo demo plan v3 | 21 September 2026',48,1044,13,MUTED)
     text('PLANNED EXPERIENCE  /  '+str(page)+' OF 2',1122,1044,13,MUTED)
 
 # PAGE 1 - synchronized lanes, top-to-bottom sequence.

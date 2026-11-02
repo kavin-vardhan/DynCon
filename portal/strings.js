@@ -1,13 +1,13 @@
 // Every word the portal can put on screen, in one table.
 //
-// **English only** — Kavin's ruling, 2026-11-02. The demo used to draw every line twice,
-// Japanese over English; a machine-drafted Japanese line that nobody had reviewed was
-// judged too risky to show at the booth, so it is gone. Plan v6 §10 item 4 still says
-// "every string in JP and EN"; this file is the override, and `specs/DECISIONS.md` records
-// it. The table itself stays: a professionally translated language can be added here later
-// without touching a single screen.
+// **English only**, decided 2026-11-02. The demo used to draw every line twice, Japanese
+// over English; a machine-drafted Japanese line that nobody had reviewed was judged too
+// risky to show at the booth, so it is gone. Plan v6 §10 item 4 still says "every string
+// in JP and EN"; this file is the override and supersedes it. The table itself stays: a
+// professionally translated language can be added here later without touching a single
+// screen.
 //
-// Rules this table keeps, from CLAUDE.md rule 3 and specs/portal_spec_v1.md §1:
+// Rules this table keeps:
 //   * one entry per thing the portal can say, keyed, so every screen reads from one place.
 //   * no game titles, no studio or brand names, no real money words. "Game A" / "Game B",
 //     slots A1-B2, "another brand" for the rivals, and credits are always labelled
@@ -240,11 +240,11 @@ export const STRINGS = {
 
 // The region names this build knows. A screen always draws the label the *server* sends
 // (`/config/public`, `/lots`, `/report`), because the booth's region names live in
-// `server/config/demo.json` and management material swaps them for the neutral ones
-// (CLAUDE.md rule 3). This list is the other half of that contract: it is every name the
-// portal has been written for, and `server/tests/test_preview.py` fails if the config ever
-// names a region that is not here. When a translated language is added, this is where the
-// per-region words go.
+// `server/config/demo.json` and management material swaps them for the neutral ones (the
+// demo's no-names rule). This list is the other half of that contract: it is every name
+// the portal has been written for, and `server/tests/test_preview.py` fails if the config
+// ever names a region that is not here. When a translated language is added, this is where
+// the per-region words go.
 export const REGION_LABELS = [
   'Japan',
   'India',

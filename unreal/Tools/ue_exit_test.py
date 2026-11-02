@@ -49,7 +49,7 @@ BRAND1 = {"colour": "#E23D3D", "emblem": "star"}
 BRAND2 = {"colour": "#2F6FEB", "emblem": "chevron"}
 
 # Which piece the test uploads for each slot class. content3 only fits the tall slot, content4
-# is the only visitor piece that fits the small one (specs/content_assets_spec_v1.md §2).
+# is the only visitor piece that fits the small one, by the config's size classes.
 UPLOADS = ["content1_v1.real.dcpack", "content2_v1.real.dcpack",
            "content3_v1.real.dcpack", "content4_v1.real.dcpack"]
 

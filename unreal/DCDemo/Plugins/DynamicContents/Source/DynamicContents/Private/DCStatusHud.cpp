@@ -210,8 +210,8 @@ void ADCStatusHud::DrawPreviewCaption()
 
 	// "A player in India" - which region this copy plays as, and nothing else. No ad and no
 	// money language ever reaches a game screen (plan v6 §3), and this is a game screen.
-	// It used to be two lines, Japanese over English; the demo is English only since
-	// 2026-11-02 (Kavin's ruling), so it is the one line at the size the Japanese had.
+	// It used to be two lines, Japanese over English; the demo has been English only
+	// since 2026-11-02, so it is the one line at the size the Japanese had.
 	const FString Line = FString::Printf(TEXT("A player in %s"), *Label);
 
 	const float Scale = UiScale * 0.85f;
@@ -376,9 +376,9 @@ void ADCStatusHud::DrawMarkers()
 // ================================================================= the shell's screens
 //
 // Plan v6 §3 and §4 step 0. Every line here was Japanese over English until 2026-11-02;
-// the demo is **English only** since (Kavin's ruling), so each is one line, drawn at the
-// size the Japanese line used to have — English is the primary text now. Slot ids and
-// button faces were never words to begin with.
+// the demo has been **English only** since then, so each is one line, drawn at the size
+// the Japanese line used to have — English is the primary text now. Slot ids and button
+// faces were never words to begin with.
 
 float ADCStatusHud::DrawLine(float CentreX, float Y, const FString& Text,
 	const FLinearColor& Colour, float Scale)

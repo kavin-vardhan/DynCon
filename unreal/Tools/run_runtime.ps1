@@ -84,7 +84,7 @@ try {
 
     # -DCMap, not a map on the command line: a Shipping build throws a command-line map away
     # (UGameInstance::StartGameInstance), so the run starts in GameDefaultMap - the spike map -
-    # and ADCSpikeGameMode travels straight out of it. See unreal\README.md.
+    # and ADCSpikeGameMode travels straight out of it.
     #
     # -DCCacheDir for the same family of reason: a Shipping build's "project saved dir" is
     # %LOCALAPPDATA%\DCDemo\Saved, not the folder the build sits in, so the pack cache is

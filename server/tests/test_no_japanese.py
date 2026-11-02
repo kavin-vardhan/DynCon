@@ -1,26 +1,30 @@
-"""The guard on the English-only ruling: no Japanese anywhere in what ships or displays.
+"""The guard on the English-only decision: no Japanese anywhere in what ships or displays.
 
-**Kavin ruled on 2026-11-02 that the demo is English only**, because a machine-drafted
-Japanese line that nobody had reviewed was too risky to put in front of visitors in Tokyo.
-Brief 018E took every Japanese string out of the portal, the game, the server's config and
-the booth's scripts. This test is what keeps them out: it reads every text file in the
-folders that ship or display and fails if a single Hiragana, Katakana, CJK ideograph or
-full-width form has come back.
+**The demo became English only on 2026-11-02**, because a machine-drafted Japanese line
+that nobody had reviewed was too risky to put in front of visitors in Tokyo. Every
+Japanese string then came out of the portal, the game, the server's config and the booth's
+scripts. This test is what keeps them out: it reads every text file in the folders that
+ship or display and fails if a single Hiragana, Katakana, CJK ideograph or full-width form
+has come back.
 
-It lives in the server's test run because that is the one suite that runs on every brief
+It lives in the server's test run because that is the one suite that runs on every change
 (`server\\.venv\\Scripts\\python.exe -m pytest`), and because it needs nothing but the
 repository — no browser, no server, no Unreal.
 
 **What is deliberately not scanned**, and why:
 
-* `DemoPlan/`, `docs/handoffs/`, the older lines of `specs/DECISIONS.md` and the commit
-  messages. History stays as history (CLAUDE.md rule 6): plan v6 *does* ask for every
-  string in two languages, and the record of that is what the ruling overrides.
+* The plan and the older decision notes, and the commit messages. History stays as
+  history: the plan *does* ask for every string in two languages, and the record of that
+  is what the later decision overrides.
 * `_shots/` folders, `*.log`, and anything a build or a cook generates. They are the output
   of a past run, not what the booth draws; the exit tests rebuild them.
 * binaries — images, fonts, paks, minidumps, pipeline caches. Unreal's generated
   `Default.rc2.res` and shader archives contain CJK bytes that come from the engine, not
   from us.
+
+The written documentation is scanned when it is there and skipped when it is not, because
+a copy of this tree can ship without it; a missing *code* path still fails, because that
+means the list below has gone stale.
 """
 from __future__ import annotations
 
@@ -44,25 +48,33 @@ def japanese_in(text: str) -> list[str]:
             if any(low <= ord(ch) <= high for low, high in JAPANESE_RANGES)]
 
 # Everything a visitor or a staffer can end up looking at, plus the code that draws it.
-SCAN = [
+# Every one of these has to be there: a path that has gone missing means this list is out
+# of date, and a sweep that quietly scans less than it used to is worse than no sweep.
+SCAN_CODE = [
     "portal",
     "booth",
     "server/dcserver",
     "server/tests",
     "server/tools",
     "server/config",
-    "server/README.md",
     "server/run_local.ps1",
     "unreal/DCDemo/Plugins/DynamicContents/Source",
     "unreal/DCDemo/Config",          # the plugin has no Config/ of its own
     "unreal/Tools",
-    "unreal/README.md",
     "art/blender",
     "art/tools",
     "art/build.ps1",
+]
+
+# The written documentation. It displays to a reader rather than to a visitor, so it is
+# swept on the same rule - but a copy of this tree can legitimately be shipped without any
+# of it, so a missing one of these is skipped instead of failing.
+SCAN_DOCS = [
+    "README.md",
+    "server/README.md",
+    "unreal/README.md",
     "portal/README.md",
     "booth/README.md",
-    "README.md",
     "specs/portal_spec_v1.md",
     "specs/server_spec_v1.md",
     "specs/unreal_spec_v1.md",
@@ -82,7 +94,7 @@ SKIP_SUFFIXES = {".png", ".jpg", ".jpeg", ".gif", ".svg", ".pdf", ".woff", ".wof
 
 def files_to_scan() -> list[Path]:
     found: list[Path] = []
-    for entry in SCAN:
+    for entry in SCAN_CODE + SCAN_DOCS:
         path = REPO_DIR / entry
         if path.is_file():
             found.append(path)
@@ -102,6 +114,9 @@ def files_to_scan() -> list[Path]:
 
 def test_the_sweep_finds_something_to_sweep() -> None:
     """A scan that silently matched nothing would pass for ever and prove nothing."""
+    for entry in SCAN_CODE:
+        assert (REPO_DIR / entry).exists(), (
+            f"{entry} is not there any more - the scan list has gone stale")
     files = files_to_scan()
     assert len(files) > 60, f"only {len(files)} file(s) scanned - the list has gone stale"
     names = {path.name for path in files}
@@ -123,6 +138,6 @@ def test_no_japanese_anywhere_in_what_ships_or_displays() -> None:
                 where = path.relative_to(REPO_DIR).as_posix()
                 offenders.append(f"{where}:{number}: {len(found)} character(s)"
                                  f"  in {line.strip()[:90]!r}")
-    assert not offenders, ("the demo is English only (Kavin's ruling, 2026-11-02) and "
+    assert not offenders, ("the demo is English only (decided 2026-11-02) and "
                            f"{len(offenders)} line(s) have Japanese in them:\n"
                            + "\n".join(offenders[:40]))

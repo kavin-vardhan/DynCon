@@ -1,10 +1,10 @@
 // Logging for the dynamic-content path, in a form that survives a Shipping build.
 //
 // Shipping compiles UE_LOG out, and until MSVC 14.44 is installed on this PC a Development
-// game cannot be linked at all (see unreal\README.md), so every piece of evidence this project
-// produces has to come from somewhere other than the engine log. DC_LOG writes the same line
-// twice: once through UE_LOG (so an editor or Development run still reads normally) and once
-// into a plain text file under Saved\DCLogs\, which exists in every configuration.
+// game cannot be linked at all, so every piece of evidence this project produces has to
+// come from somewhere other than the engine log. DC_LOG writes the same line twice: once
+// through UE_LOG (so an editor or Development run still reads normally) and once into a
+// plain text file under Saved\DCLogs\, which exists in every configuration.
 
 #pragma once
 

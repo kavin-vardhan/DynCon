@@ -632,7 +632,7 @@ class Service:
         slot (the one the visitor has just been bidding on). The `label` is here because the
         window draws its own corner caption on the HUD canvas and cannot read the portal's
         string table. There used to be a `label_jp` next to it for the Japanese half of that
-        caption; the demo is English only since 2026-11-02 (Kavin's ruling).
+        caption; the demo has been English only since 2026-11-02.
         """
         region = self.repo.meta_get("preview_region") or self.config.preview_region
         return {"region": region, "label": self.config.region_label(region),

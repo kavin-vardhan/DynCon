@@ -423,7 +423,7 @@ void FDCXray::Draw(UCanvas* Canvas, const UDCSubsystem* Subsystem, float UiScale
 				*Bytes(M.TotalFileBytes()), M.Files.Num()));
 
 			// The .ucas is where the content actually is; the .pak next to it is a few
-			// hundred bytes of index (unreal/README.md). Show the hash of the big one.
+			// hundred bytes of index. Show the hash of the big one.
 			const FDCPackFile* Biggest = nullptr;
 			for (const FDCPackFile& File : M.Files)
 			{

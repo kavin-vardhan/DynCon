@@ -1,7 +1,7 @@
 """Generate the sample image shown on M_Screen in the previews.
 
 Preview-only input: the real screen image is a runtime input, never baked into an asset.
-Abstract on purpose — no text, no names (CLAUDE.md rule 3).
+Abstract on purpose — no text, no names (the demo's no-names rule).
 
     python art/tools/make_sample_screen.py      # writes art/samples/sample_screen.png
 """

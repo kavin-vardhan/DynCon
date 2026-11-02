@@ -16,3 +16,9 @@ cryptography==50.0.2
 python-multipart==0.0.32
 pytest==9.1.1
 httpx==0.28.1
+
+# Not a server dependency: this is the one virtual environment on the machine, and
+# tools/make_office_export.py runs in it. Blender writes a .blend as a Zstandard frame, and
+# that tool has to be able to look inside one. Python 3.14 can do it with the standard
+# library, so this line can go once the venv moves to it.
+zstandard==0.25.0

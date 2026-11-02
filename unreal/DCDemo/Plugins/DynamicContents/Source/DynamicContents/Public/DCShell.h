@@ -60,7 +60,7 @@ enum class EDCShellMode : uint8
 
 DYNAMICCONTENTS_API const TCHAR* DCShellModeName(EDCShellMode Mode);
 
-/** One card on the title menu. No titles, by CLAUDE.md rule 3: it says "Game A". */
+/** One card on the title menu. No titles, by the demo's no-names rule: it says "Game A". */
 USTRUCT()
 struct FDCGameCard
 {

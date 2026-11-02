@@ -28,7 +28,7 @@ What it listens for (the portal is the only thing that sends it anything):
 
     {"type": "preview", "show": true}        the Region-check step opened / closed
 
-Staff combos (hold all three for 3 seconds, specs/portal_spec_v1.md §2):
+Staff combos (hold all three for 3 seconds):
 
     LB + RB + Back  ->  POST /admin/reset
     LB + RB + X     ->  POST /admin/close-auction {"lot_id": "all"}
@@ -147,9 +147,9 @@ class XInput:
 PREVIEW_TITLE = "DynamicContents region preview"
 
 # Where that copy writes down what it did with its window. This is the Shipping build's own
-# "project saved dir" - %LOCALAPPDATA%\DCDemo\Saved, not a folder next to the build (see
-# unreal/README.md) - so a booth run needs no path on the command line. A test passes
-# -DCPreviewFile= and --preview-file to keep its evidence next to itself instead.
+# "project saved dir": %LOCALAPPDATA%\DCDemo\Saved, not a folder next to the build - so a
+# booth run needs no path on the command line. A test passes -DCPreviewFile= and
+# --preview-file to keep its evidence next to itself instead.
 DEFAULT_PREVIEW_FILE = (Path(os.environ.get("LOCALAPPDATA") or ".")
                         / "DCDemo" / "Saved" / "dc_preview_window.json")
 

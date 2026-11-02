@@ -1,7 +1,7 @@
 ﻿{
   "_comment": [
-    "The demo server's single source of truth. Values from specs/server_spec_v1.md §2",
-    "(which comes from demo plan v6 §9). Nothing tunable belongs in code.",
+    "The demo server's single source of truth. Values from the server spec §2, which",
+    "comes from demo plan v6 §9. Nothing tunable belongs in code.",
     "",
     "This file is also the source of truth for RIVAL IDENTITY and REGION MAPPING:",
     "which colour, which emblem and which piece each region's rival wears. The art",
@@ -9,8 +9,8 @@
     "must agree with this file — tests/test_rival_identity.py fails if it ever drifts.",
     "",
     "Region ids stay neutral (r1/r2/r3). 'label' is the booth label; 'neutral_label'",
-    "is what management material says (CLAUDE.md rule 3). THE DEMO IS ENGLISH ONLY",
-    "(Kavin's ruling, 2026-11-02), so the 'label_jp' that used to sit here - for the",
+    "is what management material says (the demo's no-names rule). THE DEMO IS ENGLISH",
+    "ONLY (decided 2026-11-02), so the 'label_jp' that used to sit here - for the",
     "preview window's bilingual caption on the HUD canvas - is gone, and so is every",
     "other Japanese string. tests/test_preview.py fails if a region named here is one",
     "portal/strings.js has never heard of."

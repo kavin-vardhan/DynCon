@@ -16,8 +16,8 @@
 // somebody's game, it is a picture of somewhere else - and the HUD draws one thing instead:
 // a **tiny corner caption** saying which region this copy plays as, "A player in India", in
 // the word the server's own config gives (`/preview/region`'s `label`). It used to be two
-// lines, Japanese over that one; the demo is **English only** since 2026-11-02 (Kavin's
-// ruling), here as everywhere else.
+// lines, Japanese over that one; the demo has been **English only** since 2026-11-02,
+// here as everywhere else.
 //
 // Nothing here ever says anything about advertising, brands or money: the Player's screen is
 // a game's screen (plan v6 §3). The only words are the strip's own instrumentation, four
@@ -72,7 +72,7 @@ private:
 	//
 	// The shell's three screens, and the black that covers a game switch. Every line a
 	// visitor reads is English, like the portal and like the preview window's caption
-	// (English only, Kavin's ruling 2026-11-02).
+	// (English only, decided 2026-11-02).
 
 	/** "Press any button to start", and nothing else: the attract loop is the map. */
 	void DrawAttract();

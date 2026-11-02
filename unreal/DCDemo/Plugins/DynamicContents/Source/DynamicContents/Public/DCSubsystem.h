@@ -195,7 +195,7 @@ public:
 	 *  GET /preview/region, so the booth's labels live in the server's config and not in two
 	 *  string tables (`server/config/demo.json`, and `portal/strings.js` for the portal).
 	 *  There used to be a `GetRegionLabelJp()` beside it for the caption's Japanese line;
-	 *  the demo is English only since 2026-11-02 (Kavin's ruling). */
+	 *  the demo has been English only since 2026-11-02. */
 	const FString& GetRegionLabel() const { return RegionLabel; }
 
 	/** The slot the preview window should be looking at, and why the server picked it. */

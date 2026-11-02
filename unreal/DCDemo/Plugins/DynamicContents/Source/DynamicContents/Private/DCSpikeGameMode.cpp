@@ -110,7 +110,7 @@ bool ADCSpikeGameMode::RedirectToRequestedMap()
 	}
 
 	DC_LOG(Log, TEXT("-DCMap=%s: travelling there (this build is Shipping, and a Shipping build "
-		"ignores a map named on the command line - see unreal\\README.md)"), *Wanted);
+		"ignores a map named on the command line)"), *Wanted);
 	UGameplayStatics::OpenLevel(this, FName(*Wanted), true,
 		TEXT("game=/Script/DynamicContents.DCRuntimeGameMode"));
 	return true;

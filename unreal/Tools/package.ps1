@@ -17,7 +17,7 @@ param(
     [string]$Project = 'E:\DynamicContents\unreal\DCDemo\DCDemo.uproject',
     [string]$Archive = 'E:\DynamicContents\unreal\_build\archive',
     # Shipping by default because it is the only configuration that links on this PC until
-    # MSVC 14.44.35207 is installed (unreal\README.md). The plugin's own file log
+    # MSVC 14.44.35207 is installed. The plugin's own file log
     # (Saved\DCLogs\) exists precisely so that costs nothing in evidence.
     [string]$Config = 'Shipping',
     [string]$LogDir = 'E:\DynamicContents\unreal\_build\logs',

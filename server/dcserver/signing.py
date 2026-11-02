@@ -8,7 +8,7 @@
    removed: keys sorted, no whitespace, UTF-8, no trailing newline. A verifier rebuilds
    exactly those bytes from the parsed object. The signed manifest deliberately contains
    no floating-point numbers, so there is nothing to disagree about when the verifier is
-   not Python (see server/README.md).
+   not Python - the game's own verifier is C++, and rebuilds those bytes itself.
 
 2. **File URLs: HMAC-SHA256** over "<pack_id>/<name>|<expiry>" with a secret generated on
    first run. That is what makes /files links signed and expiring without a session. In AWS

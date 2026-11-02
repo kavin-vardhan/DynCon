@@ -187,10 +187,10 @@ namespace
 	 * `bPlanView` is the difference between the two kinds of picture this tool takes.
 	 *
 	 * A **thumbnail** has to look like the game, so it keeps the fog, the sky and **Lumen**.
-	 * Lumen is not optional: this project's ambient light *is* Lumen (`unreal\README.md`,
-	 * "Detail Tracing"), and the first run of this tool turned it off for determinism and
-	 * produced pictures whose every shadow was pure black - Game B's low afternoon sun made
-	 * a near-black photograph of a perfectly well-lit promenade.
+	 * Lumen is not optional: this project's ambient light *is* Lumen, in Detail Tracing
+	 * mode, and the first run of this tool turned it off for determinism and produced
+	 * pictures whose every shadow was pure black - Game B's low afternoon sun made a
+	 * near-black photograph of a perfectly well-lit promenade.
 	 *
 	 * The **plan view** cannot have Lumen whatever we would like: Lumen does not support an
 	 * orthographic projection. So it goes the other way and turns the cast shadows off as
@@ -352,14 +352,14 @@ namespace
 	/**
 	 * The capture's own ambient light, for as long as the tool is running.
 	 *
-	 * This project's ambient light is **Lumen** (`unreal\README.md`, "Detail Tracing"), and
-	 * Lumen cannot run here. Its scene is built and maintained by the main renderer over
-	 * successive frames, and a headless editor has no main renderer - there is no viewport,
-	 * so there is no frame for it to live in. A scene capture on its own therefore gets
-	 * direct light and nothing else, and every surface the sun does not reach comes out
-	 * **pure black**. That is not a subtle loss: Game B's low afternoon sun left a
-	 * near-black photograph of a perfectly well-lit promenade, and the sky light does not
-	 * fix it either (its real-time capture belongs to the same missing frame).
+	 * This project's ambient light is **Lumen**, in Detail Tracing mode, and Lumen cannot
+	 * run here. Its scene is built and maintained by the main renderer over successive
+	 * frames, and a headless editor has no main renderer - there is no viewport, so there
+	 * is no frame for it to live in. A scene capture on its own therefore gets direct light
+	 * and nothing else, and every surface the sun does not reach comes out **pure black**.
+	 * That is not a subtle loss: Game B's low afternoon sun left a near-black photograph of
+	 * a perfectly well-lit promenade, and the sky light does not fix it either (its
+	 * real-time capture belongs to the same missing frame).
 	 *
 	 * So the tool lights its own subject, the way a product-shot rig does: three shadowless
 	 * directional lights sized against the map's own sun - one straight down, one from

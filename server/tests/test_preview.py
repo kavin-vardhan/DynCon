@@ -12,9 +12,9 @@ the game being played at the booth.
 The region labels are tested against `portal/strings.js` for the same reason
 `test_rival_identity.py` tests the art kit's preview table: the game draws its caption on the
 HUD canvas and cannot import the portal's string table, so the two have to be kept honest by
-a test rather than by memory. The demo is **English only** since 2026-11-02 (Kavin's ruling),
-so what is compared is the English names — `label` and `neutral_label` — against the list of
-region names the portal has been written for. There used to be a `label_jp` in both places.
+a test rather than by memory. The demo is **English only** since 2026-11-02, so what is
+compared is the English names — `label` and `neutral_label` — against the list of region
+names the portal has been written for. There used to be a `label_jp` in both places.
 """
 from __future__ import annotations
 
@@ -200,8 +200,8 @@ def test_the_config_and_the_portals_table_agree(cfg: Config) -> None:
 
 
 def test_the_neutral_labels_are_in_the_table_too(cfg: Config) -> None:
-    """Management material uses the neutral labels (CLAUDE.md rule 3), and the portal has
-    to be able to draw those as well."""
+    """Management material uses the neutral labels (the demo's no-names rule), and the
+    portal has to be able to draw those as well."""
     table = read_region_labels()
     for region in cfg.regions:
         neutral = cfg.data["regions"][region].get("neutral_label")
@@ -209,7 +209,7 @@ def test_the_neutral_labels_are_in_the_table_too(cfg: Config) -> None:
 
 
 def test_nothing_in_the_config_carries_a_japanese_label_any_more(env, cfg: Config) -> None:
-    """English only, Kavin's ruling 2026-11-02 (`specs/DECISIONS.md`)."""
+    """English only, decided 2026-11-02."""
     regions = env.ok(env.client.get("/config/public"))["regions"]
     assert regions["r2"] == {"label": "India", "neutral_label": "Mock region 2"}
     for region in cfg.regions:

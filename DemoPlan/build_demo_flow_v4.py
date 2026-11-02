@@ -108,7 +108,7 @@ for i,(time,role,title,detail) in enumerate(steps):
 rect(48,1551,804,46,INK,r=7)
 txt('The building changes. The Player keeps playing.',450,1581,22,'#FFFFFF',True,True)
 txt('Main route shown. Times are approximate; the booking lasts 3 real minutes from the win.',48,1622,14,MUTED)
-txt('Source: DynamicContents_Tokyo_demo_plan_v4.md',48,1646,13,MUTED)
+txt('Source: DynamicContents Tokyo demo plan v4',48,1646,13,MUTED)
 c.save()
 svg.append('</svg>')
 (OUT/(STEM+'.svg')).write_text('\n'.join(svg),encoding='utf-8')

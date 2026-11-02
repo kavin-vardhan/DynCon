@@ -127,8 +127,8 @@ void UDCShell::Start()
 		MapB = Value.TrimQuotes();
 	}
 
-	// No titles anywhere: a card says "Game A" and nothing else (CLAUDE.md rule 3), in
-	// English and nothing else (Kavin's ruling, 2026-11-02). The picture on it is the
+	// No titles anywhere: a card says "Game A" and nothing else (the demo's no-names
+	// rule), in English and nothing else (decided 2026-11-02). The picture on it is the
 	// developer's own plan view of the map, which the slot-map tool captured and registered
 	// with the platform.
 	Cards.Reset();
@@ -441,7 +441,7 @@ void UDCShell::FinishSwitch()
 	PendingGame.Reset();
 
 	// The map's own GameMode Override is what picks ADCRuntimeGameMode up, exactly as
-	// -DCMap= does out of the default map (unreal\README.md).
+	// -DCMap= does out of the default map a Shipping build always starts in.
 	UGameplayStatics::OpenLevel(World, FName(*Map), true,
 		TEXT("game=/Script/DynamicContents.DCRuntimeGameMode"));
 }

@@ -12,10 +12,10 @@
  *
  * It has to happen here rather than in ADCRuntimeGameMode, which is where the rest of the
  * preview lives, because a Shipping build always starts in the default map and travels to
- * the one it was asked for (`-DCMap=`, see unreal/README.md) - so the runtime game mode's
- * BeginPlay is several seconds after the window exists, and for those seconds the booth
- * would be looking at a bordered window of the spike map. Plan v6 §7 wants this window
- * visible only during the region check.
+ * the one it was asked for (`-DCMap=`) - so the runtime game mode's BeginPlay is several
+ * seconds after the window exists, and for those seconds the booth would be looking at a
+ * bordered window of the spike map. Plan v6 §7 wants this window visible only during the
+ * region check.
  *
  * A ticker rather than a delegate because the window is made by the engine's own start-up
  * and there is no "the game window now exists" hook that fires before the first frame; this

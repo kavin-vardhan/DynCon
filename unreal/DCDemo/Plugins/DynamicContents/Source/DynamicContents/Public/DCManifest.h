@@ -1,5 +1,5 @@
 // What the backend says belongs in a slot, once the signature has been checked and the
-// payload parsed: see server\README.md ("Verifying a manifest") and specs\server_spec_v1.md §4.
+// payload parsed.
 //
 // /resolve answers with an *envelope*:
 //

@@ -11,10 +11,10 @@
         Character\Mesh\SK_Mannequin  the male mesh, its skeleton and its physics asset
 
     and nothing else. In particular **no materials and no textures**: the engine mannequin
-    wears the engine's logo on its chest, CLAUDE.md rule 3 is no logos anywhere in this
-    project, and `env_import.dress_mannequin` puts two plain neutral materials on the mesh
-    instead. That also keeps 30 MB of 4K textures and 25 MB of the second character out of
-    the repo - what lands here is about 6.7 MB.
+    wears the engine's logo on its chest, the demo's no-names rule is no logos anywhere in
+    this project, and `env_import.dress_mannequin` puts two plain neutral materials on the
+    mesh instead. That also keeps 30 MB of 4K textures and 25 MB of the second character
+    out of the repo - what lands here is about 6.7 MB.
 
     Then the editor runs `make_maps.py`, which imports the environment kit, makes the two
     palettes, builds BP_DCPlayer and BP_DCPlayerController, and writes /Game/Maps/GameA and

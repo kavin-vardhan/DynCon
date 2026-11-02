@@ -10,6 +10,9 @@ import pytest
 from conftest import CONFIG_PATH, REPO_DIR
 from dcserver.config import Config, ConfigError
 
+# The written content-asset spec, when this copy of the tree carries it. It is the only
+# document any test reads, and `test_size_classes_match_the_asset_spec` skips when it is
+# not there.
 ASSET_SPEC = REPO_DIR / "specs" / "content_assets_spec_v1.md"
 
 
@@ -70,7 +73,7 @@ def test_brand_presets(cfg: Config) -> None:
 
 
 def parse_asset_spec_classes() -> dict[str, tuple[float, float, float, list[str]]]:
-    """The size-class table out of specs/content_assets_spec_v1.md §2."""
+    """The size-class table out of the content-asset spec, section 2."""
     out: dict[str, tuple[float, float, float, list[str]]] = {}
     for line in ASSET_SPEC.read_text(encoding="utf-8").splitlines():
         m = re.match(r"\|\s*\*\*([SLT])\*\*[^|]*\|\s*[^\d|]*([\d.]+)\s*[x×]\s*([\d.]+)\s*m"
@@ -83,7 +86,14 @@ def parse_asset_spec_classes() -> dict[str, tuple[float, float, float, list[str]
 
 
 def test_size_classes_match_the_asset_spec(cfg: Config) -> None:
-    """One set of numbers for the art and for the server's fit check."""
+    """One set of numbers for the art and for the server's fit check.
+
+    The numbers live in a written document, and a copy of this tree need not carry it.
+    With the document absent there is nothing to compare the config against, so this is
+    skipped; every other test in this file checks the config on its own.
+    """
+    if not ASSET_SPEC.is_file():
+        pytest.skip(f"{ASSET_SPEC.name} is not in this copy of the tree")
     table = parse_asset_spec_classes()
     assert set(table) == {"S", "L", "T"}, f"could not read the spec table: {table}"
     for cls, (x, y, z, slots) in table.items():

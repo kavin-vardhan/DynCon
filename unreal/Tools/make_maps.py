@@ -15,9 +15,9 @@ and a walled garden; Game B is a cool waterfront with a promenade, a quay and a 
 the water. The difference is carried by layout, by palette and by light, and all three come
 from the same 23-piece environment kit, so nothing had to be modelled twice.
 
-Name-agnostic, as CLAUDE.md rule 3 requires: **no text, no signs, no logos, no names** are
-placed anywhere in either map. The only lettering the demo ever shows is the status strip,
-which the plugin draws.
+Name-agnostic, as the demo's no-names rule requires: **no text, no signs, no logos, no
+names** are placed anywhere in either map. The only lettering the demo ever shows is the
+status strip, which the plugin draws.
 
 Everything here is data plus small loops, so a layout change is a number, and the two maps are
 reproducible from the repo with no hand editing.

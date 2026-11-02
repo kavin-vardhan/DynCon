@@ -5,7 +5,7 @@
 //      relays every press over a WebSocket. Background input is the whole point: the
 //      browser window never has to have focus for the pad to work, so staff can click
 //      anywhere on the other monitor without the visitor's pad going dead.
-//   2. the keyboard, as the hidden emergency fallback (specs/portal_spec_v1.md §1).
+//   2. the keyboard, as the hidden emergency fallback.
 //
 // Everything downstream sees the same button names, so a screen cannot tell which was
 // used — and the scripted walkthrough (pad_helper.py --simulate) drives the real path.

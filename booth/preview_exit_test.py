@@ -297,11 +297,10 @@ class PreviewRun:
         """Put the India rival in A1 for the length of the test.
 
         The booth's attract rotation alternates the region's rival and the developer's
-        default block by block (specs/DECISIONS.md), so on a server one minute old A1 in
-        India could be showing either. The beat under test is "the India rival's building is
-        there, not yours", so the test writes that block itself with the same admin call a
-        rehearsal uses. Its kind is `rival`, so it never becomes the preview's focus - that
-        follows the visitor.
+        default block by block, so on a server one minute old A1 in India could be showing
+        either. The beat under test is "the India rival's building is there, not yours", so
+        the test writes that block itself with the same admin call a rehearsal uses. Its
+        kind is `rival`, so it never becomes the preview's focus - that follows the visitor.
         """
         health = self.api("/admin/health")
         rival = (health.get("system_packs") or {}).get("rival2") or {}
@@ -738,9 +737,9 @@ class PreviewRun:
                 # the viewport pinned, the page is laid out at 1920 x 1080 and drawn scaled
                 # into the window - so the audit sees the booth's sizes and the screen sees
                 # the booth's picture.
-                # en-US: the portal is English only since 2026-11-02 (Kavin's ruling), so
-                # the page and the browser agree and nothing offers to translate anything.
-                # It used to be ja-JP, for a Japanese page on a Japanese machine.
+                # en-US: the portal has been English only since 2026-11-02, so the page
+                # and the browser agree and nothing offers to translate anything. It used
+                # to be ja-JP, for a Japanese page on a Japanese machine.
                 context = browser.new_context(viewport=pet.VIEWPORT, device_scale_factor=1,
                                               locale="en-US")
                 page = context.new_page()

@@ -118,10 +118,10 @@ class Pad:
 # is anything too small to read from two metres.
 #
 # Check 1 used to be the other way round — "does every bilingual block really have both
-# languages". **Kavin ruled on 2026-11-02 that the demo is English only**, so what the
-# audit now looks for is any Japanese at all. `server/tests/test_no_japanese.py` is the
-# same check on the source; this one is on the pixels, because a string can also arrive
-# from the server at runtime.
+# languages". **The demo became English only on 2026-11-02**, so what the audit now looks
+# for is any Japanese at all. `server/tests/test_no_japanese.py` is the same check on the
+# source; this one is on the pixels, because a string can also arrive from the server at
+# runtime.
 PAGE_AUDIT = r"""
 () => {
   const problems = [];
