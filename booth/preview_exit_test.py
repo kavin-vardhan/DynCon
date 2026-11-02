@@ -335,7 +335,7 @@ class PreviewRun:
         ]
         print("starting the region preview window (before the main game, so the main game "
               "ends up with the focus)", flush=True)
-        return subprocess.Popen(args)
+        return subprocess.Popen(dc_paths.game_cmdline(args))
 
     def start_main(self) -> subprocess.Popen:
         x, y, w, h = MAIN_WINDOW
@@ -360,7 +360,7 @@ class PreviewRun:
             f"-DCRunSeconds={self.args.seconds}",
         ]
         print("starting the main game", flush=True)
-        return subprocess.Popen(args)
+        return subprocess.Popen(dc_paths.game_cmdline(args))
 
     def wait_for_slot(self, status_path: Path, slot: str, piece: str,
                       seconds: float = 45.0) -> dict[str, Any]:

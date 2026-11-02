@@ -81,7 +81,8 @@ if ($Cvars) { $gameArgs += "-DCCvars=$Cvars" }
 
 Write-Host ("running {0} over {1} pack(s)" -f $Exe, $entries.Count)
 $started = Get-Date
-$proc = Start-Process -FilePath $Exe -ArgumentList $gameArgs -PassThru
+$proc = Start-Process -FilePath $Exe -PassThru `
+    -ArgumentList (Get-DCGameCommandLine $gameArgs)
 if (-not $proc.WaitForExit($TimeoutSeconds * 1000)) {
     Write-Warning "timed out after $TimeoutSeconds s - killing it so nothing is left running"
     $proc.Kill()

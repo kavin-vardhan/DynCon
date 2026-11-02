@@ -63,6 +63,64 @@ GAME = "A"
 FLIP_SECONDS = 20.0
 
 
+PREVIEW_TITLE = "DynamicContents region preview"
+
+
+def raise_game_window() -> tuple[int, int, int, int] | None:
+    """Bring the main game's window to the top, without activating it, and say where it is.
+
+    Not activating it is the point: a window that takes focus takes controller 1 with it,
+    and the one thing that must never happen at the booth is the main game losing either
+    (plan v6 section 11). SWP_NOACTIVATE raises it in the z-order and leaves the focus
+    where it was, which is all a screenshot needs.
+    """
+    import ctypes
+    from ctypes import wintypes
+
+    user32 = ctypes.windll.user32
+    found: list[tuple[int, str]] = []
+
+    @ctypes.WINFUNCTYPE(ctypes.c_bool, wintypes.HWND, wintypes.LPARAM)
+    def visit(hwnd, _param):                                           # noqa: ANN001
+        if not user32.IsWindowVisible(hwnd):
+            return True
+        length = user32.GetWindowTextLengthW(hwnd)
+        if length <= 0:
+            return True
+        buffer = ctypes.create_unicode_buffer(length + 1)
+        user32.GetWindowTextW(hwnd, buffer, length + 1)
+        pid = wintypes.DWORD()
+        user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+        found.append((int(hwnd), buffer.value, int(pid.value)))
+        return True
+
+    user32.EnumWindows(visit, 0)
+    names = game_process_names()
+    windows = [(hwnd, title) for hwnd, title, pid in found
+               if pid in names and title != PREVIEW_TITLE]
+    if not windows:
+        return None
+    hwnd = windows[0][0]
+    HWND_TOP, SWP_NOMOVE, SWP_NOSIZE = 0, 0x0002, 0x0001
+    SWP_NOACTIVATE, SWP_SHOWWINDOW = 0x0010, 0x0040
+    user32.SetWindowPos(hwnd, HWND_TOP, 0, 0, 0, 0,
+                        SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW)
+    rect = wintypes.RECT()
+    user32.GetWindowRect(hwnd, ctypes.byref(rect))
+    if rect.right - rect.left < 16 or rect.bottom - rect.top < 16:
+        return None
+    return (rect.left, rect.top, rect.right, rect.bottom)
+
+
+def game_process_names() -> set[int]:
+    """The pids of every running copy of the packaged game."""
+    script = ("Get-Process -Name 'DCDemo*' -ErrorAction SilentlyContinue | "
+              "Select-Object -ExpandProperty Id")
+    done = subprocess.run(["powershell", "-NoProfile", "-Command", script],
+                          capture_output=True, text=True)
+    return {int(line) for line in done.stdout.split() if line.strip().isdigit()}
+
+
 def first_token(command_line: str | None) -> str:
     """The program a command line asks for, lower-cased, quotes taken off."""
     text = (command_line or "").strip()
@@ -309,12 +367,25 @@ class Run:
         return bool(ok)
 
     def shot(self, name: str) -> None:
+        """A picture of the GAME'S WINDOW, not of the desktop.
+
+        Of the window on purpose, and twice over. A whole-desktop grab photographs whatever
+        else is open on the machine the test is run on, which is nobody's business and would
+        end up committed; and it photographs whatever is in front, which on a working
+        machine is not the game. So the window is raised in the z-order - raised, not
+        activated: the booth's whole rule is that the main game keeps the focus and
+        controller 1 with it - and its own rectangle is what is saved.
+        """
         if not self.shots_wanted:
             return
         try:
             from PIL import ImageGrab
-            time.sleep(0.5)
-            image = ImageGrab.grab(all_screens=True)
+            box = raise_game_window()
+            if not box:
+                self.say("no picture: no game window to photograph")
+                return
+            time.sleep(0.6)
+            image = ImageGrab.grab(bbox=box, all_screens=True)
             path = self.out / f"{len(self.shots) + 1:02d}_{name}.png"
             image.save(path)
             self.shots.append((name, path))

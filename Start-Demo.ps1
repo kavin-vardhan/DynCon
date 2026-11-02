@@ -291,10 +291,37 @@ if (-not $NoGame) {
         $gameArgs[3] = "-ResY=$($left.Height)"
     }
     # No -DCRunSeconds and no -DCQuitWhenFileExists: the game runs until it is stopped.
-    Note 'game' (Start-Process -FilePath $exe -ArgumentList $gameArgs -PassThru)
+    Note 'game' (Start-Process -FilePath $exe -PassThru `
+        -ArgumentList (Get-DCGameCommandLine $gameArgs))
     Write-Host ("  map /Game/Maps/Game{0}, region {1}, attract loop, no time limit" -f `
         $Game, $mainRegion)
     Write-Host "  log $gameLog"
+
+    # Wait for it to say it is up, rather than for a window to appear: the game writes a
+    # status file (-DCStatusFile) the moment its client has talked to the server, and that
+    # file is the one honest answer to "is the game running and is it connected?". A packaged
+    # build takes a few seconds, and a bad command line produces a window and nothing else.
+    $statusFile = Join-Path $runDir 'dc_status.json'
+    if (Test-Path $statusFile) { Remove-Item $statusFile -Force }
+    $deadline = (Get-Date).AddSeconds(150)
+    $gameStatus = $null
+    while ((Get-Date) -lt $deadline) {
+        if (Test-Path $statusFile) {
+            try {
+                $gameStatus = Get-Content $statusFile -Raw | ConvertFrom-Json
+                if ($gameStatus.slots) { break }
+            } catch { }                       # it is being rewritten; look again
+        }
+        Start-Sleep -Milliseconds 700
+    }
+    if ($gameStatus -and $gameStatus.slots) {
+        $filled = @($gameStatus.slots.PSObject.Properties | ForEach-Object {
+            "{0} {1} {2}" -f $_.Name, $_.Value.state, $_.Value.piece })
+        Write-Host ("  the game is up: build {0}, backend {1}, slots {2}" -f `
+            $gameStatus.build, $gameStatus.backend_status, ($filled -join ', '))
+    } else {
+        Write-Warning "  the game has not written $statusFile yet - look at $gameLog"
+    }
 
     if ($Booth) {
         Write-Host '  placing it borderless on the left-hand monitor'

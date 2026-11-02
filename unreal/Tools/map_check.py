@@ -173,7 +173,7 @@ class MapCheck:
         print(f"running the packaged game on {self.plan['map']} with the scripted tour",
               flush=True)
         started = time.time()
-        proc = subprocess.Popen(args)
+        proc = subprocess.Popen(dc_paths.game_cmdline(args))
         try:
             code = proc.wait(timeout=960)
         except subprocess.TimeoutExpired:

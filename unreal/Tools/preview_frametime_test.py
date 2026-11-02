@@ -189,7 +189,7 @@ class FrameTimeTest:
                     f"-DCRunSeconds={seconds + 240}",
                 ]
                 print("  starting the region preview window", flush=True)
-                preview = subprocess.Popen(preview_args)
+                preview = subprocess.Popen(dc_paths.game_cmdline(preview_args))
                 time.sleep(12)          # long enough to place its window and fill its slots
 
             game_args = [
@@ -210,7 +210,7 @@ class FrameTimeTest:
             print(f"  {label}: the main game, {self.args.minutes:.0f} minutes of the "
                   f"scripted tour at {self.args.res_x}x{self.args.res_y}", flush=True)
             started = time.time()
-            proc = subprocess.Popen(game_args)
+            proc = subprocess.Popen(dc_paths.game_cmdline(game_args))
             try:
                 code = proc.wait(timeout=seconds + 420)
             except subprocess.TimeoutExpired:

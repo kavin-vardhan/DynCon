@@ -80,6 +80,40 @@ def game_exe() -> Path:
     return candidates[0]
 
 
+def game_cmdline(args: list[str] | tuple[str, ...]) -> str:
+    """A Windows command line the ENGINE parses correctly, spaces in paths and all.
+
+    This exists because of one detail of how Unreal reads its own command line, and it
+    cost a run of the office exit test to find. `FParse::Value` looks for `Key=` in the
+    raw command line and then, *and only then*, checks whether the next character is a
+    quote::
+
+        -DCCacheDir="C:\\DC Office Test\\x"       the engine reads the whole path
+        "-DCCacheDir=C:\\DC Office Test\\x"       the engine reads `C:\\DC`
+
+    The second form is what every quoting routine produces on its own - Python's
+    `list2cmdline`, PowerShell's `Start-Process -ArgumentList` - because to them the
+    argument is one string with a space in it and quoting the string is the right answer.
+    It is the right answer for every other program. So the quoting is done here instead,
+    and `subprocess` is handed a command line string rather than a list, which on Windows
+    it passes through untouched.
+
+    Pass the program as the first element, exactly as for a list.
+    """
+    out: list[str] = []
+    for index, raw in enumerate(args):
+        arg = str(raw)
+        if index == 0 or " " not in arg:
+            out.append(f'"{arg}"' if " " in arg else arg)
+            continue
+        key, sep, value = arg.partition("=")
+        if sep and key.startswith("-"):
+            out.append(f'{key}="{value}"')          # the quote goes AFTER the equals sign
+        else:
+            out.append(f'"{arg}"')
+    return " ".join(out)
+
+
 def log_dir() -> Path:
     """Where a run may write its logs: ``_logs`` at the root of this copy of the tree.
 

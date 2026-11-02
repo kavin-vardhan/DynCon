@@ -190,7 +190,7 @@ class LightSweep:
 
         print(f"\n== {name}: {what}\n   {' '.join(switches)}", flush=True)
         started = time.time()
-        proc = subprocess.Popen(game_args)
+        proc = subprocess.Popen(dc_paths.game_cmdline(game_args))
         try:
             code = proc.wait(timeout=seconds + 420)
         except subprocess.TimeoutExpired:

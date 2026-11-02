@@ -168,7 +168,7 @@ class LightShots:
 
         print(f"== {name}: {' '.join(switches) or '(the build defaults)'}", flush=True)
         started = time.time()
-        proc = subprocess.Popen(args)
+        proc = subprocess.Popen(dc_paths.game_cmdline(args))
         try:
             code = proc.wait(timeout=480)
         except subprocess.TimeoutExpired:

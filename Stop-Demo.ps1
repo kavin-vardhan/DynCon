@@ -35,12 +35,59 @@ $stateFile = Join-Path $repo '_run\demo_run.json'
 
 function Say([string]$line) { if (-not $Quiet) { Write-Host $line } }
 
+function Get-Descendants([int]$root) {
+    <#  Every process under this one, deepest first.
+
+        Not `taskkill /T`: taskkill writes to stderr when one member of a tree will not die
+        - a browser's crash handler, for instance - and in PowerShell a native command's
+        stderr becomes an error record, which with $ErrorActionPreference = 'Stop' throws.
+        The first run of the office exit test ended with the server still listening because
+        of exactly that: the browser kept one child alive, taskkill complained, the script
+        stopped, and the two things after it in the list were never stopped at all.
+    #>
+    $all = Get-CimInstance Win32_Process -Property ProcessId, ParentProcessId |
+        ForEach-Object { @{ pid = [int]$_.ProcessId; parent = [int]$_.ParentProcessId } }
+    $byParent = @{}
+    foreach ($row in $all) {
+        if (-not $byParent.ContainsKey($row.parent)) { $byParent[$row.parent] = @() }
+        $byParent[$row.parent] += $row.pid
+    }
+    # Not $pid: that is PowerShell's own read-only variable for this process.
+    $order = New-Object System.Collections.ArrayList
+    $queue = New-Object System.Collections.Queue
+    $queue.Enqueue($root)
+    while ($queue.Count -gt 0) {
+        $current = $queue.Dequeue()
+        [void]$order.Add($current)
+        foreach ($child in ($byParent[$current] | Where-Object { $_ -and $order -notcontains $_ })) {
+            $queue.Enqueue($child)
+        }
+    }
+    $order.Reverse()
+    return $order
+}
+
+
 function Stop-Tree($proc, [string]$what) {
     Say ("  stopping {0,-22} pid {1}" -f $what, $proc.Id)
-    & taskkill /PID $proc.Id /T /F 2>&1 | Out-Null
+    $stubborn = @()
+    foreach ($id in (Get-Descendants $proc.Id)) {
+        $child = Get-Process -Id $id -ErrorAction SilentlyContinue
+        if (-not $child) { continue }
+        try {
+            Stop-Process -Id $id -Force -ErrorAction Stop
+        } catch {
+            # Already going, or a protected process. Either way it is not worth stopping
+            # everything else over; the check at the end of this script has the last word.
+            $stubborn += "$($child.ProcessName) (pid $id)"
+        }
+    }
     if (-not $proc.WaitForExit(20000)) {
-        Say "    it did not go - killing it directly"
-        try { $proc.Kill() } catch { }
+        Say "    it did not go within 20 s"
+        $stubborn += "$($proc.ProcessName) (pid $($proc.Id))"
+    }
+    if ($stubborn) {
+        Say ("    would not stop: {0}" -f (($stubborn | Select-Object -Unique) -join ', '))
     }
 }
 

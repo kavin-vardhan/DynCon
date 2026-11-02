@@ -210,7 +210,7 @@ class StateExitTest:
         ]
         print(f"starting the packaged game: {self.rounds} round(s) on {SLOT}, "
               f"plan {','.join(self.plan[:self.rounds])}", flush=True)
-        self.game = subprocess.Popen(args)
+        self.game = subprocess.Popen(dc_paths.game_cmdline(args))
 
     def stop_game(self) -> int:
         if not self.game:

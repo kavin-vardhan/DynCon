@@ -97,7 +97,8 @@ if ($Seconds -gt 0) { $gameArgs += "-DCRunSeconds=$Seconds" }
 Write-Host "starting the region preview window as region $Region on $Map"
 Write-Host "  log         $dcLog"
 Write-Host "  window file $WindowFile"
-$proc = Start-Process -FilePath $Exe -ArgumentList $gameArgs -PassThru
+$proc = Start-Process -FilePath $Exe -PassThru `
+    -ArgumentList (Get-DCGameCommandLine $gameArgs)
 Write-Host ("  pid         {0}" -f $proc.Id)
 if ($PidFile) {
     New-Item -ItemType Directory -Force -Path (Split-Path $PidFile -Parent) | Out-Null

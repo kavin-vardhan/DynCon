@@ -105,7 +105,8 @@ try {
     if ($Xray)  { $gameArgs += '-DCXray' }
     Write-Host "running the game for $Seconds s"
     $started = Get-Date
-    $proc = Start-Process -FilePath $Exe -ArgumentList $gameArgs -PassThru
+    $proc = Start-Process -FilePath $Exe -PassThru `
+        -ArgumentList (Get-DCGameCommandLine $gameArgs)
     if (-not $proc.WaitForExit(($Seconds + 120) * 1000)) {
         Write-Warning 'the game outstayed its welcome - killing it'
         $proc.Kill(); $proc.WaitForExit(15000)

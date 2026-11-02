@@ -193,7 +193,7 @@ class MenuExitTest:
               f"{'one tour lap with the X-ray on' if self.args.xray_only else 'the menu run'}",
               flush=True)
         started = time.time()
-        proc = subprocess.Popen(game_args)
+        proc = subprocess.Popen(dc_paths.game_cmdline(game_args))
 
         # Watch the badge while it runs: the portal's "playing at this booth" has to follow
         # a switch, and the only way to see that is to ask while the switch is happening.

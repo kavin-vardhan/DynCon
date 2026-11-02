@@ -54,6 +54,40 @@ function Find-DCGameExe {
 }
 
 
+function Get-DCGameCommandLine {
+    <#
+        One command-line string for the packaged game, quoted the way the ENGINE reads it.
+
+        This exists because of one detail of how Unreal parses its own command line, and it
+        cost a run of the office exit test to find. FParse::Value looks for "Key=" in the
+        raw command line and only then checks whether the next character is a quote:
+
+            -DCCacheDir="C:\DC Office Test\x"      the engine reads the whole path
+            "-DCCacheDir=C:\DC Office Test\x"      the engine reads C:\DC
+
+        The second form is what every quoting routine produces by itself - including
+        Start-Process -ArgumentList with an array - because to it the argument is one string
+        with a space in it, and quoting the string is the right answer for every other
+        program. So the quoting is done here and the result is handed over as a single
+        string, which Start-Process passes through untouched.
+
+        The matching function for the Python side is dc_paths.game_cmdline().
+    #>
+    param([Parameter(Mandatory = $true)][string[]]$Arguments)
+
+    $out = foreach ($arg in $Arguments) {
+        if ($arg -notmatch ' ') {
+            $arg
+        } elseif ($arg -match '^(-[^=]+)=(.*)$') {
+            '{0}="{1}"' -f $Matches[1], $Matches[2]     # the quote goes AFTER the = sign
+        } else {
+            '"{0}"' -f $arg
+        }
+    }
+    return ($out -join ' ')
+}
+
+
 function Get-DCLogDir {
     <#  Where a run may write its logs: _logs at the root of this copy of the tree. Inside
         the tree on purpose - a run must leave nothing outside the folder it was started

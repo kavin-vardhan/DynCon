@@ -51,7 +51,8 @@ $args = @(
 Write-Host "running $Exe"
 Write-Host "  -DCSpikeMount=$mount"
 $started = Get-Date
-$proc = Start-Process -FilePath $Exe -ArgumentList $args -PassThru
+$proc = Start-Process -FilePath $Exe -PassThru `
+    -ArgumentList (Get-DCGameCommandLine $args)
 if (-not $proc.WaitForExit($TimeoutSeconds * 1000)) {
     Write-Warning "timed out after $TimeoutSeconds s - killing it so nothing is left running"
     $proc.Kill()

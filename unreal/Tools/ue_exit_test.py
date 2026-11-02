@@ -205,7 +205,7 @@ class ExitTest:
             f"-DCQuitWhenFileExists={self.quit_file}", "-DCRunSeconds=900",
         ]
         print("starting the packaged game (it contains none of the content)", flush=True)
-        self.game = subprocess.Popen(args)
+        self.game = subprocess.Popen(dc_paths.game_cmdline(args))
 
     def stop_game(self) -> int:
         if not self.game:
