@@ -230,7 +230,10 @@ def check(root: Path) -> int:
     total = sum(p.stat().st_size for p in root.rglob("*") if p.is_file())
     say(f"  {files} file(s), {total / 1024 / 1024:.1f} MiB")
     say(f"  this machine's folders: {mine}  (must be 0)")
-    say(f"  somebody else's C:\\Users\\ path, in a third-party package: {len(theirs)}")
+    # The wording here is deliberately not the shape it is talking about: written out, this
+    # line would itself be a hit in the export's guard, reported for ever as a path this
+    # project carries when all it carries is a sentence about one.
+    say(f"  somebody else's user folder, in a third-party package: {len(theirs)}")
     for line in theirs:
         say(f"      {line}")
     return 0 if (imports_ok and mine == 0) else 1
